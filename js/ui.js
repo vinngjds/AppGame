@@ -11,7 +11,12 @@
   const fmt = (n) => Math.round(n).toLocaleString('pt-BR');
   const save = () => G.save(st);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* ignore */ } };
+  const buzz = (ms) => {
+    try {
+      const hp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+      if (hp) hp.vibrate({ duration: ms }); else if (navigator.vibrate) navigator.vibrate(ms);
+    } catch (e) { /* ignore */ }
+  };
 
   function toast(msg) {
     toastEl.textContent = msg; toastEl.hidden = false;

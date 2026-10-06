@@ -24,3 +24,7 @@ Um workflow (`.github/workflows/pages.yml`) publica no GitHub Pages ao fazer mer
 
 ## Balanceamento
 Fórmulas em `core.js` (`makeMonster`, `heroStats`, `makeItem`). Um bot simples zera os 15 chefes (nível ~32), com mortes só nos primeiros.
+
+## Lançamento nas lojas
+Veja `docs/LANCAMENTO.md` (Capacitor, Google Play e App Store), `store/listagem.md` (textos da loja) e `privacidade.html` (política de privacidade).
+`npm run build` gera `www/`; `npm run test:balance` roda a simulação de equilíbrio.

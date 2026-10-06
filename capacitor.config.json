@@ -1,0 +1,11 @@
+{
+  "appId": "com.eradapedra.game",
+  "appName": "Era da Pedra",
+  "webDir": "www",
+  "backgroundColor": "#1a110b",
+  "ios": { "contentInset": "never", "backgroundColor": "#1a110b" },
+  "android": { "backgroundColor": "#1a110b", "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 1200, "backgroundColor": "#1a110b", "showSpinner": false }
+  }
+}
