@@ -1,0 +1,16 @@
+{
+  "name": "Era da Pedra",
+  "short_name": "Era da Pedra",
+  "description": "RPG da Idade da Pedra: evolua seu herói, enfrente 15 chefes e conquiste troféus.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a110b",
+  "theme_color": "#1a110b",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
