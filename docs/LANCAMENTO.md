@@ -38,5 +38,5 @@ Cada app guarda o progresso no próprio armazenamento. O save da versão web **n
 ## 5. Antes do lançamento público
 - Trocar emojis por arte própria (opcional, mas melhora muito a aceitação).
 - Adicionar som e música.
-- Rodar `npm run test:balance` após mexer em fórmulas.
+- Rodar `npm test` e `npm run test:balance` após mexer em fórmulas.
 - Testar em aparelhos reais (Android e iPhone) por alguns dias.
