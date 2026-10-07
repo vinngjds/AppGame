@@ -128,3 +128,15 @@ h2.banner{margin:4px 0 12px;text-align:center;font-size:17px;letter-spacing:1px;
 .chips.wrap{flex-wrap:wrap;overflow:visible}
 
 .waitrow{gap:8px;margin-top:10px;justify-content:space-between}.waitrow .btn{flex:1;padding:8px 6px;font-size:12px}
+
+.figure svg{width:100%;height:100%;display:block}
+.bonus{font-size:10px;color:#8fe05a;margin-top:2px}
+.avpick{display:flex;gap:10px;margin:10px 0;align-items:stretch}
+.avprev{width:42%;flex:none;background:radial-gradient(circle at 50% 45%,#6a4a2a,#2a1b10 70%);border:2px solid var(--edge);border-radius:12px;padding:6px}
+.avprev svg{width:100%;height:auto;display:block}
+.avopts{flex:1}
+.avopts .sub{margin:8px 0 4px}
+.avopts .chips button{padding:8px 10px;font-size:13px}
+.swatches{display:flex;gap:8px}
+.sw{width:34px;height:34px;border-radius:50%;border:3px solid var(--edge);padding:0}
+.sw.on{border-color:var(--ochre);box-shadow:0 0 0 2px #000,0 0 8px var(--ochre)}

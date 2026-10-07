@@ -93,4 +93,29 @@ t('ouro e XP escassos', () => {
   const st = G.newState('x'); const f = G.startFight(st, G.makeMonster(1, 'normal'), { mode: 'story' }); f.over = true; f.won = true; f.hero.hp = f.hero.max;
   const rep = G.finishFight(st, f); assert(rep.gold <= 8, 'ouro da 1ª fera deve ser baixo: ' + rep.gold);
 });
+t('troféus dão bônus vitalício de atributo', () => {
+  const st = G.newState('x'); st.level = 10; const b0 = G.heroStats(st);
+  st.trophies = [1]; const b1 = G.heroStats(st); assert(b1.atk > b0.atk, 'chefe 1 dá Força');
+  st.trophies = [1, 2, 3, 4]; const b4 = G.heroStats(st);
+  assert(b4.hp > b0.hp && b4.arm > b0.arm && b4.crit > b0.crit);
+  const tt = G.trophyTotals(st); assert.deepEqual([tt.atk, tt.hp, tt.arm, tt.crit], [3, 4, 4, 1.5]);
+  st.evTrophies = [{ id: 'w', type: 'weekly', bonus: G.evTrophyBonus('weekly', 0) }]; assert(G.trophyTotals(st).atk > 3);
+  // vitória sobre um chefe concede o troféu e informa o bônus
+  st.trophies = []; st.level = 5; const f = G.startFight(st, G.makeMonster(5, 'boss', G.BOSSES[1]), { mode: 'boss' }); f.over = true; f.won = true; f.hero.hp = f.hero.max;
+  const rep = G.finishFight(st, f); assert.equal(rep.trophyBonus.stat, 'hp'); assert(st.trophies.includes(2));
+});
+t('avatar: começa só com a roupa de baixo e mostra o equipamento', () => {
+  const A = require(path.join(__dirname, '..', 'js', 'avatar.js'));
+  const st = G.newState('x'); st.equipped.arma = null;
+  const nu = A.svg({ g: 'f', skin: 0, hair: 0 }, st.equipped);
+  assert(nu.startsWith('<svg') && !nu.includes('stroke-width="4"/><circle cx="156"'), 'sem escudo');
+  const dressed = Object.assign({}, st.equipped); for (const sl of G.SLOT_ORDER) dressed[sl] = G.makeItem(sl, 20, 3);
+  const v = A.svg({ g: 'm', skin: 2, hair: 1 }, dressed);
+  assert(v.length > nu.length * 1.6, 'equipamento adiciona camadas'); assert(v.includes('#b06be0'), 'cor da raridade épica');
+  assert(A.svg({ g: 'm', skin: 1, hair: 1 }, G.newState('y').equipped) !== A.svg({ g: 'f', skin: 1, hair: 1 }, G.newState('y').equipped), 'masculino e feminino diferem');
+});
+t('chefes ficam mais fortes ao longo da campanha', () => {
+  const m = (no) => G.makeMonster(10, 'boss', G.BOSSES[no - 1]);
+  assert(m(15).atk > m(8).atk && m(8).atk > m(1).atk * 1.4); assert(m(15).hp > m(1).hp * 2);
+});
 console.log(`\n${n} testes passaram`);

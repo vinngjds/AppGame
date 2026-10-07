@@ -63,6 +63,7 @@
   };
   const RUNE_NAMES = ['Menor', 'Antiga', 'Ancestral', 'Primordial', 'Divina'];
   const tierOf = (lvl) => Math.min(4, Math.floor(lvl / 8));
+  G.tierOf = tierOf;
   const uid = () => Math.random().toString(36).slice(2, 10);
 
   function rollRarity(bonus = 0, min = 0) {
@@ -175,16 +176,38 @@
     return { ok: true, id: G.finishTraining(st) };
   };
 
+  /* ---------- Bônus vitalício dos troféus ---------- */
+  const TB = ['atk', 'hp', 'arm', 'crit'];
+  G.TB_NAMES = { atk: 'Força', hp: 'Vida', arm: 'Armadura', crit: 'Crítico' };
+  G.TB_ICON = { atk: '⚔️', hp: '❤️', arm: '🛡️', crit: '🎯' };
+  // chefe n: Força, Vida, Armadura, Crítico em rotação (valores em % — crítico em pontos)
+  G.trophyBonus = function (no) {
+    const stat = TB[(no - 1) % 4];
+    return { stat, v: stat === 'crit' ? 1.5 : stat === 'atk' ? 3 : 4 };
+  };
+  G.evTrophyBonus = function (type, idx) {
+    const stat = TB[idx % 4], big = type === 'monthly';
+    return { stat, v: stat === 'crit' ? (big ? 1 : 0.5) : (big ? 2 : 1) };
+  };
+  G.bonusText = (b) => `${G.TB_ICON[b.stat]} +${b.v}${b.stat === 'crit' ? ' pts de' : '% de'} ${G.TB_NAMES[b.stat]}`;
+  G.trophyTotals = function (st) {
+    const t = { atk: 0, hp: 0, arm: 0, crit: 0 };
+    for (const no of st.trophies) { const b = G.trophyBonus(no); t[b.stat] += b.v; }
+    for (const e of st.evTrophies || []) if (e.bonus) t[e.bonus.stat] += e.bonus.v;
+    return t;
+  };
+
   /* ---------- Herói ---------- */
   G.xpToNext = (L) => Math.round(40 * Math.pow(L, 1.55));
   const KIND_XP = { normal: 1, elite: 1.6, semi: 2.0, boss: 3.5, training: 0.5, event: 3 };
   const KIND_GOLD = { normal: 1, elite: 1.6, semi: 2.2, boss: 5, training: 0.7, event: 6 };
   G.monsterXp = (L, kind) => G.xpToNext(L) / (2.2 + 0.18 * L) * KIND_XP[kind] * G.XP_RATE;
 
-  G.newState = function (name) {
+  G.DEFAULT_AVATAR = { g: 'm', skin: 1, hair: 1 };
+  G.newState = function (name, avatar) {
     const now = Date.now();
     const st = {
-      v: G.STATE_V, name: name || 'Herói', level: 1, xp: 0, hp: 1, hpAt: now,
+      v: G.STATE_V, name: name || 'Herói', avatar: Object.assign({}, G.DEFAULT_AVATAR, avatar || {}), level: 1, xp: 0, hp: 1, hpAt: now,
       gold: 80, ossos: 0, fossils: 0, kills: 0, bossNo: 1, totalKills: 0, trophies: [], evTrophies: [],
       bag: [], bagSize: G.BAG_START,
       equipped: { arma: null, escudo: null, elmo: null, armadura: null, luvas: null, botas: null, amuleto: null, runas: [null, null, null] },
@@ -210,6 +233,8 @@
       if (t === 'forca') pct.atk += v / 100; else if (t === 'vida') pct.hp += v / 100; else if (t === 'pedra') pct.arm += v / 100;
       else if (t === 'sorte') s.crit += v; else if (t === 'sangue') s.vamp += v;
     }
+    const tt = G.trophyTotals(st);
+    pct.atk += tt.atk / 100; pct.hp += tt.hp / 100; pct.arm += tt.arm / 100; s.crit += tt.crit;
     const k = (id) => G.skillRank(st, id);
     pct.atk += 0.03 * k('forca'); pct.hp += 0.04 * k('vigor'); pct.arm += 0.04 * k('casca');
     s.crit += k('olho'); s.critDmg += 0.08 * k('letal'); s.heavy *= 1 + 0.1 * k('golpe');
@@ -305,6 +330,8 @@
     { no: 15, name: 'Tiranossauro Rei',        emoji: '👑', mods: ['feroz', 'esmagador'],        sp: 'Rugido do Rei',      trophy: 'Coroa do Rei Rex',   tIcon: '🏆' },
   ];
 
+  // Ajuste fino da força de cada chefe (nivela a dificuldade entre efeitos diferentes)
+  G.BOSS_TUNE = [0.82, 0.84, 0.88, 1.15, 1.2, 0.82, 1.1, 1.15, 0.9, 1.35, 1.05, 1.1, 1.55, 1.25, 1.55];
   // kind: normal | elite | semi | boss | event
   const KIND_MUL = {
     normal: { hp: 1.0, atk: 1.0, arm: 1.0 },
@@ -319,13 +346,13 @@
     const k = KIND_MUL[kind];
     const m = { atk: (10 + 3.8 * L) * k.atk, hp: (40 + 16.5 * L) * k.hp, arm: (2 + 1.8 * L) * k.arm };
     if (kind === 'boss' && def && def.no) {
-      const ease = Math.min(1, 0.7 + 0.05 * def.no);   // chefes iniciais são mais brandos
-      m.hp *= (1.8 + 0.22 * def.no) * ease / k.hp; m.atk *= (1.15 + 0.06 * def.no) * ease / k.atk;
+      const ease = Math.min(1, 0.66 + 0.05 * def.no);   // chefes iniciais são mais brandos
+      m.hp *= (1.8 + 0.27 * def.no) * ease / k.hp; m.atk *= (1.15 + 0.075 * def.no + 0.13 * Math.max(0, def.no - 5)) * ease * G.BOSS_TUNE[def.no - 1] / k.atk;
     }
     let name, emoji, mods, special = null, bossNo = 0;
     if (kind === 'boss' || kind === 'event') {
       name = def.name; emoji = def.emoji; mods = def.mods.slice(); bossNo = def.no || 0;
-      special = { every: kind === 'boss' ? 4 : 3, mult: kind === 'boss' ? 1.9 : 2.0, name: def.sp || 'Ataque Devastador' };
+      special = { every: kind === 'boss' ? (bossNo > 5 ? 3 : 4) : 3, mult: kind === 'boss' ? 1.8 + 0.03 * bossNo : 2.0, name: def.sp || 'Ataque Devastador' };
     } else {
       const tier = Math.min(POOL.length - 1, Math.floor((L - 1) / 7));
       const tr = R() < 0.3 && tier > 0 ? tier - 1 : tier;
@@ -365,12 +392,12 @@
   function monsterTurn(f) {
     const m = f.mon, h = f.hero;
     f.mturn++;
-    if (m.boss && !f.enraged && m.hp < m.maxHp * 0.5) {
-      f.enraged = true; m.atk = Math.round(m.atk * 1.25);
+    if (m.boss && !f.enraged && m.hp < m.maxHp * 0.6) {
+      f.enraged = true; m.atk = Math.round(m.atk * 1.3);
       ev(f, 'warn', `💢 ${m.name} entra em fúria!`);
     }
     if (m.mods.includes('regenerador') && m.hp > 0) {
-      const heal = Math.round(m.maxHp * 0.04);
+      const heal = Math.round(m.maxHp * 0.03);
       m.hp = Math.min(m.maxHp, m.hp + heal);
       ev(f, 'heal', `${m.name} recupera ${heal} de vida.`, { who: 'mon' });
     }
@@ -612,7 +639,7 @@
         drops.push(G.makeRune(m.level, t === 'monthly' ? 4 : 3));
         const tid = `${t[0]}-${f.event.key}-${f.event.def.id}`;
         if (!st.evTrophies.find((x) => x.id === tid)) {
-          rep.evTrophy = { id: tid, name: `${f.event.def.name} (${f.event.key})`, icon: f.event.def.tIcon, type: t };
+          rep.evTrophy = { id: tid, name: `${f.event.def.name} (${f.event.key})`, icon: f.event.def.tIcon, type: t, bonus: G.evTrophyBonus(t, st.evTrophies.length) };
           st.evTrophies.push(rep.evTrophy);
         }
       }
@@ -629,7 +656,7 @@
     } else if (f.mode === 'boss') {
       const b = G.BOSSES[m.bossNo - 1];
       if (!st.trophies.includes(b.no)) st.trophies.push(b.no);
-      rep.trophy = b; rep.bossNo = b.no;
+      rep.trophy = b; rep.bossNo = b.no; rep.trophyBonus = G.trophyBonus(b.no);
       if (st.bossNo < G.BOSSES.length) { st.bossNo++; st.kills = 0; }
       else { st.kills = 0; if (!st.finished) { st.finished = true; rep.finishedGame = true; } }
     }
@@ -779,6 +806,8 @@
       s.shop = null; s.v = 2;
       G.refreshShop(s);
     }
+    if (!s.avatar) s.avatar = Object.assign({}, G.DEFAULT_AVATAR);
+    (s.evTrophies || []).forEach((e, i) => { if (!e.bonus) e.bonus = G.evTrophyBonus(e.type, i); });
     return s;
   };
   G.save = (st) => { try { localStorage.setItem(G.KEY, JSON.stringify(st)); } catch (e) { /* ignore */ } };

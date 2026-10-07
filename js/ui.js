@@ -107,7 +107,7 @@
     if (kind === 'boss') {
       h += `<div class="card boss"><div class="row"><div class="pic">${boss.emoji}</div><div class="grow">
         <div class="name">Chefe ${boss.no}/15 · ${boss.name}</div><div class="sub">Nível ${st.level + 1} · Golpe especial: ${boss.sp}</div>
-        <div class="sub">Recompensa: ${boss.tIcon} ${boss.trophy} + itens raros · custa ${cost} encontros</div><div class="tags">${modTags(boss.mods)}</div></div></div>
+        <div class="sub">Recompensa: ${boss.tIcon} ${boss.trophy} + itens raros · custa ${cost} encontros</div><div class="sub up">Bônus vitalício: ${G.bonusText(G.trophyBonus(boss.no))}</div><div class="tags">${modTags(boss.mods)}</div></div></div>
         <div class="prog">${pips}</div>${btn('red', '⚔️ Enfrentar o Chefe')}</div>`;
     } else {
       h += `<div class="card ${kind === 'semi' ? 'semi' : ''}"><div class="row"><div class="pic">${kind === 'semi' ? '🐾' : '🌿'}</div><div class="grow"><div class="name">${kind === 'semi' ? 'Semi-chefe da região' : 'Caçar na Selva'}</div>
@@ -126,23 +126,25 @@
       : `<div class="slot empty" ${attr} title="${G.SLOTS[slot].name}">${G.SLOTS[slot].icon}<small>${G.SLOTS[slot].name}</small></div>`;
   }
   function doll() {
-    const e = st.equipped, ic = (s) => (e[s] ? e[s].icon : '');
     return `<div class="doll"><div class="col">${['elmo', 'armadura', 'luvas', 'botas'].map((s) => slotBox(s)).join('')}</div>
-      <div class="figure"><div class="fh">${ic('elmo')}</div><div class="fb">🧔</div><div class="fa">${ic('armadura')}</div><div class="fw">${ic('arma')}</div><div class="fs">${ic('escudo')}</div><div class="ff">${ic('botas')}</div></div>
+      <div class="figure">${Avatar.svg(st.avatar, st.equipped)}</div>
       <div class="col">${['arma', 'escudo', 'amuleto'].map((s) => slotBox(s)).join('')}<div class="slot ghost"></div></div></div>
       <div class="sub center" style="margin:8px 0 4px">Runas</div><div class="runes">${[0, 1, 2].map((i) => slotBox('runa', i)).join('')}</div>`;
   }
   function vHeroi() {
     const s = G.heroStats(st);
-    const bt = G.BOSSES.map((b) => { const got = st.trophies.includes(b.no); return `<div class="t ${got ? '' : 'lock'}"><div class="e">${got ? b.tIcon : '❔'}</div><b>${got ? b.trophy : 'Chefe ' + b.no}</b><div class="muted">${got ? b.name : 'Bloqueado'}</div></div>`; }).join('');
-    const et = st.evTrophies.length ? st.evTrophies.slice().reverse().map((t) => `<div class="t"><div class="e">${t.icon}</div><b>${esc(t.name)}</b><div class="muted">${t.type === 'weekly' ? 'Semanal' : 'Mensal'}</div></div>`).join('') : '<div class="sub">Vença os chefes de evento para ganhar troféus especiais.</div>';
+    const bt = G.BOSSES.map((b) => { const got = st.trophies.includes(b.no); return `<div class="t ${got ? '' : 'lock'}"><div class="e">${got ? b.tIcon : '❔'}</div><b>${got ? b.trophy : 'Chefe ' + b.no}</b><div class="muted">${got ? b.name : 'Bloqueado'}</div><div class="bonus">${G.bonusText(G.trophyBonus(b.no))}</div></div>`; }).join('');
+    const tt = G.trophyTotals(st);
+    const ttLine = ['atk', 'hp', 'arm', 'crit'].map((k) => `<span>${G.TB_ICON[k]} +${Math.round(tt[k] * 10) / 10}${k === 'crit' ? '' : '%'}</span>`).join(' · ');
+    const et = st.evTrophies.length ? st.evTrophies.slice().reverse().map((t) => `<div class="t"><div class="e">${t.icon}</div><b>${esc(t.name)}</b><div class="muted">${t.type === 'weekly' ? 'Semanal' : 'Mensal'}</div>${t.bonus ? `<div class="bonus">${G.bonusText(t.bonus)}</div>` : ''}</div>`).join('') : '<div class="sub">Vença os chefes de evento para ganhar troféus especiais.</div>';
     view.innerHTML = `<div class="card center"><div class="name">${esc(st.name)} · Nível ${st.level}</div>
       <div class="sub">Chefes: ${st.trophies.length}/15 · Feras abatidas: ${st.totalKills}</div>${doll()}<div class="sub" style="margin-top:6px">Toque num espaço para equipar ou ver detalhes.</div></div>
       <div class="card"><div class="name">Atributos</div><div class="hr"></div>
       <div class="row"><span class="grow">⚔️ Força</span><b>${fmt(s.atk)}</b></div><div class="row"><span class="grow">❤️ Vida</span><b>${fmt(s.hp)}</b></div>
       <div class="row"><span class="grow">🛡️ Armadura</span><b>${fmt(s.arm)}</b></div><div class="row"><span class="grow">🎯 Crítico</span><b>${s.crit.toFixed(1)}% (x${s.critDmg.toFixed(2)})</b></div>
       <div class="row"><span class="grow">🩸 Vida roubada</span><b>${s.vamp.toFixed(1)}%</b></div><div class="row"><span class="grow">💥 Golpe Forte</span><b>x${s.heavy.toFixed(2)}</b></div></div>
-      <h2 class="banner">Troféus de Chefes (${st.trophies.length}/15)</h2><div class="troph">${bt}</div>
+      <h2 class="banner">Troféus de Chefes (${st.trophies.length}/15)</h2>
+      <div class="card center"><div class="name">Bônus vitalício dos troféus</div><div class="sub" style="margin-top:4px">${ttLine}</div><div class="sub">Cada troféu dá um bônus permanente de atributo.</div></div><div class="troph">${bt}</div>
       <h2 class="banner" style="margin-top:14px">Troféus de Eventos (${st.evTrophies.length})</h2><div class="troph">${et}</div>`;
   }
 
@@ -384,8 +386,8 @@
     else {
       h = `<div class="big">${rep.trophy ? rep.trophy.tIcon : rep.evTrophy ? rep.evTrophy.icon : rep.kind === 'semi' ? '🐾' : '🏆'}</div><h2 class="banner">${rep.trophy ? 'Chefe derrotado!' : rep.kind === 'semi' ? 'Semi-chefe derrotado!' : rep.kind === 'event' ? 'Chefe de evento derrotado!' : 'Vitória!'}</h2>
         <div class="center">✨ +${fmt(rep.xp)} XP · 🪙 +${fmt(rep.gold)} · 🦴 +${rep.ossos}${rep.fossils ? ' · 🦕 +' + rep.fossils : ''}</div>`;
-      if (rep.trophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu conquistado</b><div>${rep.trophy.tIcon} ${rep.trophy.trophy}</div></div>`;
-      if (rep.evTrophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu de evento</b><div>${rep.evTrophy.icon} ${esc(rep.evTrophy.name)}</div></div>`;
+      if (rep.trophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu conquistado</b><div>${rep.trophy.tIcon} ${rep.trophy.trophy}</div><div class="up" style="margin-top:4px">Bônus vitalício: ${G.bonusText(rep.trophyBonus)}</div></div>`;
+      if (rep.evTrophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu de evento</b><div>${rep.evTrophy.icon} ${esc(rep.evTrophy.name)}</div><div class="up" style="margin-top:4px">Bônus vitalício: ${G.bonusText(rep.evTrophy.bonus)}</div></div>`;
       if (rep.levels.length) h += `<div class="card center"><b>⬆ Subiu para o nível ${rep.levels[rep.levels.length - 1]}!</b><div class="sub">Vida restaurada e novo estoque na loja.</div></div>`;
       if (rep.items.length) h += `<div class="sub" style="margin:8px 0 4px">Itens encontrados:</div>` + rep.items.map((i) => itemRow(i, '', 'data-noop', true)).join('');
       if (rep.bagFull) h += `<div class="sub down">Baú cheio: ${rep.lost.length} item(ns) vendido(s) automaticamente.</div>`;
@@ -398,20 +400,35 @@
   /* ---------- Menu / início ---------- */
   function menu() {
     openModal(`<h2 class="banner">Menu</h2>
-      <button class="btn" data-act="rename">✏️ Mudar nome do herói</button>
+      <button class="btn" data-act="rename">🎭 Nome e avatar</button>
       <button class="btn red" data-act="reset">🗑️ Reiniciar jogo</button>
       <button class="btn" data-close>Fechar</button>
-      <div class="sub center" style="margin-top:10px">Era da Pedra v2.0 · progresso salvo neste aparelho</div>`);
+      <div class="sub center" style="margin-top:10px">Era da Pedra v2.1 · progresso salvo neste aparelho</div>`);
+  }
+  let draft = null;
+  const swatch = (arr, key, cur) => arr.map((c, i) => `<button class="sw ${i === cur ? 'on' : ''}" data-av-${key}="${i}" style="background:${c}" aria-label="${key} ${i + 1}"></button>`).join('');
+  function avatarPicker() {
+    return `<div class="avpick"><div class="avprev" id="avprev">${Avatar.svg(draft, st.equipped)}</div>
+      <div class="avopts"><div class="sub">Corpo</div><div class="chips"><button data-av-g="m" class="${draft.g === 'm' ? 'on' : ''}">🚹 Homem</button><button data-av-g="f" class="${draft.g === 'f' ? 'on' : ''}">🚺 Mulher</button></div>
+      <div class="sub">Pele</div><div class="swatches" data-sw="skin">${swatch(Avatar.SKINS, 'skin', draft.skin)}</div>
+      <div class="sub">Cabelo</div><div class="swatches" data-sw="hair">${swatch(Avatar.HAIRS, 'hair', draft.hair)}</div></div></div>`;
   }
   function askName(first) {
-    openModal(`<div class="big">🦴</div><h2 class="banner">${first ? 'Bem-vindo à Era da Pedra' : 'Nome do herói'}</h2>
-      <div class="sub center" style="margin-bottom:8px">${first ? 'Você é um caçador de nível 1. Derrote feras, vença 15 chefes e vire lenda.' : ''}</div>
+    draft = Object.assign({}, st.avatar);
+    openModal(`<h2 class="banner">${first ? 'Bem-vindo à Era da Pedra' : 'Herói'}</h2>
+      <div class="sub center" style="margin-bottom:8px">${first ? 'Você é um caçador de nível 1. Crie seu herói, derrote 15 chefes e vire lenda.' : 'Mude o nome ou a aparência do herói.'}</div>
       <input id="nm" maxlength="14" value="${first ? '' : esc(st.name)}" placeholder="Nome do herói" style="width:100%;padding:12px;font:inherit;font-size:16px;border-radius:8px;border:2px solid var(--edge);background:#0b0705;color:var(--bone);user-select:text;-webkit-user-select:text">
-      <button class="btn go" data-act="savename">${first ? 'Começar aventura' : 'Salvar'}</button>`);
+      ${avatarPicker()}<button class="btn go" data-act="savename">${first ? 'Começar aventura' : 'Salvar'}</button>`);
+  }
+  function setAvatar(key, val) {
+    draft[key] = key === 'g' ? val : +val;
+    const prev = $('#avprev'); if (prev) prev.innerHTML = Avatar.svg(draft, st.equipped);
+    document.querySelectorAll('.avopts [data-av-g]').forEach((b) => b.classList.toggle('on', b.dataset.avG === draft.g));
+    ['skin', 'hair'].forEach((k) => document.querySelectorAll(`[data-av-${k}]`).forEach((b) => b.classList.toggle('on', +b.dataset['av' + k[0].toUpperCase() + k.slice(1)] === draft[k])));
   }
 
   /* ---------- Eventos de clique ---------- */
-  const SEL = '[data-act],[data-nav],[data-item],[data-shopitem],[data-buy],[data-buyq],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ss],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-train],[data-ev],[data-evbuy],[data-go-forge]';
+  const SEL = '[data-act],[data-nav],[data-item],[data-shopitem],[data-buy],[data-buyq],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ss],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-ev],[data-evbuy],[data-go-forge]';
   const after = (msg, ok = true) => { if (msg) toast(msg); if (ok) { save(); closeModal(); } render(); };
   document.addEventListener('click', (ev) => {
     const t = ev.target.closest(SEL);
@@ -424,6 +441,9 @@
     if (d.st) { shopTab = d.st; return render(); }
     if (d.ss) { shopSlot = d.ss; return render(); }
     if (d.ft) { forgeTab = d.ft; return render(); }
+    if (d.avG) return setAvatar('g', d.avG);
+    if (d.avSkin !== undefined) return setAvatar('skin', d.avSkin);
+    if (d.avHair !== undefined) return setAvatar('hair', d.avHair);
     if (d.empty) return showEmptySlot(d.empty, d.ri === '' ? null : +d.ri);
     if (d.item) return showItem(d.item);
     if (d.shopitem) return showItem(d.shopitem, true);
@@ -446,7 +466,7 @@
       case 'fight-train': return startFight('training');
       case 'menu': return menu();
       case 'rename': return askName(false);
-      case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; closeModal(); save(); render(); return; }
+      case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; if (draft) st.avatar = Object.assign({}, draft); closeModal(); save(); render(); return; }
       case 'reset': if (confirm('Apagar todo o progresso?')) { G.wipe(); st = G.newState(''); fight = null; closeModal(); save(); render(); askName(true); } return;
       case 'refreshshop': { const c = G.shopRefreshCost(st); if (st.gold < c) return toast('Ouro insuficiente.'); st.gold -= c; G.refreshShop(st); return after('Estoque renovado.', false); }
       case 'rest': { const r = G.rest(st); return after(r.msg, false); }
