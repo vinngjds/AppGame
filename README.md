@@ -5,13 +5,13 @@ RPG de turnos ambientado na Idade da Pedra. Funciona como PWA (HTML/CSS/JS puro,
 ## Como jogar (v2)
 - Herói nível 1 → 40. Atributos: Força ⚔️, Vida ❤️, Armadura 🛡️, Crítico 🎯, vida roubada 🩸.
 - **Caçar**: 2 feras → **Semi-chefe** (fera alfa com golpe especial) → **Chefe** (15 no total, troféu + itens raros). Chefes têm golpe especial **avisado um turno antes** (use *Defender*) e entram em fúria abaixo de 50% de vida.
-- **Ritmo**: 12 encontros que voltam 1 a cada 4 min (chefe custa 2), 25 s de fôlego entre batalhas, vida cheia em 7 min (ou 🔥 Descansar por conchas).
+- **Ritmo**: 12 encontros que voltam 1 a cada 4 min (chefe custa 2), 25 s de fôlego entre batalhas, vida cheia em 7 min (ou 🔥 Descansar por ouro). Dá para **pagar ouro** para pular o fôlego ou comprar encontros (o preço sobe a cada compra no dia). Ouro e XP são escassos.
 - **Boneco**: elmo, armadura, luvas, botas, arma, escudo, amuleto + 3 runas (Força, Vida, Pedra, Sorte, Sangue).
 - **Treino**: habilidades por tempo real (passivas e ativas *Grito de Guerra* / *Postura de Pedra*), que continuam com o app fechado; Arena de Treino.
 - **Loja**: estoque renova a cada 20 min, ofertas -25%, comparação com o equipado, venda, ampliar baú.
 - **Ferreiro**: melhorias até +10 com chance de falha (usa ossos 🦴), desmontar itens, fundir 3 runas.
 - **Baú**: filtros, ordenação, travar itens, limpeza em lote.
-- **Eventos**: Chefe da Semana e Chefe do Mês (fósseis 🦕, troféus e loja de troca), bônus de calendário (fim de semana +50% XP, dias 1–3 +50% conchas, quarta: ferreiro -25%).
+- **Eventos**: Chefe da Semana e Chefe do Mês (fósseis 🦕, troféus e loja de troca), bônus de calendário (fim de semana +50% XP, dias 1–3 +50% ouro, quarta: ferreiro -25%).
 - Progresso salvo no aparelho; saves da v1 são migrados automaticamente.
 
 ## Rodar

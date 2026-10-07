@@ -126,3 +126,5 @@ h2.banner{margin:4px 0 12px;text-align:center;font-size:17px;letter-spacing:1px;
 .acts .btn{padding:10px 4px;font-size:14px}
 .seg{flex-wrap:wrap}
 .chips.wrap{flex-wrap:wrap;overflow:visible}
+
+.waitrow{gap:8px;margin-top:10px;justify-content:space-between}.waitrow .btn{flex:1;padding:8px 6px;font-size:12px}

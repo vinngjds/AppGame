@@ -82,4 +82,15 @@ t('XP: nível sobe e respeita o limite', () => {
   const mon = G.makeMonster(st.level, 'normal'); const f = G.startFight(st, mon, { mode: 'story' }); f.over = true; f.won = true; f.hero.hp = f.hero.max;
   G.finishFight(st, f); assert.equal(st.level, G.MAX_LEVEL);
 });
+t('pular espera com ouro: fôlego e encontros (preço sobe no dia)', () => {
+  const st = G.newState('x'); st.level = 10; st.gold = 1000; st.cdUntil = Date.now() + 20000;
+  const c = G.cooldownSkipCost(st); assert(c > 0); assert(G.skipCooldown(st).ok); assert.equal(G.cooldownLeft(st), 0); assert.equal(st.gold, 1000 - c);
+  st.energy = 3; const p1 = G.energyBuyCost(st); assert(G.buyEnergy(st).ok); assert.equal(st.energy, 4); assert(G.energyBuyCost(st) > p1);
+  st.energy = G.MAX_ENERGY; assert(!G.buyEnergy(st).ok); st.energy = 2; st.gold = 0; assert(!G.buyEnergy(st).ok);
+});
+t('ouro e XP escassos', () => {
+  assert(G.GOLD_RATE < 1 && G.XP_RATE < 1);
+  const st = G.newState('x'); const f = G.startFight(st, G.makeMonster(1, 'normal'), { mode: 'story' }); f.over = true; f.won = true; f.hero.hp = f.hero.max;
+  const rep = G.finishFight(st, f); assert(rep.gold <= 8, 'ouro da 1ª fera deve ser baixo: ' + rep.gold);
+});
 console.log(`\n${n} testes passaram`);

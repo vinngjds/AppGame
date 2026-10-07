@@ -30,7 +30,7 @@
     const s = G.heroStats(st), need = G.xpToNext(st.level);
     const pct = st.level >= G.MAX_LEVEL ? 100 : Math.floor((st.xp / need) * 100);
     top.innerHTML = `
-      <div class="toprow"><div class="title">🦴 ERA DA PEDRA</div><div><span class="gold">🐚 ${fmt(st.gold)}</span> <span class="gold" style="margin-left:6px">🦴 ${fmt(st.ossos)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
+      <div class="toprow"><div class="title">🦴 ERA DA PEDRA</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold" style="margin-left:6px">🦴 ${fmt(st.ossos)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
       <div class="stats"><span>⚔️ ${fmt(s.atk)}</span><span>❤️ ${fmt(s.hp)}</span><span>🛡️ ${fmt(s.arm)}</span><span>🎯 ${s.crit.toFixed(0)}%</span></div>
       <div class="xpbar"><b>⬆ ${st.level}</b><div class="bar"><i style="width:${pct}%"></i></div><b>${st.level >= G.MAX_LEVEL ? 'MÁX' : pct + '%'}</b></div>`;
     nav.innerHTML = TABS.map(([id, ic, nm]) => `<button data-nav="${id}" class="${id === screen ? 'on' : ''}"><span>${ic}</span>${nm}</button>`).join('');
@@ -78,6 +78,13 @@
   function closeModal() { modal.hidden = true; modal.innerHTML = ''; }
   const energyCostNow = () => G.ENERGY_COST[G.nextStoryKind(st) === 'boss' ? 'boss' : 'story'];
 
+  /* ---------- Pular espera com ouro ---------- */
+  function waitRow() {
+    const cd = G.cooldownLeft(st);
+    return `<div class="row waitrow"><button class="btn sm" data-act="skipcd" ${cd > 0 ? '' : 'disabled'}>⏩ Pular fôlego · 🪙 <span data-live="cdcost">${cd > 0 ? G.cooldownSkipCost(st) : 0}</span></button>
+      <button class="btn sm" data-act="buyen" ${st.energy < G.MAX_ENERGY ? '' : 'disabled'}>⚡ +1 encontro · 🪙 ${G.energyBuyCost(st)}</button></div>`;
+  }
+
   /* ---------- Caçar ---------- */
   function bonusBanner(d) {
     return G.bonusEvents(d).map((e) => `<div class="card event"><div class="row"><div class="pic">${e.icon}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${e.desc}</div></div></div></div>`).join('');
@@ -91,9 +98,9 @@
     let h = bonusBanner(new Date());
     h += `<div class="card"><div class="sub">Vida do herói</div>${hpBar(st.hp, s.hp)}
       <div class="row" style="margin-top:8px"><div class="grow sub">🧪 ${st.potions.small} pequenas · ${st.potions.large} grandes</div>
-      <button class="btn sm" data-act="rest" ${G.restCost(st) <= 0 ? 'disabled' : ''}>🔥 Descansar · 🐚 ${G.restCost(st)}</button></div></div>`;
+      <button class="btn sm" data-act="rest" ${G.restCost(st) <= 0 ? 'disabled' : ''}>🔥 Descansar · 🪙 ${G.restCost(st)}</button></div></div>`;
     h += `<div class="card"><div class="row"><div class="grow"><div class="name">⚡ Encontros: <span data-live="en">${st.energy}</span>/${G.MAX_ENERGY}</div>
-      <div class="sub">${st.energy < G.MAX_ENERGY ? `próximo em <span data-live="ent">${mmss(nextEn)}</span>` : 'cheio'} · fôlego: <span data-live="cd">${cd > 0 ? cd + 's' : 'pronto'}</span></div></div></div></div>`;
+      <div class="sub">${st.energy < G.MAX_ENERGY ? `próximo em <span data-live="ent">${mmss(nextEn)}</span>` : 'cheio'} · fôlego: <span data-live="cd">${cd > 0 ? cd + 's' : 'pronto'}</span></div></div></div>${waitRow()}</div>`;
     if (st.finished) h += `<div class="card center"><div class="big">👑</div><div class="name">Você derrotou os 15 chefes!</div><div class="sub">Continue evoluindo: treine, enfrente os eventos e chegue ao nível ${G.MAX_LEVEL}.</div></div>`;
     h += `<h2 class="banner">${kind === 'boss' ? '🔥 O CHEFE TE DESAFIA!' : kind === 'semi' ? '⚠️ Um Semi-chefe se aproxima' : 'Caçada: ' + st.kills + '/' + G.KILLS_PER_BOSS}</h2>`;
     const btn = (cls, label) => `<button class="btn ${cls}" data-act="fight-story" ${chk.ok ? '' : 'disabled'}>${label}</button>${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}`;
@@ -150,7 +157,7 @@
       st.equipped.runas.forEach((r, i) => { if (r && r.id !== it.id) h += `<div class="sub">Runa ${i + 1}: ${esc(r.name)} — ${statLine(r)}</div>`; });
     } else if (st.equipped[it.slot] && st.equipped[it.slot].id !== it.id) h += `<div class="sub">Equipado: ${esc(st.equipped[it.slot].name)} — ${statLine(st.equipped[it.slot])}</div>`;
     h += '<div class="hr"></div>';
-    if (where === 'shop') h += `<button class="btn go" data-buy="${it.id}">Comprar · 🐚 ${fmt(G.shopPrice(st, it))}</button>`;
+    if (where === 'shop') h += `<button class="btn go" data-buy="${it.id}">Comprar · 🪙 ${fmt(G.shopPrice(st, it))}</button>`;
     if (where === 'bag') {
       if (it.rune) h += [0, 1, 2].map((i) => `<button class="btn go" data-eq="${it.id}" data-ri="${i}">Equipar na runa ${i + 1}${st.equipped.runas[i] ? ' (troca)' : ''}</button>`).join('');
       else h += `<button class="btn go" data-eq="${it.id}">Equipar</button>`;
@@ -158,7 +165,7 @@
     }
     if (where === 'eq') h += `<button class="btn" data-uneq="${it.slot}" data-ri="${st.equipped.runas.findIndex((x) => x && x.id === it.id)}">Desequipar</button>`;
     if (where !== 'shop') h += it.plus >= G.MAX_PLUS ? '<button class="btn" disabled>Ferreiro: nível máximo</button>' : `<button class="btn" data-go-forge="${it.id}">🔨 Melhorar no ferreiro</button>`;
-    if (where === 'bag' && !it.lock) h += `<button class="btn" data-dis="${it.id}">♻️ Desmontar · 🦴 +${G.dismantleYield(it)}</button><button class="btn red" data-sell="${it.id}">Vender · 🐚 ${fmt(G.sellPrice(it))}</button>`;
+    if (where === 'bag' && !it.lock) h += `<button class="btn" data-dis="${it.id}">♻️ Desmontar · 🦴 +${G.dismantleYield(it)}</button><button class="btn red" data-sell="${it.id}">Vender · 🪙 ${fmt(G.sellPrice(it))}</button>`;
     openModal(h + '<button class="btn" data-close>Fechar</button>');
   }
   function showEmptySlot(slot, ri) {
@@ -188,7 +195,7 @@
       if (it.lock || it.rarity > max || betterThanEquipped(it)) continue;
       total += mode === 'sell' ? G.sell(st, it.id) : G.dismantle(st, it.id); n++;
     }
-    toast(n ? (mode === 'sell' ? `${n} item(ns) vendidos: 🐚 ${fmt(total)}` : `${n} item(ns) desmontados: 🦴 ${fmt(total)}`) : 'Nenhum item elegível.');
+    toast(n ? (mode === 'sell' ? `${n} item(ns) vendidos: 🪙 ${fmt(total)}` : `${n} item(ns) desmontados: 🦴 ${fmt(total)}`) : 'Nenhum item elegível.');
     save(); closeModal(); render();
   }
 
@@ -201,8 +208,8 @@
     const tabs = [['equip', '🛡️ Equip.'], ['runas', '🔶 Runas'], ['pocao', '🧪 Poções'], ['vender', '💰 Vender'], ['forja', '🔨 Ferreiro'], ['mochila', '🎒 Baú']];
     const left = Math.max(0, G.SHOP_SECS - (Date.now() - st.shop.at) / 1000);
     let h = `<h2 class="banner">Mercador</h2><div class="chips wrap">${tabs.map(([id, n]) => `<button data-st="${id}" class="${id === shopTab ? 'on' : ''}">${n}</button>`).join('')}</div>`;
-    const stock = (list) => list.map((i) => itemRow(i, `<div class="pricebox">${st.shop.deal === i.id ? '<div class="deal">🔥 -25%</div>' : ''}<button class="btn sm go" data-buyq="${i.id}">🐚 ${fmt(G.shopPrice(st, i))}</button></div>`, `data-shopitem="${i.id}"`)).join('');
-    const renew = `<button class="btn" data-act="refreshshop">🔄 Renovar estoque · 🐚 ${G.shopRefreshCost(st)}</button><div class="sub center" style="margin-top:6px">Renova sozinho em <span data-live="shop">${mmss(left)}</span> ou ao subir de nível.</div>`;
+    const stock = (list) => list.map((i) => itemRow(i, `<div class="pricebox">${st.shop.deal === i.id ? '<div class="deal">🔥 -25%</div>' : ''}<button class="btn sm go" data-buyq="${i.id}">🪙 ${fmt(G.shopPrice(st, i))}</button></div>`, `data-shopitem="${i.id}"`)).join('');
+    const renew = `<button class="btn" data-act="refreshshop">🔄 Renovar estoque · 🪙 ${G.shopRefreshCost(st)}</button><div class="sub center" style="margin-top:6px">Renova sozinho em <span data-live="shop">${mmss(left)}</span> ou ao subir de nível.</div>`;
     if (shopTab === 'equip') {
       const f = ['todos', ...G.SLOT_ORDER];
       h += `<div class="chips small">${f.map((x) => `<button data-ss="${x}" class="${x === shopSlot ? 'on' : ''}">${x === 'todos' ? 'Todos' : G.SLOTS[x].icon}</button>`).join('')}</div>`;
@@ -213,16 +220,16 @@
     } else if (shopTab === 'pocao') {
       h += [['small', 'Poção Pequena', 'Recupera 35% da vida em combate'], ['large', 'Poção Grande', 'Recupera 65% da vida em combate']].map(([k, n, d]) =>
         `<div class="card"><div class="row"><div class="pic">🧪</div><div class="grow"><div class="name">${n} (x${st.potions[k]})</div><div class="sub">${d}</div></div>
-        <button class="btn sm go" data-pot="${k}">🐚 ${fmt(G.potionPrice(st, k))}</button></div></div>`).join('');
-      h += `<div class="card"><div class="row"><div class="pic">🔥</div><div class="grow"><div class="name">Fogueira</div><div class="sub">Cura toda a vida agora.</div></div><button class="btn sm" data-act="rest" ${G.restCost(st) <= 0 ? 'disabled' : ''}>🐚 ${G.restCost(st)}</button></div></div>`;
+        <button class="btn sm go" data-pot="${k}">🪙 ${fmt(G.potionPrice(st, k))}</button></div></div>`).join('');
+      h += `<div class="card"><div class="row"><div class="pic">🔥</div><div class="grow"><div class="name">Fogueira</div><div class="sub">Cura toda a vida agora.</div></div><button class="btn sm" data-act="rest" ${G.restCost(st) <= 0 ? 'disabled' : ''}>🪙 ${G.restCost(st)}</button></div></div>`;
     } else if (shopTab === 'vender') {
       const list = st.bag.filter((i) => !i.lock).sort(SORTS.raridade);
-      h += list.length ? list.map((i) => itemRow(i, `<button class="btn sm red" data-sellq="${i.id}">🐚 ${fmt(G.sellPrice(i))}</button>`, `data-item="${i.id}"`, true)).join('') : '<div class="card center muted">Nada para vender (itens travados não aparecem).</div>';
+      h += list.length ? list.map((i) => itemRow(i, `<button class="btn sm red" data-sellq="${i.id}">🪙 ${fmt(G.sellPrice(i))}</button>`, `data-item="${i.id}"`, true)).join('') : '<div class="card center muted">Nada para vender (itens travados não aparecem).</div>';
     } else if (shopTab === 'forja') {
       h += vForja();
     } else {
       h += `<div class="card"><div class="row"><div class="pic">🎒</div><div class="grow"><div class="name">Ampliar o Baú</div><div class="sub">Capacidade atual: ${st.bagSize}/${G.BAG_MAX}. +5 vagas por compra.</div></div>
-        <button class="btn sm go" data-act="bagup" ${st.bagSize >= G.BAG_MAX ? 'disabled' : ''}>🐚 ${fmt(G.bagUpgradeCost(st))}</button></div></div>`;
+        <button class="btn sm go" data-act="bagup" ${st.bagSize >= G.BAG_MAX ? 'disabled' : ''}>🪙 ${fmt(G.bagUpgradeCost(st))}</button></div></div>`;
     }
     view.innerHTML = h;
   }
@@ -237,14 +244,14 @@
       const all = G.SLOT_ORDER.map((s) => st.equipped[s]).concat(st.equipped.runas).filter(Boolean).concat(st.bag);
       h += all.length ? all.map((i) => {
         const max = i.plus >= G.MAX_PLUS;
-        return itemRow(i, max ? '<span class="sub">MÁX</span>' : `<div class="pricebox"><div class="sub">${Math.round(G.upgradeChance(i) * 100)}% de sucesso</div><button class="btn sm" data-upq="${i.id}">🐚 ${fmt(G.upgradeCost(i, forge))} · 🦴 ${G.upgradeOssos(i)}</button></div>`, 'data-noop', true);
+        return itemRow(i, max ? '<span class="sub">MÁX</span>' : `<div class="pricebox"><div class="sub">${Math.round(G.upgradeChance(i) * 100)}% de sucesso</div><button class="btn sm" data-upq="${i.id}">🪙 ${fmt(G.upgradeCost(i, forge))} · 🦴 ${G.upgradeOssos(i)}</button></div>`, 'data-noop', true);
       }).join('') : '<div class="card center muted">Sem itens.</div>';
     } else if (forgeTab === 'desmontar') {
       const list = st.bag.filter((i) => !i.lock).sort(SORTS.raridade);
       h += list.length ? list.map((i) => itemRow(i, `<button class="btn sm" data-disq="${i.id}">🦴 +${G.dismantleYield(i)}</button>`, 'data-item="' + i.id + '"', true)).join('') : '<div class="card center muted">Nada para desmontar.</div>';
     } else {
       const gr = G.runeGroups(st);
-      h += gr.length ? gr.map((g) => `<div class="card"><div class="row"><div class="pic">${G.RUNES[g.t].icon}</div><div class="grow"><div class="name">3x Runa ${G.RUNES[g.t].name} ${G.RARITIES[g.rarity].name}</div><div class="sub">→ 1 runa ${G.RARITIES[g.rarity + 1].name} · tem ${g.items.length}</div></div><button class="btn sm" data-fuse="${g.key}">🐚 ${G.fuseCost(g.rarity)}</button></div></div>`).join('')
+      h += gr.length ? gr.map((g) => `<div class="card"><div class="row"><div class="pic">${G.RUNES[g.t].icon}</div><div class="grow"><div class="name">3x Runa ${G.RUNES[g.t].name} ${G.RARITIES[g.rarity].name}</div><div class="sub">→ 1 runa ${G.RARITIES[g.rarity + 1].name} · tem ${g.items.length}</div></div><button class="btn sm" data-fuse="${g.key}">🪙 ${G.fuseCost(g.rarity)}</button></div></div>`).join('')
         : '<div class="card center muted">Junte 3 runas iguais (mesmo tipo e raridade) para fundir numa melhor.</div>';
     }
     return h;
@@ -260,18 +267,18 @@
       h += `<div class="card boss"><div class="row"><div class="pic">${sk.icon}</div><div class="grow"><div class="name">Treinando: ${sk.name}</div>
         <div class="sub">Nível ${st.training.from} → ${st.training.from + 1} · faltam <b data-live="tr">${mmss(left)}</b></div></div></div>
         <div class="bar" style="margin-top:8px"><i data-live="trbar" style="width:${Math.min(100, 100 - (left / total) * 100)}%"></i></div>
-        <button class="btn" data-act="speedup">⚡ Acelerar · 🐚 ${G.speedupCost(st)}</button></div>`;
+        <button class="btn" data-act="speedup">⚡ Acelerar · 🪙 ${G.speedupCost(st)}</button></div>`;
     } else h += `<div class="card"><div class="sub">Nenhum treino em andamento. Escolha uma habilidade abaixo — o treino continua mesmo com o app fechado.</div></div>`;
     h += `<div class="card"><div class="row"><div class="pic">🏟️</div><div class="grow"><div class="name">Arena de Treino</div>
-      <div class="sub">Custa 1 encontro (${st.energy}/${G.MAX_ENERGY}). XP e conchas reduzidos, chance de itens e ossos.</div></div></div>
-      <button class="btn" data-act="fight-train" ${chk.ok ? '' : 'disabled'}>🥊 Treinar na Arena</button>${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}</div>`;
+      <div class="sub">Custa 1 encontro (${st.energy}/${G.MAX_ENERGY}). XP e ouro reduzidos, chance de itens e ossos.</div></div></div>
+      <button class="btn" data-act="fight-train" ${chk.ok ? '' : 'disabled'}>🥊 Treinar na Arena</button>${waitRow()}${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}</div>`;
     h += '<h2 class="banner">Habilidades</h2>';
     h += G.SKILL_ORDER.map((id) => {
       const sk = G.SKILLS[id], r = G.skillRank(st, id), maxed = r >= sk.max, req = G.skillReqLevel(st, id);
       const locked = st.level < req;
       return `<div class="card skill ${locked ? 'locked' : ''}"><div class="row"><div class="pic">${sk.icon}</div><div class="grow"><div class="name">${sk.name} <span class="muted">${r}/${sk.max}</span>${sk.active ? ' <span class="tag">ATIVA</span>' : ''}</div>
         <div class="sub">${r ? sk.desc(r) : 'Não aprendida'}${maxed ? '' : ` → <b>${sk.desc(r + 1)}</b>`}</div>
-        ${maxed ? '<div class="sub up">Máximo!</div>' : `<div class="sub">${locked ? `🔒 Requer nível ${req}` : `⏱️ ${mmss(G.skillTime(st, id))} · 🐚 ${fmt(G.skillCost(st, id))}`}</div>`}</div>
+        ${maxed ? '<div class="sub up">Máximo!</div>' : `<div class="sub">${locked ? `🔒 Requer nível ${req}` : `⏱️ ${mmss(G.skillTime(st, id))} · 🪙 ${fmt(G.skillCost(st, id))}`}</div>`}</div>
         ${maxed ? '' : `<button class="btn sm go" data-train="${id}" ${locked || st.training ? 'disabled' : ''}>Treinar</button>`}</div></div>`;
     }).join('');
     view.innerHTML = h;
@@ -292,7 +299,8 @@
     };
     const bonus = G.bonusEvents(now);
     let h = `<h2 class="banner">Eventos</h2>`;
-    h += bonus.length ? bonusBanner(now) : '<div class="card"><div class="sub">Sem bônus hoje. Fins de semana: +50% XP · dias 1–3: +50% conchas · quartas: ferreiro -25%.</div></div>';
+    h += bonus.length ? bonusBanner(now) : '<div class="card"><div class="sub">Sem bônus hoje. Fins de semana: +50% XP · dias 1–3: +50% ouro · quartas: ferreiro -25%.</div></div>';
+    h += `<div class="card">${waitRow()}</div>`;
     h += `<h2 class="banner">Chefe da Semana</h2>${card('weekly', wk, 'SEMANAL · ' + wk.key, 'renova toda segunda')}`;
     h += `<h2 class="banner">Chefe do Mês</h2>${card('monthly', mo, 'MENSAL · ' + mo.key, 'só 1 por dia, forte!')}`;
     h += `<h2 class="banner">Troca de Fósseis (🦕 ${st.fossils})</h2>` + G.EVENT_SHOP.map((o) =>
@@ -372,10 +380,10 @@
     save(); overlay.hidden = true;
     let h;
     if (rep.fled) h = `<div class="big">🏃</div><h2 class="banner">Você fugiu!</h2>`;
-    else if (!rep.won) h = `<div class="big">💀</div><h2 class="banner">Derrota</h2><div class="center sub">Você perdeu ${fmt(-rep.gold)} 🐚 e foi levado de volta à fogueira. Descanse, melhore seu equipamento, treine habilidades e tente de novo.</div>`;
+    else if (!rep.won) h = `<div class="big">💀</div><h2 class="banner">Derrota</h2><div class="center sub">Você perdeu ${fmt(-rep.gold)} 🪙 e foi levado de volta à fogueira. Descanse, melhore seu equipamento, treine habilidades e tente de novo.</div>`;
     else {
       h = `<div class="big">${rep.trophy ? rep.trophy.tIcon : rep.evTrophy ? rep.evTrophy.icon : rep.kind === 'semi' ? '🐾' : '🏆'}</div><h2 class="banner">${rep.trophy ? 'Chefe derrotado!' : rep.kind === 'semi' ? 'Semi-chefe derrotado!' : rep.kind === 'event' ? 'Chefe de evento derrotado!' : 'Vitória!'}</h2>
-        <div class="center">✨ +${fmt(rep.xp)} XP · 🐚 +${fmt(rep.gold)} · 🦴 +${rep.ossos}${rep.fossils ? ' · 🦕 +' + rep.fossils : ''}</div>`;
+        <div class="center">✨ +${fmt(rep.xp)} XP · 🪙 +${fmt(rep.gold)} · 🦴 +${rep.ossos}${rep.fossils ? ' · 🦕 +' + rep.fossils : ''}</div>`;
       if (rep.trophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu conquistado</b><div>${rep.trophy.tIcon} ${rep.trophy.trophy}</div></div>`;
       if (rep.evTrophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu de evento</b><div>${rep.evTrophy.icon} ${esc(rep.evTrophy.name)}</div></div>`;
       if (rep.levels.length) h += `<div class="card center"><b>⬆ Subiu para o nível ${rep.levels[rep.levels.length - 1]}!</b><div class="sub">Vida restaurada e novo estoque na loja.</div></div>`;
@@ -423,7 +431,7 @@
     if (d.eq) { G.equip(st, d.eq, d.ri === undefined || d.ri === '' ? undefined : +d.ri); return after('Equipado!'); }
     if (d.uneq) { const ok = G.unequip(st, d.uneq, +d.ri); return after(ok ? 'Desequipado.' : 'Baú cheio!', ok); }
     if (d.lock) { const l = G.toggleLock(st, d.lock); return after(l ? 'Item travado 🔒' : 'Item destravado'); }
-    if (d.sell || d.sellq) { const p = G.sell(st, d.sell || d.sellq); return after(p ? `Vendido por ${p} 🐚` : 'Item travado.'); }
+    if (d.sell || d.sellq) { const p = G.sell(st, d.sell || d.sellq); return after(p ? `Vendido por ${p} 🪙` : 'Item travado.'); }
     if (d.dis || d.disq) { const p = G.dismantle(st, d.dis || d.disq); return after(p ? `Desmontado: 🦴 +${p}` : 'Item travado.'); }
     if (d.upq) { const r = G.upgrade(st, d.upq); if (r.ok) buzz(r.success ? 30 : 10); return after(r.msg, r.ok); }
     if (d.goForge !== undefined) { closeModal(); screen = 'loja'; shopTab = 'forja'; forgeTab = 'melhorar'; return render(); }
@@ -440,8 +448,10 @@
       case 'rename': return askName(false);
       case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; closeModal(); save(); render(); return; }
       case 'reset': if (confirm('Apagar todo o progresso?')) { G.wipe(); st = G.newState(''); fight = null; closeModal(); save(); render(); askName(true); } return;
-      case 'refreshshop': { const c = G.shopRefreshCost(st); if (st.gold < c) return toast('Conchas insuficientes.'); st.gold -= c; G.refreshShop(st); return after('Estoque renovado.', false); }
+      case 'refreshshop': { const c = G.shopRefreshCost(st); if (st.gold < c) return toast('Ouro insuficiente.'); st.gold -= c; G.refreshShop(st); return after('Estoque renovado.', false); }
       case 'rest': { const r = G.rest(st); return after(r.msg, false); }
+      case 'skipcd': { const r = G.skipCooldown(st); if (r.ok) buzz(20); return after(r.msg, false); }
+      case 'buyen': { const r = G.buyEnergy(st); if (r.ok) buzz(20); return after(r.msg, false); }
       case 'bagup': { const r = G.buyBagSlots(st); return after(r.msg, false); }
       case 'sort': bagSort = bagSort === 'poder' ? 'raridade' : bagSort === 'raridade' ? 'nivel' : 'poder'; return render();
       case 'bulk': return bulkMenu();
@@ -460,7 +470,7 @@
     if (snapshot() !== lastSnap) { render(); return; }
     const cd = G.cooldownLeft(st);
     const set = (k, v) => { const el = view.querySelector(`[data-live="${k}"]`); if (el) el.textContent = v; };
-    set('cd', cd > 0 ? cd + 's' : 'pronto');
+    set('cd', cd > 0 ? cd + 's' : 'pronto'); set('cdcost', G.cooldownSkipCost(st));
     if (st.energy < G.MAX_ENERGY) set('ent', mmss(G.ENERGY_SECS - (Date.now() - st.energyAt) / 1000));
     if (st.training) {
       const left = Math.max(0, (st.training.endsAt - Date.now()) / 1000), total = G.skillTime({ skills: { [st.training.id]: st.training.from } }, st.training.id);

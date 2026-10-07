@@ -19,6 +19,8 @@
   G.BAG_MAX = 60;
   G.MAX_PLUS = 10;
   G.SHOP_SECS = 20 * 60;          // estoque renova a cada 20 min
+  G.GOLD_RATE = 0.6;              // ouro mais escasso
+  G.XP_RATE = 0.8;                // XP mais escasso
   G.ENERGY_COST = { story: 1, semi: 1, boss: 2, training: 1 };
 
   /* ---------- Raridades e slots ---------- */
@@ -118,9 +120,9 @@
   };
   G.itemPrice = function (it) {
     const rar = G.RARITIES[it.rarity];
-    return Math.round((4 + 2.2 * it.ilvl) * rar.mult * rar.mult * 3.2 * (1 + 0.3 * (it.plus || 0)));
+    return Math.round((4 + 2.2 * it.ilvl) * rar.mult * rar.mult * 2.5 * (1 + 0.3 * (it.plus || 0)));
   };
-  G.sellPrice = (it) => Math.max(1, Math.round(G.itemPrice(it) * 0.3));
+  G.sellPrice = (it) => Math.max(1, Math.round(G.itemPrice(it) * 0.25));
   G.shopPrice = (st, it) => Math.round(G.itemPrice(it) * (st.shop && st.shop.deal === it.id ? 0.75 : 1));
 
   /* ---------- Habilidades (treinamento) ---------- */
@@ -133,7 +135,7 @@
     golpe:    { name: 'Mestre do Golpe', icon: '💥', max: 5,  desc: (r) => `+${10 * r}% de dano do Golpe Forte` },
     sangue:   { name: 'Sede de Sangue',  icon: '🩸', max: 5,  desc: (r) => `+${(1.5 * r).toFixed(1)}% de vida roubada` },
     cura:     { name: 'Curandeiro',      icon: '🧪', max: 5,  desc: (r) => `Poções curam +${6 * r}%` },
-    cacador:  { name: 'Caçador Nato',    icon: '🏹', max: 5,  desc: (r) => `+${3 * r}% de XP e +${4 * r}% de conchas` },
+    cacador:  { name: 'Caçador Nato',    icon: '🏹', max: 5,  desc: (r) => `+${3 * r}% de XP e +${4 * r}% de ouro` },
     grito:    { name: 'Grito de Guerra', icon: '📣', max: 5,  active: true, desc: (r) => `Ativa: +${25 + 5 * r}% de dano por 3 turnos (recarga 5)` },
     postura:  { name: 'Postura de Pedra', icon: '🗿', max: 5, active: true, desc: (r) => `Ativa: -${40 + 3 * r}% de dano recebido por 3 turnos (recarga 5)` },
   };
@@ -141,7 +143,7 @@
   G.skillRank = (st, id) => (st.skills && st.skills[id]) || 0;
   G.skillReqLevel = (st, id) => 1 + G.skillRank(st, id) * 2 + (G.SKILLS[id].active ? 4 : 0);
   G.skillTime = (st, id) => Math.round(90 * Math.pow(G.skillRank(st, id) + 1, 1.5));       // segundos
-  G.skillCost = (st, id) => Math.round(45 * Math.pow(G.skillRank(st, id) + 1, 1.6) * (1 + st.level * 0.06));
+  G.skillCost = (st, id) => Math.round(34 * Math.pow(G.skillRank(st, id) + 1, 1.6) * (1 + st.level * 0.06));
   G.speedupCost = (st) => {
     if (!st.training) return 0;
     const left = Math.max(0, (st.training.endsAt - Date.now()) / 1000);
@@ -155,7 +157,7 @@
     if (G.skillRank(st, id) >= sk.max) return { ok: false, msg: 'Habilidade no máximo.' };
     if (st.level < G.skillReqLevel(st, id)) return { ok: false, msg: `Requer nível ${G.skillReqLevel(st, id)}.` };
     const c = G.skillCost(st, id);
-    if (st.gold < c) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
     st.gold -= c;
     st.training = { id, endsAt: Date.now() + G.skillTime(st, id) * 1000, from: G.skillRank(st, id) };
     return { ok: true, msg: `Treinando ${sk.name}...` };
@@ -168,7 +170,7 @@
   G.speedupTraining = function (st) {
     if (!st.training) return { ok: false, msg: 'Nada em treino.' };
     const c = G.speedupCost(st);
-    if (st.gold < c) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
     st.gold -= c; st.training.endsAt = Date.now();
     return { ok: true, id: G.finishTraining(st) };
   };
@@ -177,7 +179,7 @@
   G.xpToNext = (L) => Math.round(40 * Math.pow(L, 1.55));
   const KIND_XP = { normal: 1, elite: 1.6, semi: 2.0, boss: 3.5, training: 0.5, event: 3 };
   const KIND_GOLD = { normal: 1, elite: 1.6, semi: 2.2, boss: 5, training: 0.7, event: 6 };
-  G.monsterXp = (L, kind) => G.xpToNext(L) / (2.2 + 0.18 * L) * KIND_XP[kind];
+  G.monsterXp = (L, kind) => G.xpToNext(L) / (2.2 + 0.18 * L) * KIND_XP[kind] * G.XP_RATE;
 
   G.newState = function (name) {
     const now = Date.now();
@@ -243,9 +245,28 @@
   G.rest = function (st) {
     const c = G.restCost(st);
     if (c <= 0) return { ok: false, msg: 'Você já está com a vida cheia.' };
-    if (st.gold < c) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
     st.gold -= c; G.setHp(st, G.heroStats(st).hp);
     return { ok: true, msg: 'Você descansou na fogueira.' };
+  };
+  // Pagar ouro para encurtar a espera (preço sobe a cada compra no dia)
+  const buyMul = (st) => 1 + 0.35 * ((st.ev && st.ev.buys) || 0);
+  G.cooldownSkipCost = (st, now = Date.now()) => Math.ceil(G.cooldownLeft(st, now) * (0.35 + 0.04 * st.level));
+  G.skipCooldown = function (st) {
+    const left = G.cooldownLeft(st);
+    if (left <= 0) return { ok: false, msg: 'Você já está pronto.' };
+    const c = G.cooldownSkipCost(st);
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
+    st.gold -= c; st.cdUntil = 0;
+    return { ok: true, msg: 'Fôlego recuperado!' };
+  };
+  G.energyBuyCost = (st) => Math.round((22 + 5 * st.level) * buyMul(st));
+  G.buyEnergy = function (st) {
+    if (st.energy >= G.MAX_ENERGY) return { ok: false, msg: 'Encontros já estão cheios.' };
+    const c = G.energyBuyCost(st);
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
+    st.gold -= c; st.energy++; st.ev.buys = (st.ev.buys || 0) + 1;
+    return { ok: true, msg: '+1 encontro.' };
   };
   G.cooldownLeft = (st, now = Date.now()) => Math.max(0, Math.ceil(((st.cdUntil || 0) - now) / 1000));
 
@@ -465,7 +486,7 @@
   G.bonusEvents = function (d) {
     const out = [], wd = d.getDay(), dm = d.getDate();
     if (wd === 0 || wd === 6) out.push({ id: 'fds', name: 'Fim de Semana do Caçador', icon: '🏕️', desc: '+50% de XP em todas as batalhas', xp: 1.5, gold: 1 });
-    if (dm <= 3) out.push({ id: 'festival', name: 'Festival das Conchas', icon: '🐚', desc: '+50% de conchas nos primeiros dias do mês', xp: 1, gold: 1.5 });
+    if (dm <= 3) out.push({ id: 'festival', name: 'Festival do Ouro', icon: '🪙', desc: '+50% de ouro nos primeiros dias do mês', xp: 1, gold: 1.5 });
     if (wd === 3) out.push({ id: 'quarta', name: 'Quarta da Forja', icon: '🔨', desc: 'Ferreiro com 25% de desconto', xp: 1, gold: 1, forge: 0.75 });
     return out;
   };
@@ -475,7 +496,7 @@
   G.evSync = function (st, d = new Date()) {
     const day = G.dayKey(d);
     if (!st.ev) st.ev = { day: '', weekly: 0, monthly: 0, claimW: '', claimM: '' };
-    if (st.ev.day !== day) { st.ev.day = day; st.ev.weekly = G.EVENT_ATTEMPTS.weekly; st.ev.monthly = G.EVENT_ATTEMPTS.monthly; }
+    if (st.ev.day !== day) { st.ev.day = day; st.ev.buys = 0; st.ev.weekly = G.EVENT_ATTEMPTS.weekly; st.ev.monthly = G.EVENT_ATTEMPTS.monthly; }
   };
   G.eventUnlocked = (st, type) => st.trophies.length >= G.EVENT_UNLOCK[type];
   G.eventMonster = function (st, type, d = new Date()) {
@@ -558,7 +579,7 @@
     if (f.mode !== 'training' || !f.fled) st.cdUntil = now.getTime() + G.BATTLE_CD * 1000;
     if (f.fled) return rep;
     if (!f.won) {
-      const loss = Math.min(st.gold, Math.round(st.gold * 0.08));
+      const loss = Math.min(st.gold, Math.round(st.gold * 0.1));
       st.gold -= loss; rep.gold = -loss;
       if (f.mode === 'event-weekly' || f.mode === 'event-monthly') st.ev[f.mode.split('-')[1]]--;
       return rep;
@@ -566,7 +587,7 @@
     const m = f.mon, L = st.level, kind = f.mode === 'training' ? 'training' : m.kind;
     const bm = G.bonusMul(now), h = G.heroStats(st);
     rep.xp = Math.round(G.monsterXp(L, kind) * bm.xp * h.xp);
-    rep.gold = Math.round((6 + 3 * L) * rand(0.8, 1.2) * KIND_GOLD[kind] * bm.gold * h.gold);
+    rep.gold = Math.round((6 + 3 * L) * rand(0.8, 1.2) * KIND_GOLD[kind] * bm.gold * h.gold * G.GOLD_RATE);
     st.gold += rep.gold; st.totalKills++;
     const drops = [];
     if (f.mode === 'training') { if (R() < 0.3) drops.push(dropItem(m.level, 'normal', L / 25)); rep.ossos = 1 + Math.floor(L / 12); }
@@ -634,7 +655,7 @@
     const it = st.shop.equip.concat(st.shop.runes).find((x) => x.id === id);
     if (!it) return { ok: false, msg: 'Item indisponível.' };
     const p = G.shopPrice(st, it);
-    if (st.gold < p) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < p) return { ok: false, msg: 'Ouro insuficiente.' };
     if (st.bag.length >= st.bagSize) return { ok: false, msg: 'Baú cheio!' };
     st.gold -= p; st.bag.push(it);
     st.shop.equip = st.shop.equip.filter((x) => x.id !== id);
@@ -643,14 +664,14 @@
   };
   G.buyPotion = function (st, kind) {
     const p = G.potionPrice(st, kind);
-    if (st.gold < p) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < p) return { ok: false, msg: 'Ouro insuficiente.' };
     st.gold -= p; st.potions[kind]++;
     return { ok: true, msg: 'Poção comprada.' };
   };
   G.buyBagSlots = function (st) {
     if (st.bagSize >= G.BAG_MAX) return { ok: false, msg: 'Baú no tamanho máximo.' };
     const c = Math.round(G.bagUpgradeCost(st));
-    if (st.gold < c) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
     st.gold -= c; st.bagSize += 5;
     return { ok: true, msg: 'Baú ampliado em 5 vagas.' };
   };
@@ -698,7 +719,7 @@
   /* ---------- Ferreiro ---------- */
   const PLUS_CHANCE = [1, 1, 1, 0.85, 0.7, 0.55, 0.45, 0.35, 0.25, 0.18];
   G.upgradeChance = (it) => Math.min(1, PLUS_CHANCE[it.plus] + (it.pity || 0));
-  G.upgradeCost = (it, forge = 1) => Math.round((4 + 2.2 * it.ilvl) * 1.1 * (it.plus + 1) * (1 + it.rarity * 0.3) * forge);
+  G.upgradeCost = (it, forge = 1) => Math.round((4 + 2.2 * it.ilvl) * 0.85 * (it.plus + 1) * (1 + it.rarity * 0.3) * forge);
   G.upgradeOssos = (it) => Math.round(3 + it.plus * 2.5 + it.rarity * 3);
   G.dismantleYield = (it) => Math.round([2, 4, 8, 16, 32][it.rarity] * (1 + it.ilvl / 20) * (1 + (it.plus || 0) * 0.3));
 
@@ -708,7 +729,7 @@
     const it = f.it;
     if (it.plus >= G.MAX_PLUS) return { ok: false, msg: 'Já está no máximo.' };
     const forge = G.bonusMul(now).forge, c = G.upgradeCost(it, forge), o = G.upgradeOssos(it);
-    if (st.gold < c) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
     if (st.ossos < o) return { ok: false, msg: 'Ossos insuficientes.' };
     st.gold -= c;
     if (R() < G.upgradeChance(it)) {
@@ -735,7 +756,7 @@
     const grp = G.runeGroups(st).find((x) => x.key === key);
     if (!grp) return { ok: false, msg: 'Você não tem 3 runas iguais.' };
     const c = G.fuseCost(grp.rarity);
-    if (st.gold < c) return { ok: false, msg: 'Conchas insuficientes.' };
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
     const use = grp.items.slice(0, 3), ilvl = Math.max(...use.map((x) => x.ilvl));
     st.gold -= c;
     st.bag = st.bag.filter((x) => !use.includes(x));
