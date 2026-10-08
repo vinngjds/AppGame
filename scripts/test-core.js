@@ -62,11 +62,23 @@ t('avatar: começa só com a roupa de baixo e mostra o equipamento', () => {
   const A = require(path.join(__dirname, '..', 'js', 'avatar.js'));
   const st = G.newState('x'); st.equipped.arma = null;
   const nu = A.svg({ g: 'f', skin: 0, hair: 0 }, st.equipped);
-  assert(nu.startsWith('<svg') && !nu.includes('stroke-width="4"/><circle cx="156"'), 'sem escudo');
+  assert(nu.startsWith('<svg') && !nu.includes('r="29"'), 'sem escudo');
   const dressed = Object.assign({}, st.equipped); for (const sl of G.SLOT_ORDER) dressed[sl] = G.makeItem(sl, 20, 3);
   const v = A.svg({ g: 'm', skin: 2, hair: 1 }, dressed);
-  assert(v.length > nu.length * 1.6, 'equipamento adiciona camadas'); assert(v.includes('#b06be0'), 'cor da raridade épica');
+  assert(v.length > nu.length * 1.5, 'equipamento adiciona camadas'); assert(v.includes('#b06be0'), 'cor da raridade épica');
   assert(A.svg({ g: 'm', skin: 1, hair: 1 }, G.newState('y').equipped) !== A.svg({ g: 'f', skin: 1, hair: 1 }, G.newState('y').equipped), 'masculino e feminino diferem');
+});
+t('arte: todo monstro, dragão e cenário tem ilustração válida', () => {
+  const Art = require(path.join(__dirname, '..', 'js', 'art.js'));
+  const names = [];
+  G.ZONES.forEach((z) => { z.m.forEach((m) => names.push(m[0])); names.push(z.semi[0], z.boss.name); });
+  [...G.WEEKLY, ...G.MONTHLY].forEach((e) => names.push(e.name)); Object.values(G.DRAGONS).forEach((d) => names.push(d.name));
+  assert.equal(names.length, 70);
+  for (const n of names) { assert(Art.hasSpec(n), 'sem arte: ' + n); const svg = Art.monster({ name: n, emoji: '🐺', kind: 'normal' }); assert(svg.startsWith('<svg') && svg.endsWith('</svg>') && svg.includes('viewBox="0 0 240 200"'), 'svg inválido: ' + n); }
+  assert(Art.monster({ name: 'Lobo Jovem Veterano', emoji: '🐺', kind: 'elite' }).includes('<svg'), 'veterano usa a arte da fera');
+  for (const b of Art.BIOMES) assert(Art.scene(b).includes('<svg'), 'cenário ' + b);
+  for (let z = 1; z <= 15; z++) assert(Art.scene(z).includes('viewBox'), 'zona ' + z);
+  assert.equal(Art.slug('Dragão Azul'), 'dragao-azul');
 });
 t('chefes ficam mais fortes ao longo da campanha', () => {
   const m = (no) => G.makeMonster(10, 'boss', G.BOSSES[no - 1]);

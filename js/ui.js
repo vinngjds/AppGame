@@ -124,7 +124,7 @@
   function dragonCard(id) {
     const d = G.DRAGONS[id], chk = G.canFightDragon(st, id), left = G.dragonLeft(st, id), unlocked = G.dragonUnlocked(st, id);
     const mon = G.dragonMonster(id), blue = id === 'azul';
-    return `<div class="card dragon ${id}"><div class="row"><div class="pic ${blue ? 'bluedragon' : ''}">${d.emoji}</div><div class="grow">
+    return `<div class="card dragon ${id}"><div class="row"><div class="pic art big">${Art.monster(mon)}</div><div class="grow">
       <div class="name">${d.name} · nível ${d.level}</div><div class="sub">${d.blurb}</div><div class="tags">${modTags(d.mods)}<span class="tag">💥 ${d.sp}</span></div></div></div>
       <div class="sub" style="margin-top:6px">Recompensa: 📦 Caixas ${blue ? '+4 / +5' : '+3 / +4'} · troféu ${d.tIcon} ${G.bonusText(d.bonus)}</div>
       <div class="sub">Volta a cada 5 minutos.</div>
@@ -148,7 +148,7 @@
     else {
       const nextStep = Math.min(3, prog), mon = G.stepMonster(cz, nextStep, true), chk = G.canFightZone(st, cz, nextStep);
       h += `<h2 class="banner">📍 Local atual</h2><div class="card ${nextStep === 3 ? 'boss' : nextStep === 2 ? 'semi' : ''}">
-        <div class="row"><div class="pic">${Z.icon}</div><div class="grow"><div class="name">${cz}. ${Z.name}</div><div class="sub">Próxima luta ${nextStep + 1}/4: ${mon.emoji} ${esc(mon.name)} · nv ${mon.level}</div>
+        <div class="row"><div class="pic art">${Art.monster(mon)}</div><div class="grow"><div class="name">${cz}. ${Z.name}</div><div class="sub">Próxima luta ${nextStep + 1}/4: ${mon.emoji} ${esc(mon.name)} · nv ${mon.level}</div>
         <div class="sub">${G.STEPS[nextStep].label} · 📦 Caixa ${boxRange(G.STEPS[nextStep].kind, cz)} · custa ${G.STEP_COST[nextStep]} ⚡</div></div></div>
         <div class="prog">${[0, 1, 2, 3].map((k) => `<b class="${prog > k ? 'on' : ''} ${k === 2 ? 'semi' : ''}"></b>`).join('')}</div>
         <button class="btn ${nextStep === 3 ? 'red' : 'go'}" data-step="${cz}:${nextStep}" ${chk.ok ? '' : 'disabled'}>${nextStep === 3 ? '⚔️ Enfrentar o Chefe' : nextStep === 2 ? '🐾 Enfrentar o Semi-chefe' : '🏹 Lutar'}</button>
@@ -166,7 +166,7 @@
     const rows = G.STEPS.map((stp, i) => {
       const mon = G.stepMonster(z, i, true), chk = G.canFightZone(st, z, i), done = i < prog, next = i === prog;
       const btn = done ? `<button class="btn sm" data-step="${z}:${i}" ${chk.ok ? '' : 'disabled'}>↻ Rejogar</button>` : next ? `<button class="btn sm ${i === 3 ? 'red' : 'go'}" data-step="${z}:${i}" ${chk.ok ? '' : 'disabled'}>⚔️ Lutar</button>` : '<span class="sub">🔒</span>';
-      return `<div class="item" data-noop style="border-color:${i === 3 ? '#a8452b' : i === 2 ? '#d9822b' : 'var(--edge)'}"><div class="pic">${mon.emoji}</div><div class="grow">
+      return `<div class="item" data-noop style="border-color:${i === 3 ? '#a8452b' : i === 2 ? '#d9822b' : 'var(--edge)'}"><div class="pic art">${Art.monster(mon)}</div><div class="grow">
         <div class="name">${done ? '✅ ' : ''}${i + 1}. ${esc(mon.name)}</div><div class="stat">${stp.label} · nível ${mon.level} · ${G.STEP_COST[i]} ⚡</div>
         <div class="stat">📦 Caixa ${boxRange(stp.kind, z)}${i === 3 ? ` · 🏆 ${Z.boss.trophy} (${G.bonusText(G.trophyBonus(z))})` : ''}</div><div class="tags" style="margin-top:2px">${modTags(mon.mods)}</div></div>${btn}</div>`;
     }).join('');
@@ -368,7 +368,7 @@
     const card = (type, e, label, tryTxt) => {
       const unlocked = G.eventUnlocked(st, type), chk = G.canFight(st, 'event-' + type);
       const claimed = st.ev[type === 'weekly' ? 'claimW' : 'claimM'] === e.key;
-      return `<div class="card boss"><div class="row"><div class="pic">${e.def.emoji}</div><div class="grow"><div class="tag">${label}</div><div class="name">${e.def.name}</div>
+      return `<div class="card boss"><div class="row"><div class="pic art big">${Art.monster({ name: e.def.name, emoji: e.def.emoji, kind: 'event' })}</div><div class="grow"><div class="tag">${label}</div><div class="name">${e.def.name}</div>
         <div class="sub">Nível ${e.mon.level} · golpe especial: ${e.def.sp}</div><div class="tags">${modTags(e.def.mods)}</div></div></div>
         <div class="sub" style="margin-top:6px">Tentativas hoje: <b>${st.ev[type]}</b> · ${tryTxt}</div>
         <div class="sub">Recompensa: 🦕 Fósseis ${claimed ? '' : '+ item e runa ' + (type === 'monthly' ? 'épicos/lendários' : 'raros/épicos') + ' + troféu ' + e.def.tIcon + ' (1ª vitória)'}</div>
@@ -409,6 +409,11 @@
     const e = G.eventMonster(st, type);
     beginFight(e.mon, { mode: 'event-' + type, event: { key: e.key, def: e.def } });
   }
+  function sceneFor(f) {
+    if (f.zone) return f.zone.z;
+    if (f.mode === 'dragon') return f.mon.dragon === 'azul' ? 'ice' : 'glade';
+    return f.mode === 'event-monthly' ? 'volcano' : 'cursed';
+  }
   function drawFight(logLines) {
     const f = fight, m = f.mon, h = f.hero;
     const cdTxt = (k) => (f.cd[k] > 0 ? ` (${f.cd[k]})` : '');
@@ -416,12 +421,14 @@
     const label = KIND_LABEL[m.kind];
     overlay.innerHTML = `<div class="fight">
       <div class="arena ${m.boss ? 'boss' : m.kind === 'semi' ? 'semi' : m.kind === 'elite' ? 'elite' : ''}" id="arena" style="position:relative">
-        <div class="sub">${m.boss ? '👑 ' : ''}${label} · Nível ${m.level}</div><div class="name">${esc(m.name)}</div>
-        <div class="mon ${m.dragon === 'azul' ? 'bluedragon' : ''}" id="mon">${m.emoji}</div>${hpBar(m.hp, m.maxHp, 'mhp')}
-        <div class="tags" style="justify-content:center">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}</div></div>
+        <div class="sceneBg">${Art.scene(sceneFor(f))}</div>
+        <div class="arenatop"><span class="sub">${m.boss ? '👑 ' : ''}${label} · Nível ${m.level}</span><div class="name">${esc(m.name)}</div></div>
+        <div class="mon ${m.dragon === 'azul' ? '' : ''}" id="mon">${Art.monster(m)}</div>
+        <div class="arenabot">${hpBar(m.hp, m.maxHp, 'mhp')}
+        <div class="tags" style="justify-content:center">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}</div></div></div>
       <div class="warn" id="warn" ${f.warn ? '' : 'hidden'}>⚠️ ${esc(m.name)} vai usar ${esc(m.special ? m.special.name : '')}! Defenda-se!</div>
       <div class="log" id="log">${logLines.join('')}</div>
-      <div style="font-size:13px;margin-bottom:4px">🧔 ${esc(st.name)} ${f.stunned ? '💫' : ''}${f.poison ? '☠️' : ''}${f.buff.grito > 0 ? '📣' : ''}${f.buff.postura > 0 ? '🗿' : ''}</div>${hpBar(h.hp, h.max)}
+      <div class="herorow"><div class="herochip">${Avatar.svg(st.avatar, st.equipped)}</div><div class="grow"><div style="font-size:13px;margin-bottom:4px">${esc(st.name)} ${f.stunned ? '💫' : ''}${f.poison ? '☠️' : ''}${f.buff.grito > 0 ? '📣' : ''}${f.buff.postura > 0 ? '🗿' : ''}</div>${hpBar(h.hp, h.max)}</div></div>
       <div class="acts" style="margin-top:8px">
         <button class="btn red" data-fa="attack">⚔️ Atacar</button>
         <button class="btn" data-fa="heavy" ${f.cd.heavy > 0 ? 'disabled' : ''}>💥 Golpe Forte${cdTxt('heavy')}</button>
@@ -600,6 +607,7 @@
   if (!st) { st = G.newState(''); st.name = 'Herói'; save(); }
   render();
   if (fresh) askName(true);
+  Art.loadPack().then((j) => { if (j && !fight) render(); });
   setInterval(tick, 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !fight) render(); });
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
