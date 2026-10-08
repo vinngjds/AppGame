@@ -6,7 +6,7 @@ RPG de turnos ambientado na Idade da Pedra. Funciona como PWA (HTML/CSS/JS puro,
 - Herói nível 1 → 40. Atributos: Força ⚔️, Vida ❤️, Armadura 🛡️, Crítico 🎯, vida roubada 🩸.
 - **Jornada**: um mapa com **15 locais** (Caverna Sombria, Floresta Densa, Margem do Lago, Colinas Rochosas… até o Covil do Tirano). Cada local tem **4 lutas**: fera, fera, **semi-chefe** e **chefe**. XP e ouro escalonam entre elas; vencer o chefe libera o próximo local, dá um troféu e avança a história. Locais vencidos podem ser rejogados (60% de XP/ouro).
 - **Dragões** (fora do mapa): **Dragão Verde** (forte) e **Dragão Azul** (muito forte). Voltam a cada 5 minutos e dão caixas grandes e um troféu com bônus.
-- **Itens de elite são raros**: épicos, lendários e **runas** só saem de caixas altas (+3 ou mais; a +1 e a +2 nunca os trazem). A loja não vende épico nem lendário, e uma runa é rara e cara. Veja as chances no Baú (botão ℹ️ Chances).
+- **Itens de elite são raros**: épicos, lendários e **runas** só saem de caixas altas (+3 ou mais; a +1 e a +2 nunca os trazem). A loja não vende épico nem lendário, não vende caixas, cobra bem caro (3,5× o valor) por itens comuns, incomuns e raros, e uma runa é rara e mais cara ainda. Veja as chances no Baú (botão ℹ️ Chances).
 - **Caixas +1 a +5**: as lutas não dão mais itens prontos. Feras fracas dão quase sempre +1, o semi-chefe tem chance de +2, chefes e dragões dão caixas maiores. Caixas maiores trazem itens mais raros (+1 comum … +5 épico/lendário). Abra no Baú.
 - **Ritmo**: 12 encontros que voltam 1 a cada 4 min (chefe custa 2), 25 s de fôlego entre batalhas, vida cheia em 7 min (ou 🔥 Descansar por ouro). Dá para **pagar ouro** para pular o fôlego ou comprar encontros (o preço sobe a cada compra no dia). Ouro e XP são escassos.
 - **Avatar** (homem ou mulher, pele e cabelo à escolha): começa só com a roupa de baixo e mostra elmo, armadura, luvas, botas, arma, escudo, amuleto e runas conforme você equipa (material pelo nível, contorno pela raridade).
@@ -33,4 +33,4 @@ Um workflow (`.github/workflows/pages.yml`) publica no GitHub Pages ao fazer mer
 - `js/ui.js` telas e animações · `css/style.css` tema pedra/couro · `sw.js` offline.
 
 ## Balanceamento
-Fórmulas em `js/core.js` (`makeMonster`, `heroStats`, `makeItem`, `monsterXp`). A simulação (`node scripts/sim.js 30`) mostra a escalada de dificuldade (fera ≈ 7%, fera 2 ≈ 12%, semi-chefe ≈ 36%, chefe ≈ 66% da vida), a vitória nos dragões e eventos. `node scripts/autotune.js` reajusta a força de cada chefe (`G.BOSS_TUNE`).
+Fórmulas em `js/core.js` (`makeMonster`, `heroStats`, `makeItem`, `monsterXp`). A simulação (`node scripts/sim.js 30`) mostra a escalada de dificuldade (fera ≈ 10%, fera 2 ≈ 19%, semi-chefe ≈ 38%, chefe ≈ 80% da vida — um jogo difícil, mas não impossível), a vitória nos dragões e eventos. `node scripts/autotune.js` reajusta a força de cada chefe (`G.BOSS_TUNE`).

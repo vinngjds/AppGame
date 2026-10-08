@@ -143,7 +143,8 @@
     return Math.round((4 + 2.2 * it.ilvl) * rar.mult * rar.mult * 2.5 * (it.rune ? 3.5 : 1) * (1 + 0.3 * (it.plus || 0)));
   };
   G.sellPrice = (it) => Math.max(1, Math.round(G.itemPrice(it) * 0.25));
-  G.shopPrice = (st, it) => Math.round(G.itemPrice(it) * (st.shop && st.shop.deal === it.id ? 0.75 : 1));
+  G.SHOP_MARKUP = 3.5;   // a loja cobra bem mais que o valor do item (a venda continua pelo valor base)
+  G.shopPrice = (st, it) => Math.round(G.itemPrice(it) * G.SHOP_MARKUP * (st.shop && st.shop.deal === it.id ? 0.75 : 1));
 
   /* ---------- Habilidades (treinamento) ---------- */
   G.SKILLS = {
@@ -435,28 +436,28 @@
   // nível-base de cada local (as 4 lutas somam -1, 0, +1 e +2 a esse nível)
   G.ZONE_LEVELS = [2, 4, 5, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 25, 26];
   // reforço das feras de cada local (a 2ª é mais forte que a 1ª)
-  G.STEP_MUL = [{ hp: 1.15, atk: 1.35 }, { hp: 1.25, atk: 1.5 }];
+  G.STEP_MUL = [{ hp: 1.4, atk: 1.9 }, { hp: 1.55, atk: 2.2 }];
   G.STEPS = [{ kind: 'normal', dl: -1, label: 'Fera' }, { kind: 'normal', dl: 0, label: 'Fera' }, { kind: 'semi', dl: 1, label: 'Semi-chefe' }, { kind: 'boss', dl: 2, label: 'Chefe' }];
 
   // Dragões: fora dos locais, voltam a cada 5 minutos
   G.DRAGONS = {
-    verde: { id: 'verde', name: 'Dragão Verde', emoji: '🐲', level: 21, mods: ['venenoso', 'regenerador'], sp: 'Sopro Venenoso', unlockZone: 6, respawn: 300,
-      mul: { hp: 6, atk: 1.8, arm: 1.4 }, tierPower: 3.9, trophy: 'Escama Esmeralda', tIcon: '💚', bonus: { stat: 'hp', v: 6 },
+    verde: { id: 'verde', name: 'Dragão Verde', emoji: '🐲', level: 27, mods: ['venenoso', 'regenerador'], sp: 'Sopro Venenoso', unlockZone: 6, respawn: 300,
+      mul: { hp: 8.5, atk: 2.3, arm: 1.5 }, tierPower: 3.9, trophy: 'Escama Esmeralda', tIcon: '💚', bonus: { stat: 'hp', v: 6 },
       blurb: 'Forte, mas justo. Guarda a clareira esmeralda.' },
-    azul: { id: 'azul', name: 'Dragão Azul', emoji: '🐉', level: 34, mods: ['esmagador', 'couracado', 'feroz'], sp: 'Sopro Gélido', unlockZone: 10, respawn: 300,
-      mul: { hp: 9, atk: 3.0, arm: 1.6 }, tierPower: 4.7, trophy: 'Escama Glacial', tIcon: '💙', bonus: { stat: 'atk', v: 6 },
+    azul: { id: 'azul', name: 'Dragão Azul', emoji: '🐉', level: 36, mods: ['esmagador', 'couracado', 'feroz'], sp: 'Sopro Gélido', unlockZone: 10, respawn: 300,
+      mul: { hp: 10, atk: 3.0, arm: 1.6 }, tierPower: 4.7, trophy: 'Escama Glacial', tIcon: '💙', bonus: { stat: 'atk', v: 6 },
       blurb: 'Muito forte. Só os heróis mais poderosos o derrotam.' },
   };
 
   // Ajuste fino da força de cada chefe (nivela a dificuldade entre efeitos diferentes)
-  G.BOSS_TUNE = [0.61, 0.86, 1.21, 1.10, 0.81, 0.59, 1.23, 1.25, 1.13, 0.76, 1.04, 1.16, 1.16, 1.84, 1.60];
+  G.BOSS_TUNE = [1.08, 1.32, 1.28, 1.41, 0.94, 0.64, 1.40, 1.34, 1.63, 0.95, 1.63, 1.46, 1.83, 2.44, 2.22];
   // kind: normal | elite | semi | boss | event | dragon
   const KIND_MUL = {
     normal: { hp: 1.0, atk: 1.0, arm: 1.0 },
     elite:  { hp: 1.5, atk: 1.18, arm: 1.15 },
-    semi:   { hp: 2.8, atk: 1.7, arm: 1.3 },
+    semi:   { hp: 3.4, atk: 2.3, arm: 1.35 },
     boss:   { hp: 2.9, atk: 1.28, arm: 1.2 },
-    event:  { hp: 3.7, atk: 1.32, arm: 1.25 },
+    event:  { hp: 4.0, atk: 1.5, arm: 1.3 },
   };
   G.makeMonster = function (level, kind, def) {
     const L = Math.max(1, level);
@@ -651,7 +652,7 @@
   G.eventMonster = function (st, type, d = new Date()) {
     const e = type === 'weekly' ? G.weeklyEvent(d) : G.monthlyEvent(d);
     const mon = G.makeMonster(st.level + (type === 'monthly' ? 2 : 1), 'event', Object.assign({}, e.def, type === 'monthly' ? { sp: e.def.sp } : {}));
-    const sc = 0.7 + 0.07 * Math.min(15, st.trophies.length);   // cresce com o progresso na campanha
+    const sc = 0.4 + 0.14 * Math.min(15, st.trophies.length);   // cresce com o progresso na campanha
     mon.hp = mon.maxHp = Math.round(mon.maxHp * sc); mon.atk = Math.round(mon.atk * (1 + (sc - 1) * 0.8));
     if (type === 'monthly') { mon.hp = mon.maxHp = Math.round(mon.maxHp * 1.35); mon.atk = Math.round(mon.atk * 1.12); }
     return { mon, key: e.key, def: e.def };
@@ -659,19 +660,19 @@
   G.EVENT_SHOP = [
     { id: 'pot',   name: '3 Poções Grandes', icon: '🧪', cost: 10 },
     { id: 'ossos', name: '40 Ossos',          icon: '🦴', cost: 12 },
-    { id: 'runaE', name: 'Runa Épica',        icon: '🔶', cost: 90 },
-    { id: 'itemL', name: 'Item Lendário',     icon: '🏆', cost: 260 },
+    { id: 'runaR', name: 'Runa Rara',         icon: '🔶', cost: 60 },
+    { id: 'itemR', name: 'Item Raro',         icon: '🎁', cost: 45 },
   ];
   G.buyEventOffer = function (st, id) {
     const o = G.EVENT_SHOP.find((x) => x.id === id);
     if (!o) return { ok: false, msg: 'Oferta inválida.' };
     if (st.fossils < o.cost) return { ok: false, msg: 'Fósseis insuficientes.' };
-    if ((id === 'runaE' || id === 'itemL') && st.bag.length >= st.bagSize) return { ok: false, msg: 'Baú cheio!' };
+    if ((id === 'runaR' || id === 'itemR') && st.bag.length >= st.bagSize) return { ok: false, msg: 'Baú cheio!' };
     st.fossils -= o.cost;
     if (id === 'pot') st.potions.large += 3;
     if (id === 'ossos') st.ossos += 40;
-    if (id === 'runaE') { const r = G.makeRune(st.level, 3); st.bag.push(r); G.discover(st, r); }
-    if (id === 'itemL') { const it = G.makeItem(pick(G.SLOT_ORDER), st.level, 4); st.bag.push(it); G.discover(st, it); }
+    if (id === 'runaR') { const r = G.makeRune(st.level, 2); st.bag.push(r); G.discover(st, r); }
+    if (id === 'itemR') { const it = G.makeItem(pick(G.SLOT_ORDER), st.level, 2); st.bag.push(it); G.discover(st, it); }
     return { ok: true, msg: `Trocou por ${o.name}.` };
   };
 
@@ -688,9 +689,9 @@
   G.stepMonster = function (z, step, noElite) {
     const Z = G.ZONES[z - 1], lvl = G.stepLevel(z, step), kind = G.STEPS[step].kind;
     if (kind === 'boss') return G.makeMonster(lvl, 'boss', Object.assign({ no: z }, Z.boss));
-    const ease = Math.min(1, 0.4 + 0.12 * z);   // os primeiros locais são mais brandos
+    const ease = Math.min(1, 0.3 + 0.13 * z);   // os primeiros locais são mais brandos
     const soften = (mon) => { mon.atk = Math.round(mon.atk * ease); mon.hp = mon.maxHp = Math.round(mon.hp * (0.5 + 0.5 * ease)); return mon; };
-    if (kind === 'semi') { const [n, e, md] = Z.semi; return soften(G.makeMonster(lvl, 'semi', { name: n, emoji: e, mods: [md] })); }
+    if (kind === 'semi') { const [n, e, md] = Z.semi; const mon = soften(G.makeMonster(lvl, 'semi', { name: n, emoji: e, mods: [md] })); if (z === 1) { mon.atk = Math.round(mon.atk * 0.8); } return mon; }
     const [n, e, md] = Z.m[step], elite = !noElite && R() < 0.08;
     const mon = G.makeMonster(lvl, elite ? 'elite' : 'normal', { name: n, emoji: e, mods: [md] });
     mon.hp = mon.maxHp = Math.round(mon.hp * G.STEP_MUL[step].hp); mon.atk = Math.round(mon.atk * G.STEP_MUL[step].atk);

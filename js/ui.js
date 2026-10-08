@@ -341,7 +341,7 @@
       const f = ['todos', ...G.SLOT_ORDER];
       h += `<div class="chips small">${f.map((x) => `<button data-ss="${x}" class="${x === shopSlot ? 'on' : ''}">${x === 'todos' ? 'Todos' : G.SLOTS[x].icon}</button>`).join('')}</div>`;
       const list = st.shop.equip.filter((i) => shopSlot === 'todos' || i.slot === shopSlot);
-      h += (list.length ? stock(list) : '<div class="card center muted">Sem itens desse tipo agora.</div>') + `<div class="sub center" style="margin-top:6px">A loja só vende itens comuns, incomuns e, raramente, raros. Itens épicos e lendários saem de caixas altas.</div>` + renew;
+      h += (list.length ? stock(list) : '<div class="card center muted">Sem itens desse tipo agora.</div>') + `<div class="sub center" style="margin-top:6px">A loja só vende itens comuns, incomuns e, raramente, raros — e cobra caro. Épicos e lendários saem de caixas altas, que não se compram.</div>` + renew;
     } else if (shopTab === 'runas') {
       h += `<div class="card"><div class="sub">🔶 Runas são <b>raras e caras</b>. O mercador quase nunca tem uma; elas saem melhor das caixas +3 ou maiores.</div></div>`;
       h += (st.shop.runes.length ? stock(st.shop.runes) : '<div class="card center muted">Nenhuma runa no estoque agora. Renove o estoque ou abra caixas altas.</div>') + renew;

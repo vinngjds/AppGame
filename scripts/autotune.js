@@ -3,7 +3,7 @@ const path = require('path');
 const G = require(path.join(__dirname, '..', 'js', 'core.js'));
 const { evaluate } = require('./sim.js');
 const rounds = +process.argv[2] || 4, N = +process.argv[3] || 14;
-const target = (z) => 0.58 + 0.009 * (z - 1);       // 58% no 1º chefe → ~70% no último
+const target = (z) => 0.74 + 0.007 * (z - 1);       // 58% no 1º chefe → ~70% no último
 for (let r = 0; r < rounds; r++) {
   const res = evaluate(N, {});
   const row = [];

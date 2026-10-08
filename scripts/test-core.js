@@ -123,7 +123,7 @@ t('dragões: desbloqueio, volta a cada 5 min, recompensa e troféu', () => {
   const st = G.newState('x'); assert(!G.canFightDragon(st, 'verde').ok);
   for (let z = 1; z <= 6; z++) st.zones[z] = 4; assert(G.canFightDragon(st, 'verde').ok && !G.canFightDragon(st, 'azul').ok);
   const mon = G.dragonMonster('verde'); assert(mon.special && mon.mods.length === 2);
-  assert(G.dragonMonster('azul').hp > mon.hp * 2, 'azul é bem mais forte');
+  assert(G.dragonMonster('azul').hp > mon.hp * 1.3 && G.dragonMonster('azul').atk > mon.atk * 1.5, 'azul é bem mais forte');
   const f = G.startFight(st, mon, { mode: 'dragon' }); f.over = f.won = true; f.hero.hp = f.hero.max;
   const t0 = Date.now(); const rep = G.finishFight(st, f, new Date(t0));
   assert(rep.boxes.length >= 1 && rep.boxes[0].tier >= 3 && rep.dragonTrophy && st.dragonTrophies.includes('verde'));
@@ -208,6 +208,22 @@ t('raridade: épicos, lendários e runas só em caixas altas; loja não vende é
   for (let i = 0; i < N; i++) { const st = G.newState('x'); st.level = 25; G.refreshShop(st); st.shop.equip.concat(st.shop.runes).forEach((it) => { if (it.rarity >= 3) epic++; }); runes += st.shop.runes.length; st.shop.runes.forEach((r) => { minRuneR = Math.min(minRuneR, r.rarity); }); assert(st.shop.runes.length <= 2); }
   assert.equal(epic, 0, 'loja nunca vende épico/lendário'); assert(runes / N < 0.6 && runes / N > 0.15, 'runas na loja: raras (' + runes / N + ')'); assert(minRuneR >= 1, 'runas da loja nunca são comuns');
   const eq = G.makeItem('arma', 20, 2), ru = G.makeRune(20, 2, 'forca'); assert(G.itemPrice(ru) > G.itemPrice(eq) * 3, 'runa custa bem mais que um item raro');
-  assert(G.EVENT_SHOP.find((o) => o.id === 'itemL').cost >= 250 && G.EVENT_SHOP.find((o) => o.id === 'runaE').cost >= 90);
+  assert(!G.EVENT_SHOP.some((o) => /ndário|Épica|Caixa/.test(o.name)), 'troca de fósseis não vende épico/lendário/caixa');
+});
+t('loja: só comum/incomum/raro, itens bem mais caros que o valor base, sem caixas', () => {
+  const st = G.newState('x'); st.level = 20; G.refreshShop(st);
+  const it = st.shop.equip[0]; st.shop.deal = null;
+  assert.equal(G.shopPrice(st, it), Math.round(G.itemPrice(it) * G.SHOP_MARKUP)); assert(G.SHOP_MARKUP >= 3, 'markup alto');
+  assert(G.shopPrice(st, it) > G.sellPrice(it) * 10, 'comprar custa muito mais que vender');
+  assert(!('boxes' in st.shop) && !G.EVENT_SHOP.some((o) => /caixa|box/i.test(o.name)), 'caixas não se compram');
+  assert(st.shop.equip.every((x) => x.rarity <= 2));
+});
+t('dificuldade: feras e chefes duros, dragões e eventos mais ainda', () => {
+  const st = G.newState('x'); st.level = 20;
+  const f1 = G.stepMonster(10, 0, true), f2 = G.stepMonster(10, 1, true), sm = G.stepMonster(10, 2, true), bs = G.stepMonster(10, 3, true);
+  assert(f2.atk > f1.atk && sm.hp > f2.hp * 2 && bs.atk > sm.atk, 'escalada na jornada');
+  assert(G.dragonMonster('azul').atk > G.dragonMonster('verde').atk * 1.5 && G.dragonMonster('azul').hp > G.dragonMonster('verde').hp);
+  st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'monthly').mon;
+  assert(m.hp > w.hp, 'chefe mensal é mais forte que o semanal');
 });
 console.log(`\n${n} testes passaram`);
