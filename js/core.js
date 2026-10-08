@@ -44,14 +44,34 @@
   G.RUNE_SLOTS = 3;
 
   const BASES = {
-    arma:     [['Clava de Madeira', '🏏'], ['Lança de Pedra', '🔱'], ['Machado de Sílex', '🪓'], ['Maça de Osso', '🦴'], ['Tacape de Mamute', '⚒️']],
-    escudo:   [['Escudo de Casca', '🪵'], ['Escudo de Couro', '🛡️'], ['Escudo de Pedra', '🪨'], ['Escudo de Casco', '🐢'], ['Escudo do Titã', '🗿']],
-    elmo:     [['Capuz de Pele', '🧢'], ['Elmo de Crânio', '💀'], ['Elmo de Presas', '🦷'], ['Elmo de Chifres', '🐂'], ['Elmo do Mamute', '🦣']],
-    armadura: [['Tanga de Couro', '🩲'], ['Peitoral de Pele', '🦺'], ['Armadura de Ossos', '🦴'], ['Couraça de Casco', '🐢'], ['Manto do Mamute', '🧥']],
-    luvas:    [['Faixas de Pele', '🧤'], ['Luvas de Couro', '🧤'], ['Manoplas de Osso', '🦴'], ['Garras de Fera', '🐾'], ['Punhos do Vulcão', '🌋']],
-    botas:    [['Sandálias de Palha', '🩴'], ['Botas de Couro', '🥾'], ['Botas de Pele', '👢'], ['Botas de Garra', '🦶'], ['Botas Trovejantes', '⚡']],
-    amuleto:  [['Dente de Lobo', '🐺'], ['Colar de Conchas', '🐚'], ['Totem de Pedra', '🗿'], ['Olho do Espírito', '🧿'], ['Coração do Vulcão', '🌋']],
+    arma:     [['Clava de Carvalho Nodoso', '🏏'], ['Lança de Sílex Lascado', '🔱'], ['Machado de Pedra Polida', '🪓'], ['Maça de Fêmur com Presas', '🦴'], ['Martelo de Presa de Mamute', '⚒️']],
+    escudo:   [['Escudo de Tábuas e Couro', '🪵'], ['Escudo de Couro Pintado', '🛡️'], ['Escudo de Laje de Pedra', '🪨'], ['Escudo de Carapaça', '🐢'], ['Escudo de Pele de Mamute', '🗿']],
+    elmo:     [['Gorro de Pele de Lobo', '🧢'], ['Elmo de Crânio de Lobo', '💀'], ['Elmo de Presas e Chifres', '🦷'], ['Elmo de Casco Crestado', '🐂'], ['Coroa de Crânio de Mamute', '🦣']],
+    armadura: [['Colete de Pele de Urso', '🩲'], ['Couraça de Couro Curtido', '🦺'], ['Peitoral de Costelas', '🦴'], ['Couraça de Escamas de Casco', '🐢'], ['Manto de Mamute com Presas', '🧥']],
+    luvas:    [['Faixas de Couro Cru', '🧤'], ['Luvas de Pele Forrada', '🧤'], ['Braçadeiras de Osso', '🦴'], ['Manoplas de Garras', '🐾'], ['Manoplas de Marfim', '🌋']],
+    botas:    [['Sandálias de Tiras de Couro', '🩴'], ['Botas de Couro Costurado', '🥾'], ['Botas de Pele Forrada', '👢'], ['Botas de Garras', '🦶'], ['Botas do Trovão', '⚡']],
+    amuleto:  [['Colar de Dente de Lobo', '🐺'], ['Colar de Conchas e Contas', '🐚'], ['Totem de Pedra Entalhada', '🗿'], ['Olho do Espírito', '🧿'], ['Coração do Vulcão', '🌋']],
   };
+  G.MATERIALS = ['Madeira e couro', 'Sílex e pele', 'Pedra polida', 'Osso e casco', 'Marfim de mamute'];
+  G.ITEM_DESC = {
+    arma:     ['Cortada de um carvalho velho, ainda com os nós da casca. Pesada, simples e eficaz.', 'Ponta de sílex lascada a golpes de pedra e amarrada com tendão ao cabo de madeira.', 'Lâmina de pedra polida por dias contra a rocha, presa ao cabo com tiras de couro.', 'Um fêmur de fera com presas cravadas na ponta, amarrado com tendão.', 'Cabo de presa de mamute e cabeça de pedra, com faixas de ouro e marcas de ocre.'],
+    escudo:   ['Tábuas de madeira unidas e cobertas de couro, com um umbigo de pedra no centro.', 'Pele esticada num aro de madeira e pintada com ocre vermelho: marcas de caça.', 'Uma laje redonda de pedra, lascada e reforçada com pregos de osso.', 'A carapaça de uma tartaruga gigante: leve, dura e coberta de placas.', 'Pele grossa de mamute com franja de pelo, presas cruzadas e um umbigo dourado.'],
+    elmo:     ['Gorro de pele de lobo com abas para as orelhas e tiras para amarrar.', 'O crânio de um lobo, com os dentes à mostra, preso por tiras de couro.', 'Elmo de couro e pedra com presas e chifres que assustam qualquer fera.', 'Um casco crestado de réptil gigante, com abas laterais e uma crista no topo.', 'O crânio de um mamute com presas curvas, faixa de ouro e uma pluma vermelha.'],
+    armadura: ['Colete de pele de urso, com o pelo para fora e amarras na frente.', 'Couro curtido e costurado, com tiras cruzadas na frente para ajustar.', 'Costelas de grandes feras presas em couro, formando um peitoral de osso.', 'Escamas de casco sobrepostas como telhas, leves e muito resistentes.', 'Pele de mamute com gola de pelo, ombreiras de presas e um fecho dourado.'],
+    luvas:    ['Tiras de couro cru enroladas nas mãos e nos pulsos.', 'Luvas de pele forradas de pelo macio, quentes e firmes.', 'Placas de osso amarradas nos antebraços, para defender e para bater.', 'Manoplas de casco com garras de fera nas pontas dos dedos.', 'Manoplas de pele de mamute com espinhos de marfim e aros de ouro.'],
+    botas:    ['Solas de couro presas por tiras que sobem pela perna.', 'Botas de couro costurado, com cadarço de tendão.', 'Pele forrada de pelo e abas macias que aquecem os pés.', 'Botas de casco com solas cheias de garras e dentes.', 'Botas escuras de couro vermelho, com raios dourados que estalam a cada passo.'],
+    amuleto:  ['Uma presa de lobo presa a um cordão: lembrança da primeira grande caça.', 'Conchas e contas polidas em volta de uma concha rosada.', 'Uma pequena pedra entalhada com o rosto de um espírito protetor.', 'Uma pedra azul-turquesa com um olho gravado, que nunca pisca.', 'Uma pedra de lava ainda quente, presa numa gaiola de ouro.'],
+  };
+  G.itemName = function (it) {
+    if (it.rune) return it.name;
+    const t = tierOf(it.ilvl), rt = it.rarity >= 3 ? ' ' + ['', '', '', 'Ancestral', 'Primordial'][it.rarity] : '';
+    return BASES[it.slot][t][0] + rt;
+  };
+  G.itemDesc = function (it) {
+    if (it.rune) return `Uma pedra esculpida com o símbolo da ${G.RUNES[it.rune.t].name}. Encaixa em um dos 3 espaços de runa.`;
+    return G.ITEM_DESC[it.slot][tierOf(it.ilvl)];
+  };
+  G.itemMaterial = (it) => (it.rune ? 'Pedra esculpida' : G.MATERIALS[tierOf(it.ilvl)]);
   // Runas: bônus percentuais / especiais
   G.RUNES = {
     forca:  { name: 'Força',        icon: '🔶', unit: '% de Força',        f: 1.0 },
@@ -175,6 +195,20 @@
     return { ok: true, id: G.finishTraining(st) };
   };
 
+  /* ---------- Coleção de itens (códice) ---------- */
+  G.COLLECTION_BONUS = 1.5;   // % de Força/Vida/Armadura por conjunto completo
+  G.itemKey = (it) => (it.rune ? 'runa:' + it.rune.t : `${it.slot}:${tierOf(it.ilvl)}`);
+  G.discover = function (st, it) { if (!st.codex) st.codex = {}; const k = G.itemKey(it); const fresh = !st.codex[k]; st.codex[k] = 1; return fresh; };
+  // 5 conjuntos de material (7 peças cada) + o conjunto das 5 runas
+  G.collection = function (st) {
+    const cx = st.codex || {}, fam = [];
+    for (let t = 0; t < 5; t++) { const have = G.SLOT_ORDER.filter((s) => cx[`${s}:${t}`]).length; fam.push({ id: 't' + t, name: G.MATERIALS[t], have, total: 7, complete: have >= 7 }); }
+    const rn = Object.keys(G.RUNES).filter((r) => cx['runa:' + r]).length;
+    fam.push({ id: 'runas', name: 'Runas esculpidas', have: rn, total: 5, complete: rn >= 5 });
+    const found = fam.reduce((a, f) => a + f.have, 0), total = fam.reduce((a, f) => a + f.total, 0), done = fam.filter((f) => f.complete).length;
+    return { fam, found, total, done, bonus: done * G.COLLECTION_BONUS };
+  };
+
   /* ---------- Bônus vitalício dos troféus ---------- */
   const TB = ['atk', 'hp', 'arm', 'crit'];
   G.TB_NAMES = { atk: 'Força', hp: 'Vida', arm: 'Armadura', crit: 'Crítico' };
@@ -216,10 +250,10 @@
       bag: [], bagSize: G.BAG_START,
       equipped: { arma: null, escudo: null, elmo: null, armadura: null, luvas: null, botas: null, amuleto: null, runas: [null, null, null] },
       potions: { small: 5, large: 0 }, energy: G.MAX_ENERGY, energyAt: now, cdUntil: 0,
-      skills: {}, training: null, shop: null, finished: false, createdAt: now,
+      skills: {}, training: null, shop: null, finished: false, createdAt: now, codex: {},
       ev: { day: '', weekly: 0, monthly: 0, claimW: '', claimM: '' },
     };
-    st.equipped.arma = G.makeItem('arma', 1, 0);
+    st.equipped.arma = G.makeItem('arma', 1, 0); G.discover(st, st.equipped.arma);
     st.hp = G.heroStats(st).hp;
     G.refreshShop(st);
     return st;
@@ -237,6 +271,8 @@
       if (t === 'forca') pct.atk += v / 100; else if (t === 'vida') pct.hp += v / 100; else if (t === 'pedra') pct.arm += v / 100;
       else if (t === 'sorte') s.crit += v; else if (t === 'sangue') s.vamp += v;
     }
+    const cb = G.collection(st).bonus / 100;
+    pct.atk += cb; pct.hp += cb; pct.arm += cb;
     const tt = G.trophyTotals(st);
     pct.atk += tt.atk / 100; pct.hp += tt.hp / 100; pct.arm += tt.arm / 100; s.crit += tt.crit;
     const k = (id) => G.skillRank(st, id);
@@ -634,8 +670,8 @@
     st.fossils -= o.cost;
     if (id === 'pot') st.potions.large += 3;
     if (id === 'ossos') st.ossos += 40;
-    if (id === 'runaE') st.bag.push(G.makeRune(st.level, 3));
-    if (id === 'itemL') st.bag.push(G.makeItem(pick(G.SLOT_ORDER), st.level, 4));
+    if (id === 'runaE') { const r = G.makeRune(st.level, 3); st.bag.push(r); G.discover(st, r); }
+    if (id === 'itemL') { const it = G.makeItem(pick(G.SLOT_ORDER), st.level, 4); st.bag.push(it); G.discover(st, it); }
     return { ok: true, msg: `Trocou por ${o.name}.` };
   };
 
@@ -727,14 +763,14 @@
       let x = R() * tot, rar = 0;
       for (let r = 0; r < odds.length; r++) { x -= odds[r]; if (x <= 0) { rar = r; break; } }
       const it = R() < 0.18 ? G.makeRune(box.ilvl, rar) : G.makeItem(pick(G.SLOT_ORDER), box.ilvl, rar);
-      st.bag.push(it); items.push(it);
+      st.bag.push(it); items.push(it); G.discover(st, it);
     }
     st.boxes.splice(i, 1);
     return { ok: true, items, box };
   };
 
   /* ---------- Recompensas ---------- */
-  G.addItem = function (st, it) { if (st.bag.length >= st.bagSize) return false; st.bag.push(it); return true; };
+  G.addItem = function (st, it) { if (st.bag.length >= st.bagSize) return false; st.bag.push(it); G.discover(st, it); return true; };
 
   function giveXp(st, xp) {
     const levels = [];
@@ -845,10 +881,10 @@
     const p = G.shopPrice(st, it);
     if (st.gold < p) return { ok: false, msg: 'Ouro insuficiente.' };
     if (st.bag.length >= st.bagSize) return { ok: false, msg: 'Baú cheio!' };
-    st.gold -= p; st.bag.push(it);
+    st.gold -= p; st.bag.push(it); G.discover(st, it);
     st.shop.equip = st.shop.equip.filter((x) => x.id !== id);
     st.shop.runes = st.shop.runes.filter((x) => x.id !== id);
-    return { ok: true, msg: `Comprou ${it.name}.` };
+    return { ok: true, msg: `Comprou ${G.itemName(it)}.` };
   };
   G.buyPotion = function (st, kind) {
     const p = G.potionPrice(st, kind);
@@ -922,7 +958,7 @@
     st.gold -= c;
     if (R() < G.upgradeChance(it)) {
       st.ossos -= o; it.plus++; it.pity = 0;
-      return { ok: true, success: true, msg: `${it.name} agora é +${it.plus}!` };
+      return { ok: true, success: true, msg: `${G.itemName(it)} agora é +${it.plus}!` };
     }
     st.ossos -= Math.ceil(o / 2); it.pity = Math.min(0.3, (it.pity || 0) + 0.1);
     return { ok: true, success: false, msg: 'A melhoria falhou! Próxima tentativa tem mais chance.' };
@@ -976,6 +1012,7 @@
       s.dragons = s.dragons || { verde: { readyAt: 0 }, azul: { readyAt: 0 } };
       delete s.kills; delete s.bossNo; s.v = 3;
     }
+    if (!s.codex) { s.codex = {}; [].concat(s.bag || [], Object.values(s.equipped || {}).filter((x) => x && !Array.isArray(x)), (s.equipped && s.equipped.runas) || []).filter(Boolean).forEach((it) => G.discover(s, it)); }
     if (!s.avatar) s.avatar = Object.assign({}, G.DEFAULT_AVATAR);
     (s.evTrophies || []).forEach((e, i) => { if (!e.bonus) e.bonus = G.evTrophyBonus(e.type, i); });
     return s;

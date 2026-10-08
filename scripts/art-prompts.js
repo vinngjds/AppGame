@@ -14,5 +14,9 @@ let md = `# Prompts de arte — Era da Pedra\n\nGerado por \`node scripts/art-pr
 rows.forEach((r) => { md += `| \`art/monsters/${r.slug}.png\` | ${r.prompt.replace(/\|/g, '/')} |\n`; });
 md += `\n## Cenários (${Art.BIOMES.length}) — 1200×760, sem personagens\n\n| Arquivo | Prompt |\n|---|---|\n`;
 Art.BIOMES.forEach((b) => { md += `| \`art/scenes/${b}.jpg\` | ${SCENE[b]}, stone-age fantasy, painterly environment concept art, wide landscape, no characters, no text, atmospheric depth |\n`; });
+const IS = 'stone-age fantasy equipment icon, hand-painted game item illustration, single object centered, dark neutral background, soft rim light, detailed textures, no text, no hands, no watermark';
+md += `\n## Itens (40) — 512×512, um objeto centralizado\n\n| Arquivo | Prompt |\n|---|---|\n`;
+G.SLOT_ORDER.forEach((sl) => { for (let t = 0; t < 5; t++) { const it = { slot: sl, ilvl: t * 8 + 2, rarity: 1 }; md += `| \`art/items/${sl}-${t}.png\` | ${G.itemName(it)} — ${G.itemDesc(it)} ${IS} |\n`; } });
+Object.keys(G.RUNES).forEach((r) => { md += `| \`art/items/runa-${r}.png\` | carved stone rune tablet with the glyph of ${G.RUNES[r].name}, softly glowing, ${IS} |\n`; });
 fs.writeFileSync(path.join(__dirname, '..', 'docs', 'arte-prompts.md'), md);
 console.log(`docs/arte-prompts.md: ${rows.length} monstros + ${Art.BIOMES.length} cenários`);

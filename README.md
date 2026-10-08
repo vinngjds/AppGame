@@ -15,6 +15,7 @@ RPG de turnos ambientado na Idade da Pedra. Funciona como PWA (HTML/CSS/JS puro,
 - **Ferreiro**: melhorias até +10 com chance de falha (usa ossos 🦴), desmontar itens, fundir 3 runas.
 - **Baú**: filtros, ordenação, travar itens, limpeza em lote.
 - **Eventos**: Chefe da Semana e Chefe do Mês (fósseis 🦕, troféus e loja de troca), bônus de calendário (fim de semana +50% XP, dias 1–3 +50% ouro, quarta: ferreiro -25%).
+- **Itens**: 35 equipamentos realistas da Era da Pedra (7 peças × 5 materiais, de madeira e couro a marfim de mamute), ilustrados, com descrição; 5 runas esculpidas; caixas desenhadas. A **Coleção de Itens** (aba Herói) registra o que você já achou: cada conjunto completo dá +1,5% de Força, Vida e Armadura.
 - **Arte**: monstros ilustrados (≈17 tipos, 70 criaturas com cores e traços próprios), cenário por local e avatar detalhado, tudo em SVG. Dá para trocar por imagens pintadas/IA sem mexer em código: veja `docs/ARTE.md` e `docs/arte-prompts.md`.
 - Progresso salvo no aparelho; saves da v1 são migrados automaticamente.
 
@@ -26,7 +27,7 @@ No iPhone: abra o link no Safari → Compartilhar → *Adicionar à Tela de Iní
 Um workflow (`.github/workflows/pages.yml`) publica no GitHub Pages ao fazer merge na `main` (ative Pages → Source: GitHub Actions).
 
 ## Estrutura
-- `js/art.js` ilustração dos monstros e cenários · `js/avatar.js` avatar em camadas
+- `js/art.js` ilustração dos monstros e cenários · `js/itemart.js` ilustração dos itens · `js/avatar.js` avatar em camadas
 - `js/core.js` regras puras (itens, combate, recompensas, loja) — testável em Node.
 - `js/ui.js` telas e animações · `css/style.css` tema pedra/couro · `sw.js` offline.
 

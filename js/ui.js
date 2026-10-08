@@ -69,8 +69,8 @@
   function itemRow(it, right, attr, price) {
     const arrow = betterThanEquipped(it) && !isEquipped(it) ? '<span class="up">▲</span>' : '';
     return `<div class="item" ${attr || `data-item="${it.id}"`} style="border-color:${rarColor(it)}">
-      <div class="pic" style="border-color:${rarColor(it)}">${it.icon}</div>
-      <div class="grow"><div class="name" style="color:${rarColor(it)}">${it.lock ? '🔒 ' : ''}${esc(it.name)}${it.plus ? ' +' + it.plus : ''} ${arrow}</div>
+      <div class="pic ic" style="border-color:${rarColor(it)}">${ItemArt.icon(it)}</div>
+      <div class="grow"><div class="name" style="color:${rarColor(it)}">${it.lock ? '🔒 ' : ''}${esc(G.itemName(it))}${it.plus ? ' +' + it.plus : ''} ${arrow}</div>
       <div class="stat">${G.RARITIES[it.rarity].name} · nv ${it.ilvl} · ${G.SLOTS[it.slot].name}</div><div class="stat">${statLine(it)}</div>${price ? '' : diffLine(it)}</div>${right || ''}</div>`;
   }
   function isEquipped(it) { return it.rune ? st.equipped.runas.some((x) => x && x.id === it.id) : !!(st.equipped[it.slot] && st.equipped[it.slot].id === it.id); }
@@ -88,7 +88,7 @@
   function bonusBanner(d) {
     return G.bonusEvents(d).map((e) => `<div class="card event"><div class="row"><div class="pic">${e.icon}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${e.desc}</div></div></div></div>`).join('');
   }
-  const boxChip = (bx, extra) => `<div class="box t${bx.tier}" ${extra || ''} style="border-color:${G.RARITIES[bx.tier - 1].color};box-shadow:0 0 8px ${G.RARITIES[bx.tier - 1].color}66 inset">📦<b style="color:${G.RARITIES[bx.tier - 1].color}">+${bx.tier}</b></div>`;
+  const boxChip = (bx, extra) => `<div class="box t${bx.tier}" ${extra || ''} style="border-color:${G.RARITIES[bx.tier - 1].color};box-shadow:0 0 8px ${G.RARITIES[bx.tier - 1].color}66 inset">${ItemArt.box(bx.tier)}<b style="color:${G.RARITIES[bx.tier - 1].color}">+${bx.tier}</b></div>`;
   function boxRange(kind, z) {
     const pw = G.boxPower(kind, z), lo = Math.max(1, Math.round(pw - 0.8)), hi = Math.min(5, Math.round(pw + 0.8));
     return lo === hi ? `+${lo}` : `+${lo} a +${hi}`;
@@ -180,7 +180,7 @@
     const it = slot === 'runa' ? st.equipped.runas[ri] : st.equipped[slot];
     const attr = it ? `data-item="${it.id}"` : `data-empty="${slot}" data-ri="${ri == null ? '' : ri}"`;
     return it
-      ? `<div class="slot" ${attr} style="border-color:${rarColor(it)};box-shadow:0 0 8px ${rarColor(it)}55 inset">${it.icon}${it.plus ? `<small>+${it.plus}</small>` : ''}</div>`
+      ? `<div class="slot" ${attr} style="border-color:${rarColor(it)};box-shadow:0 0 8px ${rarColor(it)}55 inset">${ItemArt.icon(it)}${it.plus ? `<small>+${it.plus}</small>` : ''}</div>`
       : `<div class="slot empty" ${attr} title="${G.SLOTS[slot].name}">${G.SLOTS[slot].icon}<small>${G.SLOTS[slot].name}</small></div>`;
   }
   function doll() {
@@ -202,10 +202,43 @@
       <div class="row"><span class="grow">⚔️ Força</span><b>${fmt(s.atk)}</b></div><div class="row"><span class="grow">❤️ Vida</span><b>${fmt(s.hp)}</b></div>
       <div class="row"><span class="grow">🛡️ Armadura</span><b>${fmt(s.arm)}</b></div><div class="row"><span class="grow">🎯 Crítico</span><b>${s.crit.toFixed(1)}% (x${s.critDmg.toFixed(2)})</b></div>
       <div class="row"><span class="grow">🩸 Vida roubada</span><b>${s.vamp.toFixed(1)}%</b></div><div class="row"><span class="grow">💥 Golpe Forte</span><b>x${s.heavy.toFixed(2)}</b></div></div>
+      ${collectionCard()}
       <h2 class="banner">Troféus de Chefes (${st.trophies.length}/15)</h2>
       <div class="card center"><div class="name">Bônus vitalício dos troféus</div><div class="sub" style="margin-top:4px">${ttLine}</div><div class="sub">Cada troféu dá um bônus permanente de atributo.</div></div><div class="troph">${bt}</div>
       <h2 class="banner" style="margin-top:14px">Troféus de Dragões (${st.dragonTrophies.length}/2)</h2><div class="troph">${dt}</div>
       <h2 class="banner" style="margin-top:14px">Troféus de Eventos (${st.evTrophies.length})</h2><div class="troph">${et}</div>`;
+  }
+
+  /* ---------- Coleção de itens ---------- */
+  function collectionCard() {
+    const c = G.collection(st);
+    return `<div class="card"><div class="row"><div class="grow"><div class="name">📖 Coleção de Itens</div><div class="sub">${c.found}/${c.total} descobertos · ${c.done}/6 conjuntos completos</div>
+      <div class="sub up">Bônus de coleção: +${c.bonus}% de Força, Vida e Armadura</div></div><button class="btn sm" data-act="codex">Abrir</button></div>
+      <div class="bar" style="margin-top:8px"><i style="width:${(100 * c.found) / c.total}%"></i></div></div>`;
+  }
+  function showCodex() {
+    const c = G.collection(st), cx = st.codex || {};
+    let h = `<h2 class="banner">📖 Coleção de Itens</h2><div class="sub center" style="margin-bottom:8px">${c.found}/${c.total} descobertos. Cada conjunto completo dá <b>+${G.COLLECTION_BONUS}%</b> de Força, Vida e Armadura para sempre.</div>`;
+    G.MATERIALS.forEach((mat, t) => {
+      const f = c.fam[t];
+      h += `<div class="cfam ${f.complete ? 'done' : ''}"><div class="row"><div class="grow name">${f.complete ? '✅ ' : ''}${mat}</div><span class="sub">${f.have}/7</span></div><div class="cgrid">`;
+      G.SLOT_ORDER.forEach((sl) => {
+        const got = cx[`${sl}:${t}`], it = { slot: sl, ilvl: t * 8 + 2, rarity: Math.min(4, t) };
+        h += `<div class="cell ${got ? '' : 'lock'}" ${got ? `data-cdx="${sl}:${t}"` : ''}>${got ? ItemArt.icon(it) : ItemArt.silhouette(sl, t)}</div>`;
+      });
+      h += '</div></div>';
+    });
+    const f = c.fam[5];
+    h += `<div class="cfam ${f.complete ? 'done' : ''}"><div class="row"><div class="grow name">${f.complete ? '✅ ' : ''}Runas esculpidas</div><span class="sub">${f.have}/5</span></div><div class="cgrid">`;
+    Object.keys(G.RUNES).forEach((r, i) => { const got = cx['runa:' + r], it = { slot: 'runa', ilvl: 10, rarity: 2, rune: { t: r, v: 1 } }; h += `<div class="cell ${got ? '' : 'lock'}" ${got ? `data-cdx="runa:${r}"` : ''}>${got ? ItemArt.icon(it) : ItemArt.silhouette('runa')}</div>`; });
+    h += '</div></div><button class="btn" data-close>Fechar</button>';
+    openModal(h);
+  }
+  function showCodexEntry(key) {
+    const [a, b] = key.split(':');
+    if (a === 'runa') { const it = { slot: 'runa', ilvl: 10, rarity: 2, rune: { t: b, v: 1 } }; return openModal(`<div class="cdetail">${ItemArt.icon(it)}</div><h2 class="banner">Runa da ${G.RUNES[b].name}</h2><div class="flavor">${esc(G.itemDesc(it))}</div><button class="btn" data-act="codex">Voltar</button>`); }
+    const t = +b, it = { slot: a, ilvl: t * 8 + 2, rarity: Math.min(4, t) };
+    openModal(`<div class="cdetail">${ItemArt.icon(it)}</div><h2 class="banner">${esc(G.itemName(it))}</h2><div class="flavor"><b>${G.MATERIALS[t]}</b> — ${esc(G.itemDesc(it))}</div><div class="sub center">Nível de item a partir de ${t * 8}</div><button class="btn" data-act="codex">Voltar</button>`);
   }
 
   /* ---------- Itens: detalhe ---------- */
@@ -215,9 +248,10 @@
     else { const f = G.findItem(st, id); if (!f) return; it = f.it; where = f.where; }
     if (!it) return;
     let h = itemRow(it, '', 'data-noop');
+    h += `<div class="flavor"><b>${esc(G.itemMaterial(it))}</b> — ${esc(G.itemDesc(it))}</div>`;
     if (it.rune) {
-      st.equipped.runas.forEach((r, i) => { if (r && r.id !== it.id) h += `<div class="sub">Runa ${i + 1}: ${esc(r.name)} — ${statLine(r)}</div>`; });
-    } else if (st.equipped[it.slot] && st.equipped[it.slot].id !== it.id) h += `<div class="sub">Equipado: ${esc(st.equipped[it.slot].name)} — ${statLine(st.equipped[it.slot])}</div>`;
+      st.equipped.runas.forEach((r, i) => { if (r && r.id !== it.id) h += `<div class="sub">Runa ${i + 1}: ${esc(G.itemName(r))} — ${statLine(r)}</div>`; });
+    } else if (st.equipped[it.slot] && st.equipped[it.slot].id !== it.id) h += `<div class="sub">Equipado: ${esc(G.itemName(st.equipped[it.slot]))} — ${statLine(st.equipped[it.slot])}</div>`;
     h += '<div class="hr"></div>';
     if (where === 'shop') h += `<button class="btn go" data-buy="${it.id}">Comprar · 🪙 ${fmt(G.shopPrice(st, it))}</button>`;
     if (where === 'bag') {
@@ -524,7 +558,7 @@
   }
 
   /* ---------- Eventos de clique ---------- */
-  const SEL = '[data-act],[data-nav],[data-item],[data-shopitem],[data-buy],[data-buyq],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ss],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-evbuy],[data-go-forge]';
+  const SEL = '[data-act],[data-nav],[data-item],[data-shopitem],[data-buy],[data-buyq],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ss],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-evbuy],[data-go-forge]';
   const after = (msg, ok = true) => { if (msg) toast(msg); if (ok) { save(); closeModal(); } render(); };
   document.addEventListener('click', (ev) => {
     const t = ev.target.closest(SEL);
@@ -555,6 +589,7 @@
     if (d.fuse) { const r = G.fuseRunes(st, d.fuse); return after(r.msg, r.ok); }
     if (d.pot) { const r = G.buyPotion(st, d.pot); return after(r.msg, r.ok); }
     if (d.train) { const r = G.startTraining(st, d.train); return after(r.msg, r.ok); }
+    if (d.cdx) return showCodexEntry(d.cdx);
     if (d.jt) { jTab = d.jt; return render(); }
     if (d.zone) return showZone(+d.zone);
     if (d.step) { const [z, k] = d.step.split(':'); return startZone(+z, +k); }
@@ -565,6 +600,7 @@
     if (d.evbuy) { const r = G.buyEventOffer(st, d.evbuy); return after(r.msg, r.ok); }
     switch (d.act) {
       case 'openall': return openAllBoxes();
+      case 'codex': return showCodex();
       case 'menu': return menu();
       case 'rename': return askName(false);
       case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; if (draft) st.avatar = Object.assign({}, draft); closeModal(); save(); render(); return; }

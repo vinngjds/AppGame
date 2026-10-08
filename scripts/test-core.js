@@ -170,4 +170,32 @@ t('troféus dão bônus vitalício de atributo', () => {
   const tt = G.trophyTotals(st); assert.deepEqual([tt.atk, tt.hp, tt.arm, tt.crit], [3, 4, 4, 1.5]);
   st.evTrophies = [{ id: 'w', type: 'weekly', bonus: G.evTrophyBonus('weekly', 0) }]; assert(G.trophyTotals(st).atk > 3);
 });
+t('coletânea: 35 equipamentos realistas, ilustrados e com descrição', () => {
+  const Art = require(path.join(__dirname, '..', 'js', 'art.js')); global.Art = Art; const IA = require(path.join(__dirname, '..', 'js', 'itemart.js'));
+  const names = new Set();
+  for (const sl of G.SLOT_ORDER) for (let t = 0; t < 5; t++) for (let r = 0; r < 5; r++) {
+    const it = G.makeItem(sl, t * 8 + 2, r);
+    assert.equal(G.tierOf(it.ilvl), t); assert(G.itemDesc(it).length > 20, 'descrição ' + sl + t); names.add(G.itemName(G.makeItem(sl, t * 8 + 2, 0)));
+    const svg = IA.icon(it); assert(svg.startsWith('<svg') && svg.endsWith('</svg>') && svg.includes('viewBox="0 0 100 100"'), `${sl} ${t} ${r}`);
+  }
+  assert.equal(names.size, 35, 'nomes únicos');
+  for (const r of Object.keys(G.RUNES)) assert(IA.icon(G.makeRune(10, 2, r)).includes('<svg'));
+  for (let k = 1; k <= 5; k++) assert(IA.box(k).includes('Caixa +' + k));
+  assert(IA.silhouette('arma', 2).includes('brightness'));
+  assert.equal(G.itemName(G.makeItem('arma', 3, 3)), 'Clava de Carvalho Nodoso Ancestral');
+});
+t('coleção: descobrir itens, conjuntos completos e bônus', () => {
+  const st = G.newState('x'); st.level = 10;
+  assert.equal(G.collection(st).found, 1, 'a clava inicial já conta');
+  const base = G.heroStats(st);
+  for (const sl of G.SLOT_ORDER) G.discover(st, G.makeItem(sl, 2, 0));
+  let c = G.collection(st); assert(c.fam[0].complete && c.done === 1 && c.bonus === G.COLLECTION_BONUS && c.found === 7);
+  const hs = G.heroStats(st); assert(hs.atk > base.atk && hs.hp > base.hp && hs.arm >= base.arm, 'bônus de coleção');
+  assert(!G.discover(st, G.makeItem('arma', 2, 3)), 'já descoberto não conta de novo');
+  for (const r of Object.keys(G.RUNES)) G.discover(st, G.makeRune(5, 0, r)); assert(G.collection(st).fam[5].complete);
+  st.boxes.push(G.makeBox(5, 36)); const r = G.openBox(st, st.boxes[0].id); assert(r.ok && st.codex[G.itemKey(r.items[0])], 'abrir caixa descobre');
+  assert.equal(G.collection(st).total, 40);
+  const old = { v: 3, name: 'A', level: 5, trophies: [], evTrophies: [], bag: [G.makeItem('elmo', 10, 1)], equipped: { arma: G.makeItem('arma', 1, 0), runas: [G.makeRune(5, 1, 'sorte'), null, null] }, potions: { small: 0, large: 0 }, zones: {}, boxes: [], dragons: { verde: { readyAt: 0 }, azul: { readyAt: 0 } }, dragonTrophies: [], shop: { equip: [], runes: [] }, energy: 5 };
+  const m = G.migrate(old); assert(m.codex['arma:0'] && m.codex['elmo:1'] && m.codex['runa:sorte'], 'migração marca o que já tem');
+});
 console.log(`\n${n} testes passaram`);
