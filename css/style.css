@@ -194,3 +194,7 @@ h2.banner{margin:4px 0 12px;text-align:center;font-size:17px;letter-spacing:1px;
 .cell svg{width:100%;height:100%;display:block}
 .cdetail{width:150px;height:150px;margin:0 auto;border:3px solid var(--edge);border-radius:14px;background:radial-gradient(#5a4128,#1a110b);padding:8px}
 .cdetail svg{width:100%;height:100%}
+
+.oddsbar{display:flex;height:10px;border-radius:5px;overflow:hidden;border:1px solid var(--edge);margin-top:8px;background:#0b0705}
+.oddsbar i{display:block;height:100%}
+.odds{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin-top:6px}

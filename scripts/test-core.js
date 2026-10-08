@@ -118,8 +118,6 @@ t('caixas +1 a +5: chance por tipo de luta e abertura', () => {
   for (let t = 1; t <= 5; t++) { st.boxes.push(G.makeBox(t, 10)); const id = st.boxes[st.boxes.length - 1].id, before = st.bag.length, r = G.openBox(st, id); assert(r.ok && st.bag.length - before === G.BOX_ITEMS[t - 1]); }
   assert.equal(st.boxes.length, 0);
   st.bagSize = st.bag.length; st.boxes.push(G.makeBox(5, 10)); assert(!G.openBox(st, st.boxes[0].id).ok, 'baú cheio impede abrir');
-  let high = 0; for (let i = 0; i < 200; i++) { const s2 = G.newState('y'); s2.boxes.push(G.makeBox(5, 20)); G.openBox(s2, s2.boxes[0].id).items.forEach((it) => { if (it.rarity >= 3) high++; }); } assert(high === 600, 'caixa +5 só dá épico/lendário');
-  let low = 0; for (let i = 0; i < 200; i++) { const s2 = G.newState('y'); s2.boxes.push(G.makeBox(1, 20)); G.openBox(s2, s2.boxes[0].id).items.forEach((it) => { if (it.rarity >= 3) low++; }); } assert(low === 0, 'caixa +1 nunca dá épico');
 });
 t('dragões: desbloqueio, volta a cada 5 min, recompensa e troféu', () => {
   const st = G.newState('x'); assert(!G.canFightDragon(st, 'verde').ok);
@@ -146,7 +144,7 @@ t('chefe de evento: tentativas diárias, fósseis, caixas e troféu na 1ª vitó
 t('migração de saves antigos (v1 e v2) para a jornada v3', () => {
   const old = { v: 1, name: 'A', level: 12, xp: 5, hp: 100, hpAt: Date.now(), gold: 500, kills: 1, bossNo: 3, totalKills: 20, trophies: [1, 2], bag: [], equipped: { arma: G.makeItem('arma', 5, 1), elmo: null, armadura: null, botas: null, amuleto: null }, potions: { small: 1, large: 0 }, energy: 10, energyAt: Date.now(), shop: { level: 1, equip: [], amulet: [] } };
   const m = G.migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(m.v, G.STATE_V); assert(m.equipped.runas.length === 3 && m.shop.runes.length > 0 && Array.isArray(m.boxes) && m.dragons.azul);
+  assert.equal(m.v, G.STATE_V); assert(m.equipped.runas.length === 3 && Array.isArray(m.shop.runes) && Array.isArray(m.boxes) && m.dragons.azul);
   assert.equal(G.zoneProgress(m, 1), 4); assert.equal(G.zoneProgress(m, 2), 4); assert.equal(G.zoneProgress(m, 3), 1); assert(G.zoneUnlocked(m, 3) && !G.zoneUnlocked(m, 4));
   assert(G.heroStats(m).atk > 0); G.syncTime(m);
   const fin = G.migrate({ v: 2, name: 'B', level: 30, finished: true, bossNo: 15, kills: 0, trophies: [], evTrophies: [], bag: [], equipped: { runas: [null, null, null] }, potions: { small: 0, large: 0 }, energy: 3, shop: { equip: [], runes: [] } });
@@ -197,5 +195,19 @@ t('coleção: descobrir itens, conjuntos completos e bônus', () => {
   assert.equal(G.collection(st).total, 40);
   const old = { v: 3, name: 'A', level: 5, trophies: [], evTrophies: [], bag: [G.makeItem('elmo', 10, 1)], equipped: { arma: G.makeItem('arma', 1, 0), runas: [G.makeRune(5, 1, 'sorte'), null, null] }, potions: { small: 0, large: 0 }, zones: {}, boxes: [], dragons: { verde: { readyAt: 0 }, azul: { readyAt: 0 } }, dragonTrophies: [], shop: { equip: [], runes: [] }, energy: 5 };
   const m = G.migrate(old); assert(m.codex['arma:0'] && m.codex['elmo:1'] && m.codex['runa:sorte'], 'migração marca o que já tem');
+});
+t('raridade: épicos, lendários e runas só em caixas altas; loja não vende épico/lendário', () => {
+  const sample = (tier, N = 3000) => { const c = [0, 0, 0, 0, 0]; let runes = 0, n = 0; for (let i = 0; i < N; i++) { const st = G.newState('x'); st.bagSize = 99; st.boxes.push(G.makeBox(tier, 20)); G.openBox(st, st.boxes[0].id).items.forEach((it) => { c[it.rarity]++; n++; if (it.rune) runes++; }); } return { c, runes, n }; };
+  const b1 = sample(1), b2 = sample(2), b3 = sample(3), b4 = sample(4), b5 = sample(5);
+  assert(b1.c[3] + b1.c[4] + b2.c[3] + b2.c[4] === 0, 'caixas +1/+2 nunca dão épico ou lendário');
+  assert(b3.c[4] === 0 && b3.c[3] > 0 && b3.c[3] / b3.n < 0.09, 'caixa +3: épico raro, sem lendário');
+  assert(b4.c[4] > 0 && b4.c[3] > b3.c[3], 'lendário aparece na +4'); assert(b5.c[4] / b5.n > b4.c[4] / b4.n, 'lendário mais comum na +5');
+  assert(b1.runes === 0 && b2.runes / b2.n < 0.06 && b5.runes / b5.n > 0.18 && b5.runes / b5.n < 0.32, 'runas: nenhuma na +1, raras nas baixas, mais nas altas');
+  assert(b5.runes / b5.n > b4.runes / b4.n && b4.runes / b4.n > b3.runes / b3.n, 'chance de runa cresce com a caixa');
+  let epic = 0, runes = 0, minRuneR = 9; const N = 1500;
+  for (let i = 0; i < N; i++) { const st = G.newState('x'); st.level = 25; G.refreshShop(st); st.shop.equip.concat(st.shop.runes).forEach((it) => { if (it.rarity >= 3) epic++; }); runes += st.shop.runes.length; st.shop.runes.forEach((r) => { minRuneR = Math.min(minRuneR, r.rarity); }); assert(st.shop.runes.length <= 2); }
+  assert.equal(epic, 0, 'loja nunca vende épico/lendário'); assert(runes / N < 0.6 && runes / N > 0.15, 'runas na loja: raras (' + runes / N + ')'); assert(minRuneR >= 1, 'runas da loja nunca são comuns');
+  const eq = G.makeItem('arma', 20, 2), ru = G.makeRune(20, 2, 'forca'); assert(G.itemPrice(ru) > G.itemPrice(eq) * 3, 'runa custa bem mais que um item raro');
+  assert(G.EVENT_SHOP.find((o) => o.id === 'itemL').cost >= 250 && G.EVENT_SHOP.find((o) => o.id === 'runaE').cost >= 90);
 });
 console.log(`\n${n} testes passaram`);

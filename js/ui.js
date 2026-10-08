@@ -285,6 +285,18 @@
     buzz(40); save(); showOpened(got.sort((a, b) => b.rarity - a.rarity), `${n} caixa(s) aberta(s)`); render();
   }
 
+  function showOdds() {
+    const names = G.RARITIES.map((r) => `<span style="color:${r.color}">${r.name}</span>`);
+    let h = `<h2 class="banner">📦 Chances das Caixas</h2><div class="sub center" style="margin-bottom:8px">Itens épicos, lendários e runas são raros: só as caixas mais altas os trazem. A loja não vende épicos nem lendários.</div>`;
+    for (let t = 1; t <= 5; t++) {
+      const od = G.BOX_ODDS[t - 1], tot = od.reduce((a, b) => a + b, 0);
+      h += `<div class="cfam"><div class="row">${boxChip(G.makeBox(t, 1))}<div class="grow"><div class="name">Caixa +${t}</div><div class="sub">${G.BOX_ITEMS[t - 1]} item(ns) · 🔶 runa: ${Math.round(G.BOX_RUNE[t - 1] * 100)}% por item</div></div></div>
+        <div class="oddsbar">${od.map((v, i) => (v ? `<i style="width:${(100 * v) / tot}%;background:${G.RARITIES[i].color}" title="${G.RARITIES[i].name}"></i>` : '')).join('')}</div>
+        <div class="odds">${od.map((v, i) => (v ? `<span>${names[i]} ${Math.round((100 * v) / tot * 10) / 10}%</span>` : '')).join('')}</div></div>`;
+    }
+    openModal(h + '<button class="btn" data-close>Fechar</button>');
+  }
+
   /* ---------- Baú ---------- */
   const SORTS = { poder: (a, b) => G.itemScore(b) - G.itemScore(a), raridade: (a, b) => b.rarity - a.rarity || G.itemScore(b) - G.itemScore(a), nivel: (a, b) => b.ilvl - a.ilvl || b.rarity - a.rarity };
   function vBau() {
@@ -292,7 +304,7 @@
     const list = st.bag.filter((i) => bagFilter === 'todos' || i.slot === bagFilter).sort(SORTS[bagSort]);
     const bx = st.boxes.slice().sort((a, b) => b.tier - a.tier);
     const boxCard = `<div class="card"><div class="row"><div class="grow"><div class="name">📦 Caixas (${bx.length})</div><div class="sub">Toque numa caixa para abrir. Caixas maiores têm itens melhores.</div></div>
-      <button class="btn sm go" data-act="openall" ${bx.length ? '' : 'disabled'}>Abrir todas</button></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><button class="btn sm go" data-act="openall" ${bx.length ? '' : 'disabled'}>Abrir todas</button><button class="btn sm" data-act="odds">ℹ️ Chances</button></div></div>
       ${bx.length ? `<div class="boxes">${bx.map((b) => boxChip(b, `data-box="${b.id}"`)).join('')}</div>` : '<div class="sub" style="margin-top:6px">Vença lutas na Jornada para ganhar caixas.</div>'}</div>`;
     view.innerHTML = `${boxCard}<h2 class="banner">Baú de Itens (${st.bag.length}/${st.bagSize})</h2>
       <div class="chips">${f.map((x) => `<button data-bf="${x}" class="${x === bagFilter ? 'on' : ''}">${x === 'todos' ? 'Todos' : G.SLOTS[x].icon}</button>`).join('')}</div>
@@ -329,9 +341,10 @@
       const f = ['todos', ...G.SLOT_ORDER];
       h += `<div class="chips small">${f.map((x) => `<button data-ss="${x}" class="${x === shopSlot ? 'on' : ''}">${x === 'todos' ? 'Todos' : G.SLOTS[x].icon}</button>`).join('')}</div>`;
       const list = st.shop.equip.filter((i) => shopSlot === 'todos' || i.slot === shopSlot);
-      h += (list.length ? stock(list) : '<div class="card center muted">Sem itens desse tipo agora.</div>') + renew;
+      h += (list.length ? stock(list) : '<div class="card center muted">Sem itens desse tipo agora.</div>') + `<div class="sub center" style="margin-top:6px">A loja só vende itens comuns, incomuns e, raramente, raros. Itens épicos e lendários saem de caixas altas.</div>` + renew;
     } else if (shopTab === 'runas') {
-      h += (st.shop.runes.length ? stock(st.shop.runes) : '<div class="card center muted">Estoque esgotado.</div>') + renew;
+      h += `<div class="card"><div class="sub">🔶 Runas são <b>raras e caras</b>. O mercador quase nunca tem uma; elas saem melhor das caixas +3 ou maiores.</div></div>`;
+      h += (st.shop.runes.length ? stock(st.shop.runes) : '<div class="card center muted">Nenhuma runa no estoque agora. Renove o estoque ou abra caixas altas.</div>') + renew;
     } else if (shopTab === 'pocao') {
       h += [['small', 'Poção Pequena', 'Recupera 35% da vida em combate'], ['large', 'Poção Grande', 'Recupera 65% da vida em combate']].map(([k, n, d]) =>
         `<div class="card"><div class="row"><div class="pic">🧪</div><div class="grow"><div class="name">${n} (x${st.potions[k]})</div><div class="sub">${d}</div></div>
@@ -601,6 +614,7 @@
     switch (d.act) {
       case 'openall': return openAllBoxes();
       case 'codex': return showCodex();
+      case 'odds': return showOdds();
       case 'menu': return menu();
       case 'rename': return askName(false);
       case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; if (draft) st.avatar = Object.assign({}, draft); closeModal(); save(); render(); return; }

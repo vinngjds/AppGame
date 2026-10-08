@@ -140,7 +140,7 @@
   };
   G.itemPrice = function (it) {
     const rar = G.RARITIES[it.rarity];
-    return Math.round((4 + 2.2 * it.ilvl) * rar.mult * rar.mult * 2.5 * (1 + 0.3 * (it.plus || 0)));
+    return Math.round((4 + 2.2 * it.ilvl) * rar.mult * rar.mult * 2.5 * (it.rune ? 3.5 : 1) * (1 + 0.3 * (it.plus || 0)));
   };
   G.sellPrice = (it) => Math.max(1, Math.round(G.itemPrice(it) * 0.25));
   G.shopPrice = (st, it) => Math.round(G.itemPrice(it) * (st.shop && st.shop.deal === it.id ? 0.75 : 1));
@@ -449,7 +449,7 @@
   };
 
   // Ajuste fino da força de cada chefe (nivela a dificuldade entre efeitos diferentes)
-  G.BOSS_TUNE = [1.02, 0.95, 1.36, 1.40, 0.89, 0.68, 1.34, 1.12, 1.19, 0.83, 1.19, 1.33, 1.58, 2.14, 1.76];
+  G.BOSS_TUNE = [0.61, 0.86, 1.21, 1.10, 0.81, 0.59, 1.23, 1.25, 1.13, 0.76, 1.04, 1.16, 1.16, 1.84, 1.60];
   // kind: normal | elite | semi | boss | event | dragon
   const KIND_MUL = {
     normal: { hp: 1.0, atk: 1.0, arm: 1.0 },
@@ -659,8 +659,8 @@
   G.EVENT_SHOP = [
     { id: 'pot',   name: '3 Poções Grandes', icon: '🧪', cost: 10 },
     { id: 'ossos', name: '40 Ossos',          icon: '🦴', cost: 12 },
-    { id: 'runaE', name: 'Runa Épica',        icon: '🔶', cost: 45 },
-    { id: 'itemL', name: 'Item Lendário',     icon: '🏆', cost: 140 },
+    { id: 'runaE', name: 'Runa Épica',        icon: '🔶', cost: 90 },
+    { id: 'itemL', name: 'Item Lendário',     icon: '🏆', cost: 260 },
   ];
   G.buyEventOffer = function (st, id) {
     const o = G.EVENT_SHOP.find((x) => x.id === id);
@@ -746,7 +746,9 @@
   /* ---------- Caixas (+1 a +5) ---------- */
   G.BOX_ITEMS = [1, 1, 2, 2, 3];
   // chance de cada raridade (comum, incomum, raro, épico, lendário) por nível de caixa
-  G.BOX_ODDS = [[85, 14, 1, 0, 0], [35, 50, 14, 1, 0], [0, 30, 55, 14, 1], [0, 0, 35, 55, 10], [0, 0, 0, 60, 40]];
+  G.BOX_ODDS = [[88, 11, 1, 0, 0], [40, 48, 12, 0, 0], [8, 37, 50, 5, 0], [0, 10, 50, 36, 4], [0, 0, 30, 50, 20]];
+  // chance de cada item da caixa ser uma runa: raras, só em caixas altas
+  G.BOX_RUNE = [0, 0.03, 0.07, 0.15, 0.25];
   G.boxName = (tier) => `Caixa +${tier}`;
   G.makeBox = (tier, ilvl) => ({ id: uid(), tier, ilvl });
   // "poder" base de cada tipo de luta; cresce com o local (feras fracas → +1; chefes → caixas maiores)
@@ -762,7 +764,7 @@
     for (let k = 0; k < n; k++) {
       let x = R() * tot, rar = 0;
       for (let r = 0; r < odds.length; r++) { x -= odds[r]; if (x <= 0) { rar = r; break; } }
-      const it = R() < 0.18 ? G.makeRune(box.ilvl, rar) : G.makeItem(pick(G.SLOT_ORDER), box.ilvl, rar);
+      const it = R() < G.BOX_RUNE[box.tier - 1] ? G.makeRune(box.ilvl, rar) : G.makeItem(pick(G.SLOT_ORDER), box.ilvl, rar);
       st.bag.push(it); items.push(it); G.discover(st, it);
     }
     st.boxes.splice(i, 1);
@@ -862,11 +864,16 @@
   };
 
   /* ---------- Loja ---------- */
+  G.SHOP_ODDS = [0.58, 0.35];          // comum, incomum (o resto é raro: 7%)
+  G.SHOP_RUNE_CHANCE = 0.3;
   G.refreshShop = function (st) {
     const L = st.level, eq = [], runes = [];
-    const roll = () => { const x = R(); return x < 0.45 ? 0 : x < 0.8 ? 1 : x < 0.97 ? 2 : 3; };
+    // a loja só vende comum, incomum e (raramente) raro: épico e lendário só saem de caixas altas
+    const roll = () => { const x = R(); return x < G.SHOP_ODDS[0] ? 0 : x < G.SHOP_ODDS[0] + G.SHOP_ODDS[1] ? 1 : 2; };
     for (const slot of ['arma', 'arma', 'escudo', 'elmo', 'armadura', 'armadura', 'luvas', 'botas', 'amuleto', 'amuleto']) eq.push(G.makeItem(slot, L, roll()));
-    for (let i = 0; i < 4; i++) runes.push(G.makeRune(L, Math.min(3, roll())));
+    // runas: item raro, em média menos de 1 por renovação (e nunca comuns)
+    const nr = R() < G.SHOP_RUNE_CHANCE ? (R() < 0.2 ? 2 : 1) : 0;
+    for (let i = 0; i < nr; i++) runes.push(G.makeRune(L, R() < 0.7 ? 1 : 2));
     const all = eq.concat(runes);
     const best = all.slice().sort((a, b) => b.rarity - a.rarity)[0];
     st.shop = { level: L, at: Date.now(), equip: eq, runes, deal: best ? best.id : null };
@@ -975,7 +982,7 @@
     for (const it of st.bag) if (it.rune && it.rarity < 4 && !it.lock) { const k = it.rune.t + ':' + it.rarity; (g[k] = g[k] || []).push(it); }
     return Object.entries(g).filter(([, v]) => v.length >= 3).map(([k, v]) => ({ key: k, t: k.split(':')[0], rarity: +k.split(':')[1], items: v }));
   };
-  G.fuseCost = (rarity) => 30 * (rarity + 1) * (rarity + 1);
+  G.fuseCost = (rarity) => 90 * (rarity + 1) * (rarity + 1);
   G.fuseRunes = function (st, key) {
     const grp = G.runeGroups(st).find((x) => x.key === key);
     if (!grp) return { ok: false, msg: 'Você não tem 3 runas iguais.' };
