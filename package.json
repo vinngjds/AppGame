@@ -8,6 +8,8 @@
     "build": "node scripts/build.js",
     "test": "node scripts/test-core.js",
     "test:balance": "node scripts/sim.js",
+    "art:prompts": "node scripts/art-prompts.js",
+    "art:manifest": "node scripts/art-manifest.js",
     "cap:add:android": "npm run build && npx cap add android",
     "cap:add:ios": "npm run build && npx cap add ios",
     "cap:sync": "npm run build && npx cap sync",
