@@ -140,3 +140,18 @@ h2.banner{margin:4px 0 12px;text-align:center;font-size:17px;letter-spacing:1px;
 .swatches{display:flex;gap:8px}
 .sw{width:34px;height:34px;border-radius:50%;border:3px solid var(--edge);padding:0}
 .sw.on{border-color:var(--ochre);box-shadow:0 0 0 2px #000,0 0 8px var(--ochre)}
+
+/* ---------- v3: jornada, caixas e dragões ---------- */
+.mapwrap{border:3px solid var(--edge);border-radius:16px;overflow:hidden;box-shadow:inset 0 0 18px #000a,0 3px 0 #000;background:#2a1d13}
+.map{width:100%;height:auto;display:block}
+.mnode{cursor:pointer}
+.mnode.locked{opacity:.5}
+.mnode:active circle:first-of-type{transform-origin:center}
+.pulse{animation:ringp 1.3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes ringp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.14)}}
+.boxes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.box{width:54px;height:54px;border:2px solid var(--edge);border-radius:10px;background:radial-gradient(#4a3522,#1a110b);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;line-height:1;cursor:pointer}
+.box b{font-size:12px;margin-top:2px}
+.card.dragon{border-color:#4aa65a;box-shadow:inset 0 0 18px #123a1a88,0 3px 0 #000}
+.card.dragon.azul{border-color:#4f9be0;box-shadow:inset 0 0 18px #12304f99,0 0 14px #4f9be033,0 3px 0 #000}
+.bluedragon{filter:hue-rotate(115deg) saturate(1.5) brightness(1.1)}

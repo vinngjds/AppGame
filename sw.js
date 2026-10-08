@@ -1,4 +1,4 @@
-const CACHE = 'era-da-pedra-v3';
+const CACHE = 'era-da-pedra-v4';
 const FILES = ['./', 'index.html', 'css/style.css', 'js/core.js', 'js/avatar.js', 'js/ui.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {

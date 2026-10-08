@@ -8,9 +8,8 @@
   const pick = (arr) => arr[Math.floor(R() * arr.length)];
   const r1 = (n) => Math.round(n * 10) / 10;
 
-  G.STATE_V = 2;
+  G.STATE_V = 3;
   G.MAX_LEVEL = 40;
-  G.KILLS_PER_BOSS = 3;           // 2 feras + 1 semi-chefe, depois o chefe
   G.MAX_ENERGY = 12;
   G.ENERGY_SECS = 240;            // 1 encontro a cada 4 min
   G.HP_REGEN_SECS = 420;          // vida cheia em 7 min
@@ -21,7 +20,7 @@
   G.SHOP_SECS = 20 * 60;          // estoque renova a cada 20 min
   G.GOLD_RATE = 0.6;              // ouro mais escasso
   G.XP_RATE = 0.8;                // XP mais escasso
-  G.ENERGY_COST = { story: 1, semi: 1, boss: 2, training: 1 };
+  G.STEP_COST = [1, 1, 1, 2];     // custo em encontros de cada luta do local (chefe custa 2)
 
   /* ---------- Raridades e slots ---------- */
   G.RARITIES = [
@@ -194,21 +193,26 @@
     const t = { atk: 0, hp: 0, arm: 0, crit: 0 };
     for (const no of st.trophies) { const b = G.trophyBonus(no); t[b.stat] += b.v; }
     for (const e of st.evTrophies || []) if (e.bonus) t[e.bonus.stat] += e.bonus.v;
+    for (const id of st.dragonTrophies || []) { const b = G.DRAGONS[id].bonus; t[b.stat] += b.v; }
     return t;
   };
 
   /* ---------- Herói ---------- */
   G.xpToNext = (L) => Math.round(40 * Math.pow(L, 1.55));
-  const KIND_XP = { normal: 1, elite: 1.6, semi: 2.0, boss: 3.5, training: 0.5, event: 3 };
-  const KIND_GOLD = { normal: 1, elite: 1.6, semi: 2.2, boss: 5, training: 0.7, event: 6 };
-  G.monsterXp = (L, kind) => G.xpToNext(L) / (2.2 + 0.18 * L) * KIND_XP[kind] * G.XP_RATE;
+  // Multiplicadores de XP/ouro: as 4 lutas de cada local escalonam (fera, fera, semi-chefe, chefe)
+  const STEP_XP = [1, 1.25, 2.0, 3.5], STEP_GOLD = [1, 1.3, 2.2, 5];
+  const OTHER_XP = { event: 3, verde: 6, azul: 9 }, OTHER_GOLD = { event: 6, verde: 10, azul: 16 };
+  const ELITE_MUL = 1.6;
+  G.monsterXp = (L, mult) => G.xpToNext(L) / (2.2 + 0.18 * L) * mult * G.XP_RATE;
+  // Lutas contra inimigos muito abaixo/acima do seu nível rendem menos/mais
+  G.relFactor = (monLevel, heroLevel) => Math.max(0.35, Math.min(1.4, 1 + 0.08 * (monLevel - heroLevel)));
 
   G.DEFAULT_AVATAR = { g: 'm', skin: 1, hair: 1 };
   G.newState = function (name, avatar) {
     const now = Date.now();
     const st = {
       v: G.STATE_V, name: name || 'Herói', avatar: Object.assign({}, G.DEFAULT_AVATAR, avatar || {}), level: 1, xp: 0, hp: 1, hpAt: now,
-      gold: 80, ossos: 0, fossils: 0, kills: 0, bossNo: 1, totalKills: 0, trophies: [], evTrophies: [],
+      gold: 80, ossos: 0, fossils: 0, totalKills: 0, trophies: [], evTrophies: [], dragonTrophies: [], zones: {}, boxes: [], dragons: { verde: { readyAt: 0 }, azul: { readyAt: 0 } },
       bag: [], bagSize: G.BAG_START,
       equipped: { arma: null, escudo: null, elmo: null, armadura: null, luvas: null, botas: null, amuleto: null, runas: [null, null, null] },
       potions: { small: 5, large: 0 }, energy: G.MAX_ENERGY, energyAt: now, cdUntil: 0,
@@ -312,53 +316,135 @@
     [['Mamute Jovem', '🦣', 'regenerador'], ['Tigre Dentes-de-Sabre', '🐯', 'feroz'], ['Guerreiro Rival', '🧟', 'couracado'], ['Dinossauro Chifrudo', '🦕', 'esmagador'], ['Caçador de Crânios', '👹', 'feroz'], ['Besta das Brumas', '🐲', 'veloz']],
     [['Pterodáctilo', '🦅', 'veloz'], ['Besta de Lava', '🌋', 'regenerador'], ['Fera Primordial', '👹', 'feroz'], ['Tiranete', '🦖', 'esmagador'], ['Golem de Rocha', '🗿', 'couracado'], ['Serpente de Fogo', '🐉', 'venenoso']],
   ];
-  G.BOSSES = [
-    { no: 1,  name: 'Lobo Cinzento Alfa',      emoji: '🐺', mods: ['feroz', 'veloz'],            sp: 'Uivo Selvagem',      trophy: 'Presa do Alfa',      tIcon: '🦷' },
-    { no: 2,  name: 'Javali Chifre-de-Ferro',  emoji: '🐗', mods: ['esmagador', 'couracado'],    sp: 'Investida Brutal',   trophy: 'Chifre de Ferro',    tIcon: '🐂' },
-    { no: 3,  name: 'Grande Urso da Caverna',  emoji: '🐻', mods: ['esmagador', 'feroz'],        sp: 'Abraço Esmagador',   trophy: 'Garra do Urso',      tIcon: '🐾' },
-    { no: 4,  name: 'Víbora das Sombras',      emoji: '🐍', mods: ['venenoso', 'veloz'],         sp: 'Bote Mortal',        trophy: 'Escama Sombria',     tIcon: '🐉' },
-    { no: 5,  name: 'Tigre Dentes-de-Sabre',   emoji: '🐯', mods: ['feroz', 'veloz'],            sp: 'Salto Fatal',        trophy: 'Dente de Sabre',     tIcon: '🗡️' },
-    { no: 6,  name: 'Rei Macaco Gigante',      emoji: '🦍', mods: ['esmagador', 'regenerador'],  sp: 'Soco do Trovão',     trophy: 'Coroa de Ossos',     tIcon: '👑' },
-    { no: 7,  name: 'Rinoceronte Blindado',    emoji: '🦏', mods: ['couracado', 'esmagador'],    sp: 'Carga Devastadora',  trophy: 'Chifre Blindado',    tIcon: '🛡️' },
-    { no: 8,  name: 'Aranha Rainha',           emoji: '🕷️', mods: ['venenoso', 'regenerador'],   sp: 'Teia Corrosiva',     trophy: 'Teia Dourada',       tIcon: '🕸️' },
-    { no: 9,  name: 'Mamute Ancestral',        emoji: '🦣', mods: ['regenerador', 'esmagador'],  sp: 'Pisão Sísmico',      trophy: 'Presa do Mamute',    tIcon: '🦣' },
-    { no: 10, name: 'Pterodáctilo Tempestade', emoji: '🦅', mods: ['veloz', 'feroz'],            sp: 'Mergulho Trovejante', trophy: 'Pena da Tempestade', tIcon: '🪶' },
-    { no: 11, name: 'Anquilossauro Pétreo',    emoji: '🐢', mods: ['couracado', 'regenerador'],  sp: 'Cauda Martelo',      trophy: 'Martelo de Cauda',   tIcon: '🔨' },
-    { no: 12, name: 'Xamã Sombrio',            emoji: '👹', mods: ['venenoso', 'esmagador'],     sp: 'Maldição Tribal',    trophy: 'Máscara Tribal',     tIcon: '🎭' },
-    { no: 13, name: 'Rei dos Raptores',        emoji: '🦖', mods: ['veloz', 'venenoso'],         sp: 'Chuva de Garras',    trophy: 'Garra Dourada',      tIcon: '🥇' },
-    { no: 14, name: 'Dragão de Lava',          emoji: '🐉', mods: ['feroz', 'regenerador'],      sp: 'Sopro de Magma',     trophy: 'Coração de Magma',   tIcon: '🌋' },
-    { no: 15, name: 'Tiranossauro Rei',        emoji: '👑', mods: ['feroz', 'esmagador'],        sp: 'Rugido do Rei',      trophy: 'Coroa do Rei Rex',   tIcon: '🏆' },
+  /* ---------- Mapa da jornada: 15 locais × 4 lutas ---------- */
+  // m: 2 feras · semi: semi-chefe · boss: chefe do local
+  G.ZONES = [
+    { id: 1, name: 'Caverna Sombria', icon: '🕳️', color: '#3a2f4d',
+      story: 'Você acorda numa caverna fria. O fogo sagrado da tribo foi roubado e o rastro do ladrão leva para dentro da escuridão.',
+      clear: 'Entre as cinzas, uma pegada gigante aponta para a mata densa. A jornada começou.',
+      m: [['Morcego da Caverna', '🦇', 'veloz'], ['Cobra das Sombras', '🐍', 'venenoso']], semi: ['Morcego Vampiro', '🦇', 'veloz'],
+      boss: { name: 'Víbora das Sombras', emoji: '🐍', mods: ['venenoso', 'veloz'], sp: 'Bote Mortal', trophy: 'Escama Sombria', tIcon: '🐉' } },
+    { id: 2, name: 'Floresta Densa', icon: '🌲', color: '#27472a',
+      story: 'A mata esconde feras famintas. Os rastros do ladrão seguem entre as árvores, e o uivo de um lobo gigante ecoa ao longe.',
+      clear: 'O alfa caiu. Do outro lado da mata, o brilho de um lago chama você.',
+      m: [['Lobo Jovem', '🐺', 'feroz'], ['Javali Selvagem', '🐗', 'esmagador']], semi: ['Leão da Mata', '🦁', 'feroz'],
+      boss: { name: 'Lobo Cinzento Alfa', emoji: '🐺', mods: ['feroz', 'veloz'], sp: 'Uivo Selvagem', trophy: 'Presa do Alfa', tIcon: '🦷' } },
+    { id: 3, name: 'Margem do Lago', icon: '🏞️', color: '#1f4a5e',
+      story: 'As águas calmas escondem predadores. Algo enorme se move debaixo da superfície e você precisa atravessar.',
+      clear: 'O monstro do lago afundou. A travessia está livre e as colinas rochosas se erguem à frente.',
+      m: [['Enguia do Lago', '🐟', 'veloz'], ['Sapo Venenoso', '🐸', 'venenoso']], semi: ['Crocodilo do Pântano', '🐊', 'couracado'],
+      boss: { name: 'Monstro do Lago', emoji: '🦕', mods: ['regenerador', 'esmagador'], sp: 'Onda Devastadora', trophy: 'Escama do Lago', tIcon: '🌊' } },
+    { id: 4, name: 'Colinas Rochosas', icon: '⛰️', color: '#4d4a47',
+      story: 'O vento corta as pedras e aves enormes patrulham o céu. Um caminho estreito sobe entre os rochedos.',
+      clear: 'O rei do céu caiu. No horizonte, uma planície coberta de pegadas gigantes.',
+      m: [['Águia das Pedras', '🦅', 'veloz'], ['Lagarto Espinhoso', '🦎', 'couracado']], semi: ['Bode da Montanha', '🐐', 'esmagador'],
+      boss: { name: 'Rei Águia', emoji: '🦅', mods: ['veloz', 'feroz'], sp: 'Mergulho Trovejante', trophy: 'Pena do Rei', tIcon: '🪶' } },
+    { id: 5, name: 'Planície do Mamute', icon: '🌾', color: '#5c4d27',
+      story: 'Manadas inteiras cruzam o capim alto. A terra treme: o grande mamute guarda o caminho do leste.',
+      clear: 'O mamute tombou. Dele você leva uma presa e a coragem para entrar na selva.',
+      m: [['Hiena Faminta', '🐕', 'feroz'], ['Bisão Enraivecido', '🐃', 'esmagador']], semi: ['Tigre Caçador', '🐅', 'feroz'],
+      boss: { name: 'Mamute Ancestral', emoji: '🦣', mods: ['regenerador', 'esmagador'], sp: 'Pisão Sísmico', trophy: 'Presa do Mamute', tIcon: '🦣' } },
+    { id: 6, name: 'Selva das Brumas', icon: '🌴', color: '#1f4d3a',
+      story: 'Névoa quente e cipós grossos. Macacos gritam nas copas e teias brilham entre as árvores.',
+      clear: 'O rei da selva reconheceu sua força. A névoa se abre e revela o deserto.',
+      m: [['Macaco Feroz', '🐒', 'veloz'], ['Aranha Gigante', '🕷️', 'venenoso']], semi: ['Gorila Ancestral', '🦍', 'esmagador'],
+      boss: { name: 'Rei Macaco Gigante', emoji: '🦍', mods: ['esmagador', 'regenerador'], sp: 'Soco do Trovão', trophy: 'Coroa de Ossos', tIcon: '👑' } },
+    { id: 7, name: 'Deserto de Ossos', icon: '🏜️', color: '#7a5a2a',
+      story: 'Ossos de criaturas colossais cobrem a areia. O sol queima e o ladrão do fogo deixou rastros que o vento apaga.',
+      clear: 'Sob o ferrão do imperador você acha uma pista: o ladrão fugiu para o frio.',
+      m: [['Escorpião Gigante', '🦂', 'venenoso'], ['Cascavel do Deserto', '🐍', 'veloz']], semi: ['Lagarto das Dunas', '🦎', 'couracado'],
+      boss: { name: 'Escorpião Imperador', emoji: '🦂', mods: ['venenoso', 'couracado'], sp: 'Ferrão Mortal', trophy: 'Ferrão Imperial', tIcon: '🦂' } },
+    { id: 8, name: 'Tundra Gelada', icon: '❄️', color: '#3d5a6e',
+      story: 'O vento gela até os ossos. Pegadas largas cruzam a neve em direção às ruínas do vale.',
+      clear: 'A fera de gelo caiu. Do alto da tundra, você vê um vale cheio de garras e rugidos.',
+      m: [['Lobo das Neves', '🐺', 'feroz'], ['Mamute Jovem', '🦣', 'regenerador']], semi: ['Urso das Cavernas', '🐻', 'esmagador'],
+      boss: { name: 'Rinoceronte Lanudo', emoji: '🦏', mods: ['couracado', 'esmagador'], sp: 'Carga Devastadora', trophy: 'Chifre Gelado', tIcon: '🛡️' } },
+    { id: 9, name: 'Vale dos Raptores', icon: '🦖', color: '#4f5a22',
+      story: 'Bandos de raptores caçam em silêncio. Cada passo no vale é uma emboscada.',
+      clear: 'A matriarca dos raptores caiu e o bando recuou. O mar surge no horizonte.',
+      m: [['Raptor Veloz', '🦖', 'veloz'], ['Dinossauro Chifrudo', '🦕', 'esmagador']], semi: ['Dilofossauro', '🦖', 'venenoso'],
+      boss: { name: 'Rei dos Raptores', emoji: '🦖', mods: ['veloz', 'venenoso'], sp: 'Chuva de Garras', trophy: 'Garra Dourada', tIcon: '🥇' } },
+    { id: 10, name: 'Costa dos Tubarões', icon: '🌊', color: '#14506b',
+      story: 'Ondas batem em rochas negras. Há criaturas enormes nas águas rasas e o caminho passa pela praia.',
+      clear: 'O abismo recuou. Depois da praia, o paredão de uma montanha toca as nuvens.',
+      m: [['Caranguejo Gigante', '🦀', 'couracado'], ['Tubarão Pré-histórico', '🦈', 'feroz']], semi: ['Polvo Gigante', '🐙', 'regenerador'],
+      boss: { name: 'Kraken do Abismo', emoji: '🦑', mods: ['esmagador', 'regenerador'], sp: 'Abraço do Abismo', trophy: 'Tentáculo Negro', tIcon: '🦑' } },
+    { id: 11, name: 'Cume da Montanha', icon: '🏔️', color: '#555a66',
+      story: 'O ar é fino e a rocha, afiada. Gigantes de pedra guardam a subida para o pico.',
+      clear: 'No topo, você avista fumaça negra ao longe: uma floresta amaldiçoada.',
+      m: [['Golem de Rocha', '🗿', 'couracado'], ['Alce Colossal', '🦌', 'feroz']], semi: ['Troll de Pedra', '👹', 'esmagador'],
+      boss: { name: 'Anquilossauro Pétreo', emoji: '🐢', mods: ['couracado', 'regenerador'], sp: 'Cauda Martelo', trophy: 'Martelo de Cauda', tIcon: '🔨' } },
+    { id: 12, name: 'Floresta Maldita', icon: '🌑', color: '#2d2440',
+      story: 'As árvores sussurram e a luz some. Um xamã sombrio comanda as feras com cantos antigos.',
+      clear: 'A maldição se desfez. O xamã revelou: o fogo está nas terras vulcânicas.',
+      m: [['Caçador de Crânios', '👹', 'feroz'], ['Espectro das Árvores', '👻', 'veloz']], semi: ['Xamã Aprendiz', '🧙', 'venenoso'],
+      boss: { name: 'Xamã Sombrio', emoji: '🎭', mods: ['venenoso', 'esmagador'], sp: 'Maldição Tribal', trophy: 'Máscara Tribal', tIcon: '🎭' } },
+    { id: 13, name: 'Terras Vulcânicas', icon: '🌋', color: '#6b2a18',
+      story: 'O chão ferve e o ar queima. Rios de lava cortam o caminho e criaturas de fogo rondam as crateras.',
+      clear: 'O titã de magma ruiu. Além da fumaça, antigas ruínas guardam o segredo do roubo.',
+      m: [['Besta de Lava', '🔥', 'regenerador'], ['Serpente de Fogo', '🐍', 'venenoso']], semi: ['Salamandra Gigante', '🦎', 'feroz'],
+      boss: { name: 'Titã de Magma', emoji: '🌋', mods: ['feroz', 'regenerador'], sp: 'Sopro de Magma', trophy: 'Coração de Magma', tIcon: '🌋' } },
+    { id: 14, name: 'Ruínas Ancestrais', icon: '🏛️', color: '#4a4a3a',
+      story: 'Tribos rivais ocupam as ruínas. Eles servem ao Tirano, o verdadeiro ladrão do fogo.',
+      clear: 'O senhor da guerra caiu e revelou: o Tirano espera no covil, no fim do mundo.',
+      m: [['Guerreiro Rival', '🧟', 'couracado'], ['Fera das Ruínas', '🐗', 'feroz']], semi: ['Capitão dos Rivais', '🧟', 'couracado'],
+      boss: { name: 'Senhor da Guerra', emoji: '👺', mods: ['couracado', 'feroz'], sp: 'Golpe Brutal', trophy: 'Machado de Guerra', tIcon: '🪓' } },
+    { id: 15, name: 'Covil do Tirano', icon: '👑', color: '#5a1d1d',
+      story: 'O fogo sagrado arde no fundo do covil. Ossos de reis tombados formam o trono do Tirano.',
+      clear: 'O Tirano caiu! O fogo sagrado volta à tribo e você se torna lenda.',
+      m: [['Tiranete', '🦖', 'esmagador'], ['Fera Primordial', '👹', 'feroz']], semi: ['Alfa do Tirano', '🦖', 'feroz'],
+      boss: { name: 'Tiranossauro Rei', emoji: '👑', mods: ['feroz', 'esmagador'], sp: 'Rugido do Rei', trophy: 'Coroa do Rei Rex', tIcon: '🏆' } },
   ];
+  G.BOSSES = G.ZONES.map((z) => Object.assign({ no: z.id, zone: z.name }, z.boss));
+  // nível-base de cada local (as 4 lutas somam -1, 0, +1 e +2 a esse nível)
+  G.ZONE_LEVELS = [2, 4, 5, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 25, 26];
+  // reforço das feras de cada local (a 2ª é mais forte que a 1ª)
+  G.STEP_MUL = [{ hp: 1.15, atk: 1.35 }, { hp: 1.25, atk: 1.5 }];
+  G.STEPS = [{ kind: 'normal', dl: -1, label: 'Fera' }, { kind: 'normal', dl: 0, label: 'Fera' }, { kind: 'semi', dl: 1, label: 'Semi-chefe' }, { kind: 'boss', dl: 2, label: 'Chefe' }];
+
+  // Dragões: fora dos locais, voltam a cada 5 minutos
+  G.DRAGONS = {
+    verde: { id: 'verde', name: 'Dragão Verde', emoji: '🐲', level: 21, mods: ['venenoso', 'regenerador'], sp: 'Sopro Venenoso', unlockZone: 6, respawn: 300,
+      mul: { hp: 6, atk: 1.8, arm: 1.4 }, tierPower: 3.9, trophy: 'Escama Esmeralda', tIcon: '💚', bonus: { stat: 'hp', v: 6 },
+      blurb: 'Forte, mas justo. Guarda a clareira esmeralda.' },
+    azul: { id: 'azul', name: 'Dragão Azul', emoji: '🐉', level: 34, mods: ['esmagador', 'couracado', 'feroz'], sp: 'Sopro Gélido', unlockZone: 10, respawn: 300,
+      mul: { hp: 9, atk: 3.0, arm: 1.6 }, tierPower: 4.7, trophy: 'Escama Glacial', tIcon: '💙', bonus: { stat: 'atk', v: 6 },
+      blurb: 'Muito forte. Só os heróis mais poderosos o derrotam.' },
+  };
 
   // Ajuste fino da força de cada chefe (nivela a dificuldade entre efeitos diferentes)
-  G.BOSS_TUNE = [0.82, 0.84, 0.88, 1.15, 1.2, 0.82, 1.1, 1.15, 0.9, 1.35, 1.05, 1.1, 1.55, 1.25, 1.55];
-  // kind: normal | elite | semi | boss | event
+  G.BOSS_TUNE = [1.02, 0.95, 1.36, 1.40, 0.89, 0.68, 1.34, 1.12, 1.19, 0.83, 1.19, 1.33, 1.58, 2.14, 1.76];
+  // kind: normal | elite | semi | boss | event | dragon
   const KIND_MUL = {
     normal: { hp: 1.0, atk: 1.0, arm: 1.0 },
     elite:  { hp: 1.5, atk: 1.18, arm: 1.15 },
-    semi:   { hp: 2.2, atk: 1.22, arm: 1.2 },
+    semi:   { hp: 2.8, atk: 1.7, arm: 1.3 },
     boss:   { hp: 2.9, atk: 1.28, arm: 1.2 },
     event:  { hp: 3.7, atk: 1.32, arm: 1.25 },
   };
   G.makeMonster = function (level, kind, def) {
     const L = Math.max(1, level);
     kind = kind || 'normal';
-    const k = KIND_MUL[kind];
+    const k = kind === 'dragon' ? def.mul : KIND_MUL[kind];
     const m = { atk: (10 + 3.8 * L) * k.atk, hp: (40 + 16.5 * L) * k.hp, arm: (2 + 1.8 * L) * k.arm };
     if (kind === 'boss' && def && def.no) {
       const ease = Math.min(1, 0.66 + 0.05 * def.no);   // chefes iniciais são mais brandos
       m.hp *= (1.8 + 0.27 * def.no) * ease / k.hp; m.atk *= (1.15 + 0.075 * def.no + 0.13 * Math.max(0, def.no - 5)) * ease * G.BOSS_TUNE[def.no - 1] / k.atk;
     }
     let name, emoji, mods, special = null, bossNo = 0;
-    if (kind === 'boss' || kind === 'event') {
+    if (kind === 'boss' || kind === 'event' || kind === 'dragon') {
       name = def.name; emoji = def.emoji; mods = def.mods.slice(); bossNo = def.no || 0;
-      special = { every: kind === 'boss' ? (bossNo > 5 ? 3 : 4) : 3, mult: kind === 'boss' ? 1.8 + 0.03 * bossNo : 2.0, name: def.sp || 'Ataque Devastador' };
+      special = kind === 'dragon' ? { every: 3, mult: def.id === 'azul' ? 2.4 : 2.1, name: def.sp }
+        : { every: kind === 'boss' ? (bossNo > 5 ? 3 : 4) : 3, mult: kind === 'boss' ? 1.8 + 0.03 * bossNo : 2.0, name: def.sp || 'Ataque Devastador' };
     } else {
-      const tier = Math.min(POOL.length - 1, Math.floor((L - 1) / 7));
-      const tr = R() < 0.3 && tier > 0 ? tier - 1 : tier;
-      const [n, e, md] = pick(POOL[tr]);
-      name = kind === 'semi' ? 'Alfa ' + n : kind === 'elite' ? n + ' Veterano' : n;
-      emoji = e; mods = [md];
+      if (def) { name = def.name; emoji = def.emoji; mods = def.mods.slice(); }
+      else {
+        const tier = Math.min(POOL.length - 1, Math.floor((L - 1) / 7));
+        const tr = R() < 0.3 && tier > 0 ? tier - 1 : tier;
+        const [n, e, md] = pick(POOL[tr]);
+        name = kind === 'semi' ? 'Alfa ' + n : n; emoji = e; mods = [md];
+      }
+      if (kind === 'elite') name += ' Veterano';
       if (kind === 'semi') special = { every: 5, mult: 1.6, name: 'Investida Selvagem' };
       const v = rand(0.93, 1.07); m.atk *= v; m.hp *= v;
     }
@@ -367,7 +453,7 @@
       if (md === 'couracado') { m.arm *= 1.6; m.atk *= 0.9; }
       if (md === 'esmagador') { m.hp *= 1.1; }
     }
-    return { name, emoji, level: L, kind, boss: kind === 'boss' || kind === 'event', bossNo, mods, special,
+    return { name, emoji, level: L, kind, boss: kind === 'boss' || kind === 'event' || kind === 'dragon', bossNo, mods, special, dragon: kind === 'dragon' ? def.id : null,
       atk: Math.round(m.atk), hp: Math.round(m.hp), maxHp: Math.round(m.hp), arm: Math.round(m.arm) };
   };
 
@@ -378,7 +464,7 @@
   G.startFight = function (st, mon, opts = {}) {
     const h = G.heroStats(st);
     return {
-      mon, mode: opts.mode || 'story', event: opts.event || null,
+      mon, mode: opts.mode || 'zone', event: opts.event || null, zone: opts.zone || null,
       hero: { hp: Math.round(st.hp), max: h.hp, atk: h.atk, arm: h.arm, crit: h.crit, critDmg: h.critDmg, vamp: h.vamp, heavy: h.heavy,
         potion: h.potion, grito: h.grito, postura: h.postura },
       turn: 0, mturn: 0, cd: { heavy: 0, grito: 0, postura: 0 }, buff: { grito: 0, postura: 0 },
@@ -441,7 +527,7 @@
     if (f.stunned) {
       f.stunned = false; ev(f, 'info', '💫 Você está atordoado e perde o turno!');
     } else if (action === 'flee') {
-      if (f.mode !== 'story' && f.mode !== 'training') { f.turn--; return bad('Não há como fugir deste combate!'); }
+      if (f.mode !== 'zone') { f.turn--; return bad('Não há como fugir deste combate!'); }
       if (m.boss) { f.turn--; return bad('Não há como fugir de um chefe!'); }
       if (R() < 0.6) { f.over = true; f.fled = true; ev(f, 'end', 'Você fugiu da batalha.'); return f.events.slice(start); }
       ev(f, 'info', 'A fuga falhou!');
@@ -553,33 +639,98 @@
     return { ok: true, msg: `Trocou por ${o.name}.` };
   };
 
-  /* ---------- Fluxo da história ---------- */
-  G.bossReady = (st) => st.kills >= G.KILLS_PER_BOSS;
-  G.nextStoryKind = (st) => (G.bossReady(st) ? 'boss' : st.kills === G.KILLS_PER_BOSS - 1 ? 'semi' : 'normal');
-  G.nextStoryMonster = function (st) {
-    const kind = G.nextStoryKind(st);
-    if (kind === 'boss') return { mon: G.makeMonster(st.level + 1, 'boss', G.BOSSES[Math.min(st.bossNo, G.BOSSES.length) - 1]), mode: 'boss', cost: G.ENERGY_COST.boss };
-    if (kind === 'semi') return { mon: G.makeMonster(st.level, 'semi'), mode: 'story', cost: G.ENERGY_COST.semi };
-    const elite = R() < 0.08;
-    return { mon: G.makeMonster(st.level, elite ? 'elite' : 'normal'), mode: 'story', cost: G.ENERGY_COST.story };
-  };
-  G.trainingMonster = (st) => G.makeMonster(st.level, 'normal');
+  /* ---------- Jornada: locais, lutas e progresso ---------- */
+  G.zoneProgress = (st, z) => Math.min(4, (st.zones && st.zones[z]) || 0);       // lutas vencidas no local (0–4)
+  G.zoneCleared = (st, z) => G.zoneProgress(st, z) >= 4;
+  G.zoneUnlocked = (st, z) => z === 1 || G.zoneCleared(st, z - 1);
+  G.zonesCleared = (st) => G.ZONES.filter((x) => G.zoneCleared(st, x.id)).length;
+  G.currentZone = (st) => { for (const x of G.ZONES) if (!G.zoneCleared(st, x.id)) return x.id; return G.ZONES.length; };
+  G.zoneLevel = (z) => G.ZONE_LEVELS[z - 1];
+  G.stepLevel = (z, step) => Math.max(1, G.zoneLevel(z) + G.STEPS[step].dl);
 
-  // Verifica se pode iniciar uma luta. type: story | training | event-weekly | event-monthly
+  // Inimigo de uma luta do local. step: 0, 1 (feras), 2 (semi-chefe), 3 (chefe)
+  G.stepMonster = function (z, step, noElite) {
+    const Z = G.ZONES[z - 1], lvl = G.stepLevel(z, step), kind = G.STEPS[step].kind;
+    if (kind === 'boss') return G.makeMonster(lvl, 'boss', Object.assign({ no: z }, Z.boss));
+    const ease = Math.min(1, 0.4 + 0.12 * z);   // os primeiros locais são mais brandos
+    const soften = (mon) => { mon.atk = Math.round(mon.atk * ease); mon.hp = mon.maxHp = Math.round(mon.hp * (0.5 + 0.5 * ease)); return mon; };
+    if (kind === 'semi') { const [n, e, md] = Z.semi; return soften(G.makeMonster(lvl, 'semi', { name: n, emoji: e, mods: [md] })); }
+    const [n, e, md] = Z.m[step], elite = !noElite && R() < 0.08;
+    const mon = G.makeMonster(lvl, elite ? 'elite' : 'normal', { name: n, emoji: e, mods: [md] });
+    mon.hp = mon.maxHp = Math.round(mon.hp * G.STEP_MUL[step].hp); mon.atk = Math.round(mon.atk * G.STEP_MUL[step].atk);
+    return soften(mon);
+  };
+
+  // Verifica se pode lutar. Retorna { ok, msg, cost, replay }
+  G.canFightZone = function (st, z, step, now = Date.now()) {
+    G.syncTime(st, now);
+    if (!G.zoneUnlocked(st, z)) return { ok: false, msg: 'Local bloqueado: vença o chefe do local anterior.' };
+    const prog = G.zoneProgress(st, z);
+    if (step > prog) return { ok: false, msg: 'Vença as lutas anteriores primeiro.' };
+    if (G.cooldownLeft(st, now) > 0) return { ok: false, msg: `Recuperando o fôlego (${G.cooldownLeft(st, now)}s).` };
+    const cost = G.STEP_COST[step];
+    if (st.energy < cost) return { ok: false, msg: `Faltam encontros (precisa de ${cost}).` };
+    return { ok: true, cost, replay: step < prog };
+  };
+  G.spendEnergy = function (st, n) { if (st.energy >= G.MAX_ENERGY) st.energyAt = Date.now(); st.energy -= n; };
+
+  /* ---------- Dragões ---------- */
+  G.dragonUnlocked = (st, id) => G.zonesCleared(st) >= G.DRAGONS[id].unlockZone;
+  G.dragonLeft = (st, id, now = Date.now()) => Math.max(0, Math.ceil(((st.dragons[id].readyAt || 0) - now) / 1000));
+  G.dragonMonster = (id) => G.makeMonster(G.DRAGONS[id].level, 'dragon', G.DRAGONS[id]);
+  G.canFightDragon = function (st, id, now = Date.now()) {
+    G.syncTime(st, now);
+    const d = G.DRAGONS[id];
+    if (!G.dragonUnlocked(st, id)) return { ok: false, msg: `Vença ${d.unlockZone} locais para encontrar o ${d.name}.` };
+    if (G.dragonLeft(st, id, now) > 0) return { ok: false, msg: `O dragão volta em ${G.dragonLeft(st, id, now)}s.` };
+    if (G.cooldownLeft(st, now) > 0) return { ok: false, msg: `Recuperando o fôlego (${G.cooldownLeft(st, now)}s).` };
+    return { ok: true };
+  };
+  G.dragonSkipCost = (st, id) => Math.ceil(G.dragonLeft(st, id) * (0.5 + 0.07 * st.level));
+  G.skipDragon = function (st, id) {
+    if (G.dragonLeft(st, id) <= 0) return { ok: false, msg: 'O dragão já está pronto.' };
+    const c = G.dragonSkipCost(st, id);
+    if (st.gold < c) return { ok: false, msg: 'Ouro insuficiente.' };
+    st.gold -= c; st.dragons[id].readyAt = 0;
+    return { ok: true, msg: 'O dragão despertou!' };
+  };
+
+  // Verifica eventos (chefes semanal/mensal). type: event-weekly | event-monthly
   G.canFight = function (st, type, now = Date.now()) {
     G.syncTime(st, now);
     if (G.cooldownLeft(st, now) > 0) return { ok: false, msg: `Recuperando o fôlego (${G.cooldownLeft(st, now)}s).` };
-    if (type === 'story') {
-      const cost = G.ENERGY_COST[G.nextStoryKind(st) === 'boss' ? 'boss' : 'story'];
-      if (st.energy < cost) return { ok: false, msg: `Faltam encontros (precisa de ${cost}).` };
-    } else if (type === 'training') {
-      if (st.energy < 1) return { ok: false, msg: 'Sem encontros restantes.' };
-    } else if (type === 'event-weekly' || type === 'event-monthly') {
+    if (type === 'event-weekly' || type === 'event-monthly') {
       const t = type.split('-')[1];
       if (!G.eventUnlocked(st, t)) return { ok: false, msg: `Derrote ${G.EVENT_UNLOCK[t]} chefes para liberar.` };
       if (st.ev[t] <= 0) return { ok: false, msg: 'Sem tentativas hoje.' };
     }
     return { ok: true };
+  };
+
+  /* ---------- Caixas (+1 a +5) ---------- */
+  G.BOX_ITEMS = [1, 1, 2, 2, 3];
+  // chance de cada raridade (comum, incomum, raro, épico, lendário) por nível de caixa
+  G.BOX_ODDS = [[85, 14, 1, 0, 0], [35, 50, 14, 1, 0], [0, 30, 55, 14, 1], [0, 0, 35, 55, 10], [0, 0, 0, 60, 40]];
+  G.boxName = (tier) => `Caixa +${tier}`;
+  G.makeBox = (tier, ilvl) => ({ id: uid(), tier, ilvl });
+  // "poder" base de cada tipo de luta; cresce com o local (feras fracas → +1; chefes → caixas maiores)
+  const BOX_BASE = { normal: 0.75, elite: 1.3, semi: 1.35, boss: 2.5 };
+  G.rollBoxTier = function (power) { return Math.max(1, Math.min(5, Math.round(power + rand(-0.8, 0.8)))); };
+  G.boxPower = (kind, z) => BOX_BASE[kind] + 2 * (z - 1) / 14;
+  G.openBox = function (st, boxId) {
+    const i = st.boxes.findIndex((b) => b.id === boxId);
+    if (i < 0) return { ok: false, msg: 'Caixa não encontrada.' };
+    const box = st.boxes[i], n = G.BOX_ITEMS[box.tier - 1];
+    if (st.bag.length + n > st.bagSize) return { ok: false, msg: `Baú sem espaço (precisa de ${n} vagas).` };
+    const odds = G.BOX_ODDS[box.tier - 1], tot = odds.reduce((a, b) => a + b, 0), items = [];
+    for (let k = 0; k < n; k++) {
+      let x = R() * tot, rar = 0;
+      for (let r = 0; r < odds.length; r++) { x -= odds[r]; if (x <= 0) { rar = r; break; } }
+      const it = R() < 0.18 ? G.makeRune(box.ilvl, rar) : G.makeItem(pick(G.SLOT_ORDER), box.ilvl, rar);
+      st.bag.push(it); items.push(it);
+    }
+    st.boxes.splice(i, 1);
+    return { ok: true, items, box };
   };
 
   /* ---------- Recompensas ---------- */
@@ -594,49 +745,61 @@
     if (levels.length) { G.setHp(st, G.heroStats(st).hp); G.refreshShop(st); }
     return levels;
   }
-  function dropItem(L, kind, bonus) {
-    const rune = R() < 0.18;
-    const rar = rollRarity(bonus);
-    return rune ? G.makeRune(L, rar) : G.makeItem(pick(G.SLOT_ORDER), L, rar);
-  }
+  const REPLAY = 0.6;   // rejogar um local já vencido rende 60% do XP/ouro
 
   G.finishFight = function (st, f, now = new Date()) {
-    const rep = { won: f.won, fled: f.fled, xp: 0, gold: 0, ossos: 0, fossils: 0, items: [], lost: [], levels: [], trophy: null, evTrophy: null, bossNo: 0, bagFull: false, finishedGame: false, kind: f.mon.kind };
+    const rep = { won: f.won, fled: f.fled, xp: 0, gold: 0, ossos: 0, fossils: 0, boxes: [], levels: [], trophy: null, trophyBonus: null, evTrophy: null, dragonTrophy: null,
+      zoneCleared: null, nextZone: null, finishedGame: false, replay: false, kind: f.mon.kind, mode: f.mode };
     G.setHp(st, f.won ? f.hero.hp : Math.max(1, Math.round(f.hero.max * 0.1)));
-    if (f.mode !== 'training' || !f.fled) st.cdUntil = now.getTime() + G.BATTLE_CD * 1000;
+    st.cdUntil = now.getTime() + G.BATTLE_CD * 1000;
+    const isDragon = f.mode === 'dragon', isEvent = f.mode === 'event-weekly' || f.mode === 'event-monthly';
+    if (isDragon && !f.fled) st.dragons[f.mon.dragon].readyAt = now.getTime() + G.DRAGONS[f.mon.dragon].respawn * 1000;
     if (f.fled) return rep;
     if (!f.won) {
       const loss = Math.min(st.gold, Math.round(st.gold * 0.1));
       st.gold -= loss; rep.gold = -loss;
-      if (f.mode === 'event-weekly' || f.mode === 'event-monthly') st.ev[f.mode.split('-')[1]]--;
+      if (isEvent) st.ev[f.mode.split('-')[1]]--;
       return rep;
     }
-    const m = f.mon, L = st.level, kind = f.mode === 'training' ? 'training' : m.kind;
-    const bm = G.bonusMul(now), h = G.heroStats(st);
-    rep.xp = Math.round(G.monsterXp(L, kind) * bm.xp * h.xp);
-    rep.gold = Math.round((6 + 3 * L) * rand(0.8, 1.2) * KIND_GOLD[kind] * bm.gold * h.gold * G.GOLD_RATE);
+    const m = f.mon, h = f.hero ? G.heroStats(st) : G.heroStats(st), bm = G.bonusMul(now);
+    let xpMul, goldMul, replay = false;
+    if (f.mode === 'zone') {
+      replay = f.zone.step < G.zoneProgress(st, f.zone.z);
+      xpMul = STEP_XP[f.zone.step]; goldMul = STEP_GOLD[f.zone.step];
+      if (m.kind === 'elite') { xpMul *= ELITE_MUL; goldMul *= ELITE_MUL; }
+    } else if (isDragon) { xpMul = OTHER_XP[m.dragon]; goldMul = OTHER_GOLD[m.dragon]; }
+    else { xpMul = OTHER_XP.event; goldMul = OTHER_GOLD.event; }
+    const rel = G.relFactor(m.level, st.level), rp = replay ? REPLAY : 1;
+    rep.replay = replay;
+    rep.xp = Math.round(G.monsterXp(m.level, xpMul) * rel * rp * bm.xp * h.xp);
+    rep.gold = Math.round((6 + 3 * m.level) * rand(0.8, 1.2) * goldMul * rel * rp * bm.gold * h.gold * G.GOLD_RATE);
     st.gold += rep.gold; st.totalKills++;
-    const drops = [];
-    if (f.mode === 'training') { if (R() < 0.3) drops.push(dropItem(m.level, 'normal', L / 25)); rep.ossos = 1 + Math.floor(L / 12); }
-    else if (m.kind === 'normal') { if (R() < 0.35) drops.push(dropItem(m.level, 'normal', L / 25)); rep.ossos = 1 + Math.floor(L / 10); }
-    else if (m.kind === 'elite') { if (R() < 0.8) drops.push(dropItem(m.level, 'elite', L / 15 + 0.5)); rep.ossos = 3 + Math.floor(L / 8); }
-    else if (m.kind === 'semi') { drops.push(dropItem(m.level, 'semi', L / 12 + 1)); rep.ossos = 5 + Math.floor(L / 6); }
-    else if (m.kind === 'boss') {
-      const no = m.bossNo, min = no <= 4 ? 2 : 3, leg = no <= 4 ? 0 : no <= 9 ? 0.2 : 0.5;
-      const mk = (mn) => (R() < 0.5 ? G.makeItem(pick(G.SLOT_ORDER), m.level, R() < leg ? 4 : Math.max(mn, rollRarity(0.5, mn))) : G.makeRune(m.level, R() < leg ? 4 : Math.max(mn, rollRarity(0.5, mn))));
-      drops.push(mk(min)); if (R() < 0.6) drops.push(mk(min - 1));
-      st.potions.large += 1; rep.ossos = 12 + Math.floor(L / 3);
-    } else if (m.kind === 'event') {
+
+    // caixas
+    const mk = (power) => { const bx = G.makeBox(G.rollBoxTier(power), m.level); st.boxes.push(bx); rep.boxes.push(bx); };
+    if (f.mode === 'zone') {
+      const z = f.zone.z, kind = m.kind, pw = G.boxPower(kind, z);
+      if (kind === 'normal') { if (R() < 0.55) mk(pw); }
+      else if (kind === 'elite') { if (R() < 0.85) mk(pw); }
+      else if (kind === 'semi') { mk(pw); if (R() < 0.25) mk(pw - 0.5); }
+      else { mk(pw); if (R() < 0.6) mk(pw - 1); }
+      rep.ossos = kind === 'boss' ? 12 + Math.floor(m.level / 3) : kind === 'semi' ? 5 + Math.floor(m.level / 6) : 1 + Math.floor(m.level / 10);
+      if (replay) rep.ossos = Math.ceil(rep.ossos * REPLAY);
+      if (kind === 'boss' && !replay) st.potions.large += 1;
+    } else if (isDragon) {
+      const d = G.DRAGONS[m.dragon];
+      mk(d.tierPower); if (R() < (m.dragon === 'azul' ? 0.7 : 0.5)) mk(d.tierPower - 1);
+      rep.ossos = m.dragon === 'azul' ? 40 : 25; rep.fossils = m.dragon === 'azul' ? 20 : 10; st.fossils += rep.fossils;
+      st.potions.large += m.dragon === 'azul' ? 2 : 1;
+      if (!st.dragonTrophies.includes(m.dragon)) { st.dragonTrophies.push(m.dragon); rep.dragonTrophy = d; }
+    } else {
       const t = f.mode.split('-')[1];
       st.ev[t]--;
-      rep.fossils = t === 'weekly' ? 6 + Math.floor(L / 4) : 25 + Math.floor(L / 2);
-      st.fossils += rep.fossils;
+      rep.fossils = t === 'weekly' ? 6 + Math.floor(m.level / 4) : 25 + Math.floor(m.level / 2); st.fossils += rep.fossils;
       const claimKey = t === 'weekly' ? 'claimW' : 'claimM';
       if (st.ev[claimKey] !== f.event.key) {
         st.ev[claimKey] = f.event.key;
-        const mn = t === 'weekly' ? 3 : 3;
-        drops.push(G.makeItem(pick(G.SLOT_ORDER), m.level, t === 'monthly' && R() < 0.5 ? 4 : mn));
-        drops.push(G.makeRune(m.level, t === 'monthly' ? 4 : 3));
+        if (t === 'weekly') { mk(3.2); mk(2.4); } else { mk(4.8); mk(3.4); }
         const tid = `${t[0]}-${f.event.key}-${f.event.def.id}`;
         if (!st.evTrophies.find((x) => x.id === tid)) {
           rep.evTrophy = { id: tid, name: `${f.event.def.name} (${f.event.key})`, icon: f.event.def.tIcon, type: t, bonus: G.evTrophyBonus(t, st.evTrophies.length) };
@@ -647,18 +810,16 @@
     }
     st.ossos += rep.ossos;
     if (R() < 0.18) st.potions.small++;
-    for (const it of drops) {
-      if (G.addItem(st, it)) rep.items.push(it);
-      else { const p = G.sellPrice(it); st.gold += p; rep.gold += p; rep.lost.push(it); rep.bagFull = true; }
-    }
-    if (f.mode === 'story') {
-      st.kills++;
-    } else if (f.mode === 'boss') {
-      const b = G.BOSSES[m.bossNo - 1];
-      if (!st.trophies.includes(b.no)) st.trophies.push(b.no);
-      rep.trophy = b; rep.bossNo = b.no; rep.trophyBonus = G.trophyBonus(b.no);
-      if (st.bossNo < G.BOSSES.length) { st.bossNo++; st.kills = 0; }
-      else { st.kills = 0; if (!st.finished) { st.finished = true; rep.finishedGame = true; } }
+
+    // progresso na jornada
+    if (f.mode === 'zone' && !replay) {
+      const z = f.zone.z; st.zones[z] = f.zone.step + 1;
+      if (f.zone.step === 3) {
+        const b = G.BOSSES[z - 1];
+        if (!st.trophies.includes(b.no)) st.trophies.push(b.no);
+        rep.trophy = b; rep.trophyBonus = G.trophyBonus(b.no); rep.zoneCleared = G.ZONES[z - 1];
+        if (z < G.ZONES.length) rep.nextZone = G.ZONES[z]; else if (!st.finished) { st.finished = true; rep.finishedGame = true; }
+      }
     }
     rep.levels = giveXp(st, rep.xp);
     return rep;
@@ -805,6 +966,15 @@
       s.level = Math.min(s.level, G.MAX_LEVEL); s.energy = Math.min(s.energy == null ? G.MAX_ENERGY : s.energy, G.MAX_ENERGY);
       s.shop = null; s.v = 2;
       G.refreshShop(s);
+    }
+    if (s.v < 3) {   // v2 -> v3: jornada em locais, caixas e dragões
+      s.zones = {};
+      const done = s.finished ? G.ZONES.length : Math.max(0, (s.bossNo || 1) - 1);
+      for (let z = 1; z <= done; z++) s.zones[z] = 4;
+      if (!s.finished && done < G.ZONES.length) s.zones[done + 1] = Math.min(3, s.kills || 0);
+      s.boxes = s.boxes || []; s.dragonTrophies = s.dragonTrophies || [];
+      s.dragons = s.dragons || { verde: { readyAt: 0 }, azul: { readyAt: 0 } };
+      delete s.kills; delete s.bossNo; s.v = 3;
     }
     if (!s.avatar) s.avatar = Object.assign({}, G.DEFAULT_AVATAR);
     (s.evTrophies || []).forEach((e, i) => { if (!e.bonus) e.bonus = G.evTrophyBonus(e.type, i); });
