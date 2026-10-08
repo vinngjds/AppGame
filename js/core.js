@@ -8,7 +8,7 @@
   const pick = (arr) => arr[Math.floor(R() * arr.length)];
   const r1 = (n) => Math.round(n * 10) / 10;
 
-  G.STATE_V = 3;
+  G.STATE_V = 4;
   G.MAX_LEVEL = 40;
   G.MAX_ENERGY = 12;
   G.ENERGY_SECS = 240;            // 1 encontro a cada 4 min
@@ -146,23 +146,20 @@
   G.SHOP_MARKUP = 3.5;   // a loja cobra bem mais que o valor do item (a venda continua pelo valor base)
   G.shopPrice = (st, it) => Math.round(G.itemPrice(it) * G.SHOP_MARKUP * (st.shop && st.shop.deal === it.id ? 0.75 : 1));
 
-  /* ---------- Habilidades (treinamento) ---------- */
+  /* ---------- Treinamento de atributos (por tempo real) — a árvore de classe fica em skilltree.js ---------- */
   G.SKILLS = {
     forca:    { name: 'Força Bruta',     icon: '💪', max: 10, desc: (r) => `+${3 * r}% de Força` },
     vigor:    { name: 'Vigor',           icon: '❤️', max: 10, desc: (r) => `+${4 * r}% de Vida` },
     casca:    { name: 'Couraça Natural', icon: '🪨', max: 10, desc: (r) => `+${4 * r}% de Armadura` },
     olho:     { name: 'Olho de Águia',   icon: '🎯', max: 8,  desc: (r) => `+${r}% de Crítico` },
     letal:    { name: 'Golpe Mortal',    icon: '☠️', max: 5,  desc: (r) => `+${8 * r}% de dano crítico` },
-    golpe:    { name: 'Mestre do Golpe', icon: '💥', max: 5,  desc: (r) => `+${10 * r}% de dano do Golpe Forte` },
     sangue:   { name: 'Sede de Sangue',  icon: '🩸', max: 5,  desc: (r) => `+${(1.5 * r).toFixed(1)}% de vida roubada` },
     cura:     { name: 'Curandeiro',      icon: '🧪', max: 5,  desc: (r) => `Poções curam +${6 * r}%` },
     cacador:  { name: 'Caçador Nato',    icon: '🏹', max: 5,  desc: (r) => `+${3 * r}% de XP e +${4 * r}% de ouro` },
-    grito:    { name: 'Grito de Guerra', icon: '📣', max: 5,  active: true, desc: (r) => `Ativa: +${25 + 5 * r}% de dano por 3 turnos (recarga 5)` },
-    postura:  { name: 'Postura de Pedra', icon: '🗿', max: 5, active: true, desc: (r) => `Ativa: -${40 + 3 * r}% de dano recebido por 3 turnos (recarga 5)` },
   };
-  G.SKILL_ORDER = ['forca', 'vigor', 'casca', 'olho', 'letal', 'golpe', 'sangue', 'cura', 'cacador', 'grito', 'postura'];
+  G.SKILL_ORDER = ['forca', 'vigor', 'casca', 'olho', 'letal', 'sangue', 'cura', 'cacador'];
   G.skillRank = (st, id) => (st.skills && st.skills[id]) || 0;
-  G.skillReqLevel = (st, id) => 1 + G.skillRank(st, id) * 2 + (G.SKILLS[id].active ? 4 : 0);
+  G.skillReqLevel = (st, id) => 1 + G.skillRank(st, id) * 2;
   G.skillTime = (st, id) => Math.round(90 * Math.pow(G.skillRank(st, id) + 1, 1.5));       // segundos
   G.skillCost = (st, id) => Math.round(34 * Math.pow(G.skillRank(st, id) + 1, 1.6) * (1 + st.level * 0.06));
   G.speedupCost = (st) => {
@@ -251,7 +248,7 @@
       bag: [], bagSize: G.BAG_START,
       equipped: { arma: null, escudo: null, elmo: null, armadura: null, luvas: null, botas: null, amuleto: null, runas: [null, null, null] },
       potions: { small: 5, large: 0 }, energy: G.MAX_ENERGY, energyAt: now, cdUntil: 0,
-      skills: {}, training: null, shop: null, finished: false, createdAt: now, codex: {},
+      skills: {}, training: null, shop: null, finished: false, createdAt: now, codex: {}, cls: null, tree: {},
       ev: { day: '', weekly: 0, monthly: 0, claimW: '', claimM: '' },
     };
     st.equipped.arma = G.makeItem('arma', 1, 0); G.discover(st, st.equipped.arma);
@@ -262,7 +259,7 @@
 
   G.heroStats = function (st) {
     const L = st.level;
-    const s = { atk: 10 + 3 * L, hp: 50 + 14 * L, arm: 5 + 2 * L, crit: 5, critDmg: 1.75, vamp: 0, heavy: 1.8, potion: 1, xp: 1, gold: 1, grito: 0, postura: 0 };
+    const s = { atk: 10 + 3 * L, hp: 50 + 14 * L, arm: 5 + 2 * L, crit: 5, critDmg: 1.75, vamp: 0, potion: 1, xp: 1, gold: 1, dodge: 0, dotMult: 0, poisonChance: 0, skillDmg: 0, lowHp: null, lastStand: 0, magic: false, cls: st.cls || null };
     const pct = { atk: 0, hp: 0, arm: 0 };
     const add = (it) => { const i = G.itemStats(it); s.atk += i.atk; s.hp += i.hp; s.arm += i.arm; s.crit += i.crit; };
     for (const slot of G.SLOT_ORDER) if (st.equipped[slot]) add(st.equipped[slot]);
@@ -278,13 +275,17 @@
     pct.atk += tt.atk / 100; pct.hp += tt.hp / 100; pct.arm += tt.arm / 100; s.crit += tt.crit;
     const k = (id) => G.skillRank(st, id);
     pct.atk += 0.03 * k('forca'); pct.hp += 0.04 * k('vigor'); pct.arm += 0.04 * k('casca');
-    s.crit += k('olho'); s.critDmg += 0.08 * k('letal'); s.heavy *= 1 + 0.1 * k('golpe');
+    s.crit += k('olho'); s.critDmg += 0.08 * k('letal');
     s.vamp += 1.5 * k('sangue'); s.potion += 0.06 * k('cura');
     s.xp += 0.03 * k('cacador'); s.gold += 0.04 * k('cacador');
-    s.grito = k('grito') ? 1.25 + 0.05 * k('grito') : 0;
-    s.postura = k('postura') ? 1 - (0.4 + 0.03 * k('postura')) : 0;
+    const ts = G.treeStats ? G.treeStats(st) : null;   // classe + árvore de habilidades
+    if (ts) {
+      pct.hp += ts.hpPct / 100; pct.arm += ts.armPct / 100; pct.atk += ts.atkPct / 100;
+      s.crit += ts.crit; s.critDmg += ts.critDmg; s.vamp += ts.vamp; s.potion += ts.potion / 100;
+      s.dodge = ts.dodge; s.dotMult = ts.dotMult; s.poisonChance = ts.poisonChance; s.skillDmg = ts.skillDmg; s.lowHp = ts.lowHp; s.lastStand = ts.lastStand; s.magic = ts.magic;
+    }
     s.atk = Math.round(s.atk * (1 + pct.atk)); s.hp = Math.round(s.hp * (1 + pct.hp)); s.arm = Math.round(s.arm * (1 + pct.arm));
-    s.crit = Math.min(60, r1(s.crit)); s.vamp = Math.min(20, r1(s.vamp));
+    s.crit = Math.min(60, r1(s.crit)); s.vamp = Math.min(20, r1(s.vamp)); s.dodge = Math.min(60, s.dodge);
     return s;
   };
 
@@ -442,23 +443,25 @@
   // Dragões: fora dos locais, voltam a cada 5 minutos
   G.DRAGONS = {
     verde: { id: 'verde', name: 'Dragão Verde', emoji: '🐲', level: 27, mods: ['venenoso', 'regenerador'], sp: 'Sopro Venenoso', unlockZone: 6, respawn: 300,
-      mul: { hp: 8.5, atk: 2.3, arm: 1.5 }, tierPower: 3.9, trophy: 'Escama Esmeralda', tIcon: '💚', bonus: { stat: 'hp', v: 6 },
+      mul: { hp: 11, atk: 2.9, arm: 1.6 }, tierPower: 3.9, trophy: 'Escama Esmeralda', tIcon: '💚', bonus: { stat: 'hp', v: 6 },
       blurb: 'Forte, mas justo. Guarda a clareira esmeralda.' },
     azul: { id: 'azul', name: 'Dragão Azul', emoji: '🐉', level: 36, mods: ['esmagador', 'couracado', 'feroz'], sp: 'Sopro Gélido', unlockZone: 10, respawn: 300,
-      mul: { hp: 10, atk: 3.0, arm: 1.6 }, tierPower: 4.7, trophy: 'Escama Glacial', tIcon: '💙', bonus: { stat: 'atk', v: 6 },
+      mul: { hp: 17, atk: 4.8, arm: 1.8 }, tierPower: 4.7, trophy: 'Escama Glacial', tIcon: '💙', bonus: { stat: 'atk', v: 6 },
       blurb: 'Muito forte. Só os heróis mais poderosos o derrotam.' },
   };
 
   // Ajuste fino da força de cada chefe (nivela a dificuldade entre efeitos diferentes)
-  G.BOSS_TUNE = [1.08, 1.32, 1.28, 1.41, 0.94, 0.64, 1.40, 1.34, 1.63, 0.95, 1.63, 1.46, 1.83, 2.44, 2.22];
+  G.BOSS_TUNE = [0.8, 1.15, 1.26, 1.26, 0.87, 0.71, 1.52, 1.33, 1.48, 1.16, 1.73, 1.78, 2.28, 3.14, 2.88];
   // kind: normal | elite | semi | boss | event | dragon
   const KIND_MUL = {
     normal: { hp: 1.0, atk: 1.0, arm: 1.0 },
     elite:  { hp: 1.5, atk: 1.18, arm: 1.15 },
     semi:   { hp: 3.4, atk: 2.3, arm: 1.35 },
     boss:   { hp: 2.9, atk: 1.28, arm: 1.2 },
-    event:  { hp: 4.0, atk: 1.5, arm: 1.3 },
+    event:  { hp: 3.9, atk: 1.5, arm: 1.3 },
   };
+  // força geral dos monstros (compensa o poder das classes/árvore de habilidades)
+  G.POWER = { atk: 1.3, hp: 1.2 };
   G.makeMonster = function (level, kind, def) {
     const L = Math.max(1, level);
     kind = kind || 'normal';
@@ -485,6 +488,7 @@
       if (kind === 'semi') special = { every: 5, mult: 1.6, name: 'Investida Selvagem' };
       const v = rand(0.93, 1.07); m.atk *= v; m.hp *= v;
     }
+    m.atk *= G.POWER.atk; m.hp *= G.POWER.hp;
     for (const md of mods) {
       if (md === 'feroz') { m.atk *= 1.25; m.hp *= 0.85; }
       if (md === 'couracado') { m.arm *= 1.6; m.atk *= 0.9; }
@@ -496,25 +500,64 @@
 
   /* ---------- Combate ---------- */
   const reduce = (arm) => 100 / (100 + arm * 1.5);
-  G.HEAVY_CD = 2; G.ACTIVE_CD = 4;
 
   G.startFight = function (st, mon, opts = {}) {
     const h = G.heroStats(st);
     return {
       mon, mode: opts.mode || 'zone', event: opts.event || null, zone: opts.zone || null,
-      hero: { hp: Math.round(st.hp), max: h.hp, atk: h.atk, arm: h.arm, crit: h.crit, critDmg: h.critDmg, vamp: h.vamp, heavy: h.heavy,
-        potion: h.potion, grito: h.grito, postura: h.postura },
-      turn: 0, mturn: 0, cd: { heavy: 0, grito: 0, postura: 0 }, buff: { grito: 0, postura: 0 },
-      guard: false, stunned: false, poison: 0, poisonDmg: 0, warn: false, enraged: false,
+      hero: { hp: Math.round(st.hp), max: h.hp, atk: h.atk, arm: h.arm, crit: h.crit, critDmg: h.critDmg, vamp: h.vamp, potion: h.potion,
+        dodge: h.dodge, dotMult: h.dotMult, poisonChance: h.poisonChance, skillDmg: h.skillDmg, lowHp: h.lowHp, lastStand: h.lastStand, magic: h.magic, cls: st.cls || null,
+        skills: G.activeSkills ? G.activeSkills(st) : [] },
+      turn: 0, mturn: 0, cd: {}, buffs: [], shield: null, evade: 0, guard: null, dots: [], slow: null, mark: null,
+      mstun: false, mstunImmune: false, lastStandUsed: false,
+      stunned: false, poison: 0, poisonDmg: 0, warn: false, enraged: false,
       over: false, won: false, fled: false, potionsUsed: 0, events: [],
     };
   };
   const snap = (f) => ({ h: Math.max(0, Math.round(f.hero.hp)), m: Math.max(0, Math.round(f.mon.hp)) });
   function ev(f, kind, text, extra) { const e = Object.assign({ kind, text }, snap(f), extra || {}); f.events.push(e); return e; }
 
+  // ---- ajudantes de dano/estado do herói
+  const buffSum = (f, k) => f.buffs.reduce((a, b) => a + (b[k] || 0), 0);
+  function heroAtk(f) {
+    let mul = 1; for (const b of f.buffs) if (b.atk) mul *= b.atk;
+    const lo = f.hero.lowHp; if (lo && f.hero.hp / f.hero.max < lo.below) mul *= 1 + lo.pct / 100;
+    return f.hero.atk * mul;
+  }
+  const heroCrit = (f, add) => Math.min(80, f.hero.crit + (add || 0) + buffSum(f, 'crit'));
+  const heroDodge = (f) => Math.min(70, f.hero.dodge + buffSum(f, 'dodge'));
+  function heroHit(f, o) {
+    const m = f.mon, h = f.hero;
+    const ig = Math.min(0.9, (o.ignoreArm || 0) + (h.magic ? 0.25 : 0));
+    let dmg = heroAtk(f) * rand(0.85, 1.15) * reduce(m.arm * (1 - ig)) * (o.mult || 1) * (o.skill ? 1 + h.skillDmg / 100 : 1) * (f.mark && f.mark.turns > 0 ? 1 + f.mark.pct / 100 : 1) * (o.bonus || 1);
+    const crit = R() * 100 < heroCrit(f, o.critAdd);
+    if (crit) dmg *= h.critDmg;
+    dmg = Math.max(1, Math.round(dmg)); m.hp -= dmg;
+    return { dmg, crit };
+  }
+  function healHero(f, amount, text) {
+    const h = f.hero, before = h.hp; h.hp = Math.min(h.max, h.hp + Math.round(amount));
+    const got = Math.round(h.hp - before); if (got > 0) ev(f, 'heal', text.replace('{n}', got), { who: 'hero' });
+  }
+  function addDot(f, d) {
+    const dmg = Math.max(1, Math.round(f.hero.atk * d.pct * (1 + f.hero.dotMult / 100)));
+    f.dots = f.dots.filter((x) => x.id !== d.id); f.dots.push({ id: d.id, icon: d.icon, name: d.name, dmg, turns: d.turns });
+  }
+  // sobrevive a um golpe fatal (Vontade de Aço), uma vez por luta
+  function checkDeath(f) {
+    const h = f.hero;
+    if (h.hp > 0) return false;
+    if (h.lastStand && !f.lastStandUsed) { f.lastStandUsed = true; h.hp = Math.max(1, Math.round(h.max * h.lastStand)); ev(f, 'heal', `💪 Vontade de Aço! Você se recusa a cair e recupera ${Math.round(h.hp)} de vida.`, { who: 'hero' }); return false; }
+    h.hp = 0; f.over = true; f.won = false; ev(f, 'end', 'Você caiu em combate...'); return true;
+  }
+
   function monsterTurn(f) {
     const m = f.mon, h = f.hero;
     f.mturn++;
+    // dano contínuo (veneno/fogo) do herói no monstro
+    for (const d of f.dots) { m.hp -= d.dmg; d.turns--; ev(f, 'hit', `${d.icon} ${m.name} sofre ${d.dmg} de ${d.name}.`, { who: 'hero', dmg: d.dmg }); if (m.hp <= 0) break; }
+    f.dots = f.dots.filter((d) => d.turns > 0);
+    if (m.hp <= 0) { m.hp = 0; f.over = true; f.won = true; ev(f, 'end', `${m.name} foi derrotado!`); return; }
     if (m.boss && !f.enraged && m.hp < m.maxHp * 0.6) {
       f.enraged = true; m.atk = Math.round(m.atk * 1.3);
       ev(f, 'warn', `💢 ${m.name} entra em fúria!`);
@@ -526,84 +569,122 @@
     }
     const sp = m.special;
     const isSpecial = sp && f.mturn % sp.every === 0;
-    const swings = !isSpecial && m.mods.includes('veloz') && R() < 0.3 ? 2 : 1;
-    for (let i = 0; i < swings; i++) {
-      let dmg = m.atk * rand(0.85, 1.15) * reduce(h.arm) * (swings === 2 ? 0.7 : 1) * (isSpecial ? sp.mult : 1);
-      if (f.guard) dmg *= 0.4;
-      if (f.buff.postura > 0) dmg *= h.postura;
-      dmg = Math.max(1, Math.round(dmg));
-      h.hp -= dmg;
-      ev(f, 'hit', isSpecial ? `💥 ${m.name} usa ${sp.name}: ${dmg} de dano!` : `${m.name} ataca e causa ${dmg} de dano.`, { who: 'mon', dmg, special: !!isSpecial });
-      if (h.hp <= 0) { h.hp = 0; break; }
-      if (m.mods.includes('venenoso') && R() < 0.35) {
-        f.poison = 3; f.poisonDmg = Math.max(1, Math.round(m.atk * 0.1));
-        ev(f, 'info', '☠️ Você foi envenenado!');
+    if (f.mstun) {
+      f.mstun = false; f.mstunImmune = true;
+      ev(f, 'info', `💫 ${m.name} está atordoado e perde o turno!`);
+    } else {
+      f.mstunImmune = false;
+      const swings = !isSpecial && m.mods.includes('veloz') && R() < 0.3 ? 2 : 1;
+      for (let i = 0; i < swings; i++) {
+        if (f.evade > 0 || R() * 100 < heroDodge(f)) { ev(f, 'info', `💨 Você esquiva do ataque de ${m.name}!`); continue; }
+        let dmg = m.atk * rand(0.85, 1.15) * reduce(h.arm) * (swings === 2 ? 0.7 : 1) * (isSpecial ? sp.mult : 1);
+        if (f.guard != null) dmg *= f.guard;
+        for (const b of f.buffs) if (b.taken) dmg *= b.taken;
+        if (f.slow && f.slow.turns > 0) dmg *= f.slow.mult;
+        dmg = Math.max(1, Math.round(dmg));
+        if (f.shield && f.shield.amt > 0) { const ab = Math.min(dmg, f.shield.amt); f.shield.amt -= ab; dmg -= ab; ev(f, 'info', `👻 O escudo absorve ${ab} de dano.`); }
+        if (dmg > 0) {
+          h.hp -= dmg;
+          ev(f, 'hit', isSpecial ? `💥 ${m.name} usa ${sp.name}: ${dmg} de dano!` : `${m.name} ataca e causa ${dmg} de dano.`, { who: 'mon', dmg, special: !!isSpecial });
+          if (h.hp <= 0 && checkDeath(f)) return;
+          if (h.hp <= 0) break;
+          if (m.mods.includes('venenoso') && R() < 0.35) { f.poison = 3; f.poisonDmg = Math.max(1, Math.round(m.atk * 0.1)); ev(f, 'info', '☠️ Você foi envenenado!'); }
+          if (m.mods.includes('esmagador') && R() < 0.16 && !f.stunned) { f.stunned = true; ev(f, 'info', '💫 Você foi atordoado!'); }
+        }
       }
-      if (m.mods.includes('esmagador') && R() < 0.16 && !f.stunned) { f.stunned = true; ev(f, 'info', '💫 Você foi atordoado!'); }
     }
-    f.guard = false;
+    f.guard = null;
     if (h.hp > 0 && f.poison > 0) {
       h.hp -= f.poisonDmg; f.poison--;
       ev(f, 'hit', `☠️ O veneno causa ${f.poisonDmg} de dano.`, { who: 'mon', dmg: f.poisonDmg });
+      if (h.hp <= 0 && checkDeath(f)) return;
     }
-    if (f.buff.grito > 0) f.buff.grito--;
-    if (f.buff.postura > 0) f.buff.postura--;
-    if (h.hp <= 0) { h.hp = 0; f.over = true; f.won = false; ev(f, 'end', 'Você caiu em combate...'); return; }
+    // passagem de turno dos efeitos
+    f.buffs.forEach((b) => b.turns--); f.buffs = f.buffs.filter((b) => b.turns > 0);
+    if (f.shield) { f.shield.turns--; if (f.shield.turns <= 0 || f.shield.amt <= 0) f.shield = null; }
+    if (f.evade > 0) f.evade--;
+    if (f.slow) { f.slow.turns--; if (f.slow.turns <= 0) f.slow = null; }
+    if (f.mark) { f.mark.turns--; if (f.mark.turns <= 0) f.mark = null; }
     // aviso do próximo golpe especial
     f.warn = !!(sp && (f.mturn + 1) % sp.every === 0);
-    if (f.warn) ev(f, 'warn', `⚠️ ${m.name} prepara ${sp.name}! Defenda-se!`);
+    if (f.warn) ev(f, 'warn', `⚠️ ${m.name} prepara ${sp.name}! Proteja-se!`);
   }
 
-  // action: attack | heavy | guard | grito | postura | potion-small | potion-large | flee
+  // usa uma habilidade ativa da árvore; devolve false se não puder
+  function useSkill(st, f, id) {
+    const def = G.TREE_BY_ID && G.TREE_BY_ID[id], h = f.hero, m = f.mon;
+    const entry = def && h.skills.find((x) => x.id === id);
+    if (!entry) { ev(f, 'info', 'Você ainda não aprendeu essa habilidade.'); return false; }
+    if ((f.cd[id] || 0) > 0) { ev(f, 'info', `${def.name} está recarregando (${f.cd[id]}).`); return false; }
+    const fx = G.skillFx(def, entry.rank);
+    if (fx.dmg) {
+      const d = fx.dmg, hits = d.hits || 1; let total = 0, crit = false;
+      for (let i = 0; i < hits && m.hp > 0; i++) {
+        const bonus = d.exec && m.hp < m.maxHp * d.exec.below ? d.exec.mult : 1;
+        const r = heroHit(f, { mult: d.mult, ignoreArm: d.ignoreArm, critAdd: d.critAdd, skill: true, bonus });
+        total += r.dmg; crit = crit || r.crit;
+      }
+      ev(f, 'hit', `${def.icon} ${def.name}${crit ? ' CRÍTICO' : ''}: ${total} de dano${hits > 1 ? ` (${hits} golpes)` : ''} em ${m.name}.`, { who: 'hero', dmg: total, crit, skill: true });
+      const vamp = h.vamp + (d.vamp ? d.vamp * 100 : 0);
+      if (vamp > 0) healHero(f, total * vamp / 100, `🩸 Você rouba {n} de vida.`);
+    }
+    if (m.hp > 0) {
+      if (fx.dot) { addDot(f, fx.dot); ev(f, 'info', `${fx.dot.icon} ${m.name} sofre de ${fx.dot.name}!`); }
+      if (fx.stun) {
+        const chance = fx.stun * (m.boss ? 0.5 : 1);
+        if (!f.mstunImmune && R() < chance) { f.mstun = true; ev(f, 'info', `💫 ${m.name} ficou atordoado!`); } else ev(f, 'info', `${m.name} resistiu ao atordoamento.`);
+      }
+      if (fx.mark) { f.mark = { pct: fx.mark.pct, turns: fx.mark.turns + 1 }; ev(f, 'info', `📍 ${m.name} marcado: +${fx.mark.pct}% de dano por ${fx.mark.turns} turnos.`); }
+      if (fx.slow) { f.slow = { mult: fx.slow.mult, turns: fx.slow.turns + 1 }; ev(f, 'info', `🌨️ ${m.name} fica lento: causa ${Math.round((1 - fx.slow.mult) * 100)}% menos dano.`); }
+    }
+    if (fx.heal) healHero(f, h.max * fx.heal * h.potion, `💚 ${def.name}: você recupera {n} de vida.`);
+    if (fx.buff) { const b = fx.buff; f.buffs = f.buffs.filter((x) => x.id !== b.id); f.buffs.push({ id: b.id, icon: b.icon, name: b.name, turns: b.turns, atk: b.atk, taken: b.taken, crit: b.crit, dodge: b.dodge }); ev(f, 'info', `${b.icon} ${b.name}!`); }
+    if (fx.shield) { f.shield = { amt: Math.round(h.max * fx.shield.pct), turns: fx.shield.turns }; ev(f, 'info', `👻 Escudo de espírito: absorve ${f.shield.amt} de dano.`); }
+    if (fx.guard != null) { f.guard = fx.guard; ev(f, 'info', `🛡️ Você se protege: o próximo golpe causa ${Math.round(fx.guard * 100)}% do dano.`); }
+    if (fx.evade) { f.evade = fx.evade; ev(f, 'info', `💨 Você se prepara para esquivar de ${fx.evade} ataque(s).`); }
+    f.cd[id] = def.cd;
+    if (m.hp <= 0) { m.hp = 0; f.over = true; f.won = true; ev(f, 'end', `${m.name} foi derrotado!`); }
+    return true;
+  }
+
+  // action: attack | skill:<id> | potion-small | potion-large | flee
   G.heroAction = function (st, f, action) {
     if (f.over) return [];
     const start = f.events.length, m = f.mon, h = f.hero;
-    const bad = (msg) => { ev(f, 'info', msg); return f.events.slice(start); };
+    const bad = (msg) => { f.turn--; ev(f, 'info', msg); return f.events.slice(start); };
     let used = null;
     f.turn++;
     if (f.stunned) {
       f.stunned = false; ev(f, 'info', '💫 Você está atordoado e perde o turno!');
     } else if (action === 'flee') {
-      if (f.mode !== 'zone') { f.turn--; return bad('Não há como fugir deste combate!'); }
-      if (m.boss) { f.turn--; return bad('Não há como fugir de um chefe!'); }
+      if (f.mode !== 'zone') return bad('Não há como fugir deste combate!');
+      if (m.boss) return bad('Não há como fugir de um chefe!');
       if (R() < 0.6) { f.over = true; f.fled = true; ev(f, 'end', 'Você fugiu da batalha.'); return f.events.slice(start); }
       ev(f, 'info', 'A fuga falhou!');
     } else if (action === 'potion-small' || action === 'potion-large') {
       const key = action === 'potion-small' ? 'small' : 'large';
-      if (st.potions[key] <= 0) { f.turn--; return bad('Você não tem essa poção.'); }
+      if (st.potions[key] <= 0) return bad('Você não tem essa poção.');
       st.potions[key]--; f.potionsUsed++;
       const heal = Math.round(h.max * (key === 'small' ? 0.35 : 0.65) * h.potion);
       const before = h.hp; h.hp = Math.min(h.max, h.hp + heal);
       ev(f, 'heal', `🧪 Você bebe uma poção e recupera ${Math.round(h.hp - before)} de vida.`, { who: 'hero' });
-    } else if (action === 'guard') {
-      f.guard = true; ev(f, 'info', '🛡️ Você se protege atrás do escudo (-60% de dano no próximo golpe).');
-    } else if (action === 'grito') {
-      if (!h.grito) { f.turn--; return bad('Você ainda não aprendeu essa habilidade.'); }
-      if (f.cd.grito > 0) { f.turn--; return bad('Grito de Guerra recarregando.'); }
-      f.buff.grito = 4; f.cd.grito = G.ACTIVE_CD; used = 'grito';
-      ev(f, 'info', `📣 Grito de Guerra! +${Math.round((h.grito - 1) * 100)}% de dano por 3 ataques.`);
-    } else if (action === 'postura') {
-      if (!h.postura) { f.turn--; return bad('Você ainda não aprendeu essa habilidade.'); }
-      if (f.cd.postura > 0) { f.turn--; return bad('Postura de Pedra recarregando.'); }
-      f.buff.postura = 3; f.cd.postura = G.ACTIVE_CD; used = 'postura';
-      ev(f, 'info', `🗿 Postura de Pedra! -${Math.round((1 - h.postura) * 100)}% de dano por 3 turnos.`);
+    } else if (action.startsWith('skill:')) {
+      const id = action.slice(6);
+      const def = G.TREE_BY_ID && G.TREE_BY_ID[id], entry = def && h.skills.find((x) => x.id === id);
+      if (!entry) return bad('Você ainda não aprendeu essa habilidade.');
+      if ((f.cd[id] || 0) > 0) return bad(`${def.name} está recarregando.`);
+      useSkill(st, f, id); used = id;
+    } else if (action !== 'attack') {
+      return bad('Ação inválida.');
     } else {
-      const heavy = action === 'heavy';
-      if (heavy && f.cd.heavy > 0) { f.turn--; return bad('Golpe Forte ainda está recarregando.'); }
-      let dmg = h.atk * rand(0.85, 1.15) * reduce(m.arm) * (heavy ? h.heavy : 1) * (f.buff.grito > 0 ? h.grito : 1);
-      const crit = R() * 100 < h.crit;
-      if (crit) dmg *= h.critDmg;
-      dmg = Math.max(1, Math.round(dmg));
-      m.hp -= dmg;
-      if (heavy) { f.cd.heavy = G.HEAVY_CD; used = 'heavy'; }
-      ev(f, 'hit', `${heavy ? '💥 Golpe Forte' : '⚔️ Você ataca'}${crit ? ' CRÍTICO' : ''}: ${dmg} de dano em ${m.name}.`, { who: 'hero', dmg, crit });
-      if (h.vamp > 0 && m.hp > 0 || (h.vamp > 0 && m.hp <= 0)) {
-        const heal = Math.round(dmg * h.vamp / 100);
-        if (heal > 0 && h.hp < h.max) { h.hp = Math.min(h.max, h.hp + heal); ev(f, 'heal', `🩸 Você rouba ${heal} de vida.`, { who: 'hero' }); }
-      }
+      const r = heroHit(f, { mult: 1 });
+      const verb = (G.CLASSES && h.cls && G.CLASSES[h.cls]) ? G.CLASSES[h.cls].basic : '⚔️ Você ataca';
+      ev(f, 'hit', `${verb}${r.crit ? ' CRÍTICO' : ''}: ${r.dmg} de dano em ${m.name}.`, { who: 'hero', dmg: r.dmg, crit: r.crit });
+      if (h.vamp > 0) healHero(f, r.dmg * h.vamp / 100, `🩸 Você rouba {n} de vida.`);
+      if (h.poisonChance && m.hp > 0 && R() < h.poisonChance) { addDot(f, { id: 'veneno', icon: '☠️', name: 'veneno', pct: 0.25, turns: 3 }); ev(f, 'info', `☠️ ${m.name} foi envenenado!`); }
       if (m.hp <= 0) { m.hp = 0; f.over = true; f.won = true; ev(f, 'end', `${m.name} foi derrotado!`); }
     }
-    for (const key of ['heavy', 'grito', 'postura']) if (f.cd[key] > 0 && key !== used) f.cd[key]--;
+    for (const key of Object.keys(f.cd)) if (f.cd[key] > 0 && key !== used) f.cd[key]--;
     if (!f.over) monsterTurn(f);
     return f.events.slice(start);
   };
@@ -652,9 +733,9 @@
   G.eventMonster = function (st, type, d = new Date()) {
     const e = type === 'weekly' ? G.weeklyEvent(d) : G.monthlyEvent(d);
     const mon = G.makeMonster(st.level + (type === 'monthly' ? 2 : 1), 'event', Object.assign({}, e.def, type === 'monthly' ? { sp: e.def.sp } : {}));
-    const sc = 0.4 + 0.14 * Math.min(15, st.trophies.length);   // cresce com o progresso na campanha
+    const sc = 0.3 + 0.17 * Math.min(15, st.trophies.length);   // cresce com o progresso na campanha
     mon.hp = mon.maxHp = Math.round(mon.maxHp * sc); mon.atk = Math.round(mon.atk * (1 + (sc - 1) * 0.8));
-    if (type === 'monthly') { mon.hp = mon.maxHp = Math.round(mon.maxHp * 1.35); mon.atk = Math.round(mon.atk * 1.12); }
+    if (type === 'monthly') { mon.hp = mon.maxHp = Math.round(mon.maxHp * 1.6); mon.atk = Math.round(mon.atk * 1.2); }
     return { mon, key: e.key, def: e.def };
   };
   G.EVENT_SHOP = [
@@ -689,7 +770,7 @@
   G.stepMonster = function (z, step, noElite) {
     const Z = G.ZONES[z - 1], lvl = G.stepLevel(z, step), kind = G.STEPS[step].kind;
     if (kind === 'boss') return G.makeMonster(lvl, 'boss', Object.assign({ no: z }, Z.boss));
-    const ease = Math.min(1, 0.3 + 0.13 * z);   // os primeiros locais são mais brandos
+    const ease = Math.min(1, 0.2 + 0.13 * z);   // os primeiros locais são mais brandos
     const soften = (mon) => { mon.atk = Math.round(mon.atk * ease); mon.hp = mon.maxHp = Math.round(mon.hp * (0.5 + 0.5 * ease)); return mon; };
     if (kind === 'semi') { const [n, e, md] = Z.semi; const mon = soften(G.makeMonster(lvl, 'semi', { name: n, emoji: e, mods: [md] })); if (z === 1) { mon.atk = Math.round(mon.atk * 0.8); } return mon; }
     const [n, e, md] = Z.m[step], elite = !noElite && R() < 0.08;
@@ -1021,6 +1102,12 @@
       delete s.kills; delete s.bossNo; s.v = 3;
     }
     if (!s.codex) { s.codex = {}; [].concat(s.bag || [], Object.values(s.equipped || {}).filter((x) => x && !Array.isArray(x)), (s.equipped && s.equipped.runas) || []).filter(Boolean).forEach((it) => G.discover(s, it)); }
+    if (s.v < 4) {   // v3 -> v4: classes e árvore de habilidades (as habilidades ativas do treino viraram da árvore)
+      s.cls = null; s.tree = {};
+      if (s.skills) { delete s.skills.golpe; delete s.skills.grito; delete s.skills.postura; }
+      s.v = 4;
+    }
+    if (!s.tree) s.tree = {}; if (s.cls === undefined) s.cls = null;
     if (!s.avatar) s.avatar = Object.assign({}, G.DEFAULT_AVATAR);
     (s.evTrophies || []).forEach((e, i) => { if (!e.bonus) e.bonus = G.evTrophyBonus(e.type, i); });
     return s;
@@ -1032,5 +1119,5 @@
   G.wipe = () => { try { localStorage.removeItem(G.KEY); } catch (e) { /* ignore */ } };
 
   root.G = G;
-  if (typeof module !== 'undefined' && module.exports) module.exports = G;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = G; require('./skilltree.js'); }
 })(typeof window !== 'undefined' ? window : globalThis);

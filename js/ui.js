@@ -7,7 +7,7 @@
   let jTab = 'mapa', screen = 'mapa', shopTab = 'equip', shopSlot = 'todos', bagFilter = 'todos', bagSort = 'poder', forgeTab = 'melhorar';
   let fight = null, busy = false, lastSnap = '';
 
-  const TABS = [['mapa', '🗺️', 'Jornada'], ['heroi', '🧍', 'Herói'], ['bau', '🧳', 'Baú'], ['loja', '🛒', 'Loja'], ['treino', '💪', 'Treino'], ['eventos', '🎉', 'Eventos']];
+  const TABS = [['mapa', '🗺️', 'Jornada'], ['heroi', '🧍', 'Herói'], ['arvore', '🌳', 'Árvore'], ['bau', '🧳', 'Baú'], ['loja', '🛒', 'Loja'], ['treino', '💪', 'Treino'], ['eventos', '🎉', 'Eventos']];
   const fmt = (n) => Math.round(n).toLocaleString('pt-BR');
   const save = () => G.save(st);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -33,12 +33,13 @@
       <div class="toprow"><div class="title">🦴 ERA DA PEDRA</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold" style="margin-left:6px">🦴 ${fmt(st.ossos)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
       <div class="stats"><span>⚔️ ${fmt(s.atk)}</span><span>❤️ ${fmt(s.hp)}</span><span>🛡️ ${fmt(s.arm)}</span><span>🎯 ${s.crit.toFixed(0)}%</span></div>
       <div class="xpbar"><b>⬆ ${st.level}</b><div class="bar"><i style="width:${pct}%"></i></div><b>${st.level >= G.MAX_LEVEL ? 'MÁX' : pct + '%'}</b></div>`;
-    nav.innerHTML = TABS.map(([id, ic, nm]) => `<button data-nav="${id}" class="${id === screen ? 'on' : ''}"><span>${ic}</span>${nm}</button>`).join('');
+    const free = G.skillPoints(st).free;
+    nav.innerHTML = TABS.map(([id, ic, nm]) => `<button data-nav="${id}" class="${id === screen ? 'on' : ''}"><span>${ic}</span>${nm}${id === 'arvore' && (free > 0 || !st.cls) ? `<i class="badge">${st.cls ? free : '!'}</i>` : ''}</button>`).join('');
   }
   function render() {
     G.syncTime(st);
     renderTop();
-    ({ mapa: vMapa, heroi: vHeroi, bau: vBau, loja: vLoja, treino: vTreino, eventos: vEventos })[screen]();
+    ({ mapa: vMapa, heroi: vHeroi, arvore: vArvore, bau: vBau, loja: vLoja, treino: vTreino, eventos: vEventos })[screen]();
     lastSnap = snapshot();
   }
 
@@ -196,12 +197,12 @@
     const tt = G.trophyTotals(st);
     const ttLine = ['atk', 'hp', 'arm', 'crit'].map((k) => `<span>${G.TB_ICON[k]} +${Math.round(tt[k] * 10) / 10}${k === 'crit' ? '' : '%'}</span>`).join(' · ');
     const et = st.evTrophies.length ? st.evTrophies.slice().reverse().map((t) => `<div class="t"><div class="e">${t.icon}</div><b>${esc(t.name)}</b><div class="muted">${t.type === 'weekly' ? 'Semanal' : 'Mensal'}</div>${t.bonus ? `<div class="bonus">${G.bonusText(t.bonus)}</div>` : ''}</div>`).join('') : '<div class="sub">Vença os chefes de evento para ganhar troféus especiais.</div>';
-    view.innerHTML = `<div class="card center"><div class="name">${esc(st.name)} · Nível ${st.level}</div>
+    view.innerHTML = `<div class="card center"><div class="name">${esc(st.name)} · Nível ${st.level}${st.cls ? ` · ${G.CLASSES[st.cls].icon} ${G.CLASSES[st.cls].name}` : ''}</div>
       <div class="sub">Chefes: ${st.trophies.length}/15 · Feras abatidas: ${st.totalKills}</div>${doll()}<div class="sub" style="margin-top:6px">Toque num espaço para equipar ou ver detalhes.</div></div>
       <div class="card"><div class="name">Atributos</div><div class="hr"></div>
       <div class="row"><span class="grow">⚔️ Força</span><b>${fmt(s.atk)}</b></div><div class="row"><span class="grow">❤️ Vida</span><b>${fmt(s.hp)}</b></div>
       <div class="row"><span class="grow">🛡️ Armadura</span><b>${fmt(s.arm)}</b></div><div class="row"><span class="grow">🎯 Crítico</span><b>${s.crit.toFixed(1)}% (x${s.critDmg.toFixed(2)})</b></div>
-      <div class="row"><span class="grow">🩸 Vida roubada</span><b>${s.vamp.toFixed(1)}%</b></div><div class="row"><span class="grow">💥 Golpe Forte</span><b>x${s.heavy.toFixed(2)}</b></div></div>
+      <div class="row"><span class="grow">🩸 Vida roubada</span><b>${s.vamp.toFixed(1)}%</b></div><div class="row"><span class="grow">💨 Esquiva</span><b>${s.dodge.toFixed(0)}%</b></div></div>
       ${collectionCard()}
       <h2 class="banner">Troféus de Chefes (${st.trophies.length}/15)</h2>
       <div class="card center"><div class="name">Bônus vitalício dos troféus</div><div class="sub" style="margin-top:4px">${ttLine}</div><div class="sub">Cada troféu dá um bônus permanente de atributo.</div></div><div class="troph">${bt}</div>
@@ -239,6 +240,44 @@
     if (a === 'runa') { const it = { slot: 'runa', ilvl: 10, rarity: 2, rune: { t: b, v: 1 } }; return openModal(`<div class="cdetail">${ItemArt.icon(it)}</div><h2 class="banner">Runa da ${G.RUNES[b].name}</h2><div class="flavor">${esc(G.itemDesc(it))}</div><button class="btn" data-act="codex">Voltar</button>`); }
     const t = +b, it = { slot: a, ilvl: t * 8 + 2, rarity: Math.min(4, t) };
     openModal(`<div class="cdetail">${ItemArt.icon(it)}</div><h2 class="banner">${esc(G.itemName(it))}</h2><div class="flavor"><b>${G.MATERIALS[t]}</b> — ${esc(G.itemDesc(it))}</div><div class="sub center">Nível de item a partir de ${t * 8}</div><button class="btn" data-act="codex">Voltar</button>`);
+  }
+
+  /* ---------- Classes e árvore de habilidades ---------- */
+  function classCards() {
+    return G.CLASS_ORDER.map((id) => {
+      const c = G.CLASSES[id];
+      const sample = G.TREE.filter((d) => d.cls === id && d.type === 'active' && d.tier <= 2).slice(0, 4).map((d) => `${d.icon} ${d.name}`).join(' · ');
+      return `<div class="card class" style="border-color:${c.color}"><div class="row"><div class="pic" style="font-size:38px">${c.icon}</div><div class="grow"><div class="name">${c.name}</div><div class="sub">${c.blurb}</div></div></div>
+        <div class="sub up" style="margin-top:6px">Bônus: ${c.bonusText}</div><div class="sub">Ramos: ${c.branches.map((b) => b[1] + ' ' + b[0]).join(' · ')}</div><div class="sub">${sample}…</div>
+        <button class="btn go" data-cls="${id}">Ser ${c.name}</button></div>`;
+    }).join('');
+  }
+  function showClassPick(first) {
+    openModal(`<h2 class="banner">Escolha sua classe</h2><div class="sub center" style="margin-bottom:8px">Sua classe define a árvore de habilidades. A cada nível você ganha 1 ponto. Para trocar depois, é preciso redefinir a árvore (custa ouro).</div>${classCards()}`);
+  }
+  const nodeState = (d) => { const r = G.treeRank(st, d.id), c = G.canLearn(st, d.id); return r >= G.TREE_MAX_RANK ? 'maxed learned' : c.ok ? (r > 0 ? 'learned avail' : 'avail') : r > 0 ? 'learned' : 'locked'; };
+  function vArvore() {
+    if (!st.cls) { view.innerHTML = `<h2 class="banner">🌳 Árvore de Habilidades</h2><div class="sub center" style="margin-bottom:8px">Escolha uma classe para começar.</div>${classCards()}`; return; }
+    const c = G.CLASSES[st.cls], pts = G.skillPoints(st);
+    let h = `<div class="card" style="border-color:${c.color}"><div class="row"><div class="pic" style="font-size:36px">${c.icon}</div><div class="grow"><div class="name">${c.name} · nível ${st.level}</div><div class="sub">${c.bonusText}</div></div>
+      <div class="ptsbox"><div class="pts">${pts.free}</div><div class="sub">pontos livres</div></div></div>
+      <div class="sub" style="margin-top:6px">⭐ ${pts.spent} usados de ${pts.total} (1 por nível). Habilidades <b>ativas</b> (quadradas) viram botões na batalha; <b>passivas</b> (redondas) valem sempre.</div></div>`;
+    c.branches.forEach((b, bi) => {
+      const list = G.TREE.filter((d) => d.cls === st.cls && d.branch === bi);
+      h += `<div class="branch"><div class="bhead">${b[1]} ${b[0]}</div><div class="tchain">${list.map((d) => {
+        const r = G.treeRank(st, d.id), stt = nodeState(d), cost = G.canLearn(st, d.id).cost;
+        return `<button class="tnode ${stt} ${d.type}" data-sk="${d.id}"><div class="ring">${d.icon}</div><div class="nm">${esc(d.name)}</div>
+          <div class="pips">${[1, 2, 3].map((k) => `<b class="${r >= k ? 'on' : ''}"></b>`).join('')}</div>${r < G.TREE_MAX_RANK && cost ? `<span class="cp">${cost} pt</span>` : '<span class="cp">&nbsp;</span>'}</button>`;
+      }).join('')}</div></div>`;
+    });
+    h += `<button class="btn red" data-act="respec">↺ Redefinir árvore e classe · 🪙 ${fmt(G.respecCost(st))}</button>`;
+    view.innerHTML = h;
+  }
+  function showSkill(id) {
+    const d = G.TREE_BY_ID[id], r = G.treeRank(st, id), c = G.canLearn(st, id);
+    const rows = [1, 2, 3].map((k) => `<div class="rank ${r >= k ? 'got' : ''}"><b>Nível ${k}</b> ${r >= k ? '✅' : ''}<div class="sub">${G.skillDesc(d, k)}</div><div class="sub">Custo: ${G.treeCost(d, k)} pt · requer nível ${G.treeReqLevel(d, k)} do herói</div></div>`).join('');
+    const btn = r >= G.TREE_MAX_RANK ? '<button class="btn" disabled>Nível máximo</button>' : `<button class="btn go" data-learn="${id}" ${c.ok ? '' : 'disabled'}>${r ? 'Melhorar' : 'Aprender'} · ${c.cost || G.treeCost(d, r + 1)} pt</button>${c.ok ? '' : `<div class="sub center down" style="margin-top:6px">${c.msg}</div>`}`;
+    openModal(`<div class="row"><div class="pic" style="font-size:36px;border-radius:${d.type === 'active' ? 12 : 50}%">${d.icon}</div><div class="grow"><div class="name">${esc(d.name)}</div><div class="sub"><span class="tag">${d.type === 'active' ? 'ATIVA · botão na batalha' : 'PASSIVA'}</span> tier ${d.tier}${d.req ? ' · requer ' + esc(G.TREE_BY_ID[d.req].name) : ''}</div></div></div>${rows}${btn}<button class="btn" data-close>Fechar</button>`);
   }
 
   /* ---------- Itens: detalhe ---------- */
@@ -463,7 +502,11 @@
   }
   function drawFight(logLines) {
     const f = fight, m = f.mon, h = f.hero;
-    const cdTxt = (k) => (f.cd[k] > 0 ? ` (${f.cd[k]})` : '');
+    const cls = h.cls && G.CLASSES[h.cls];
+    const atkLabel = cls ? cls.btn : '⚔️ Atacar';
+    const skillBtns = h.skills.map((x) => { const d = G.TREE_BY_ID[x.id], cd = f.cd[x.id] || 0; return `<button class="btn sk" data-fa="skill:${x.id}" ${cd > 0 ? 'disabled' : ''}><span class="ic">${d.icon}</span><span>${esc(d.name)}</span><i>${cd > 0 ? 'recarga ' + cd : 'pronto'}</i></button>`; }).join('');
+    const heroSt = [f.stunned ? '💫' : '', f.poison ? '☠️' : '', ...f.buffs.map((b) => `<span title="${esc(b.name)}">${b.icon}${b.turns}</span>`), f.shield ? `👻${f.shield.amt}` : '', f.evade > 0 ? '💨' : '', f.guard != null ? '🛡️' : ''].filter(Boolean).join(' ');
+    const monSt = [f.mstun ? '💫 atordoado' : '', ...f.dots.map((d) => `${d.icon} ${d.name}`), f.slow ? '🌨️ lento' : '', f.mark ? '📍 marcado' : ''].filter(Boolean).map((x) => `<span class="tag st">${x}</span>`).join('');
     const potBtn = (k, n) => `<button class="btn" data-fa="potion-${k}" ${st.potions[k] > 0 ? '' : 'disabled'}>🧪 ${n} (${st.potions[k]})</button>`;
     const label = KIND_LABEL[m.kind];
     overlay.innerHTML = `<div class="fight">
@@ -472,18 +515,14 @@
         <div class="arenatop"><span class="sub">${m.boss ? '👑 ' : ''}${label} · Nível ${m.level}</span><div class="name">${esc(m.name)}</div></div>
         <div class="mon ${m.dragon === 'azul' ? '' : ''}" id="mon">${Art.monster(m)}</div>
         <div class="arenabot">${hpBar(m.hp, m.maxHp, 'mhp')}
-        <div class="tags" style="justify-content:center">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}</div></div></div>
-      <div class="warn" id="warn" ${f.warn ? '' : 'hidden'}>⚠️ ${esc(m.name)} vai usar ${esc(m.special ? m.special.name : '')}! Defenda-se!</div>
+        <div class="tags" style="justify-content:center">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}${monSt}</div></div></div>
+      <div class="warn" id="warn" ${f.warn ? '' : 'hidden'}>⚠️ ${esc(m.name)} vai usar ${esc(m.special ? m.special.name : '')}! Proteja-se!</div>
       <div class="log" id="log">${logLines.join('')}</div>
-      <div class="herorow"><div class="herochip">${Avatar.svg(st.avatar, st.equipped)}</div><div class="grow"><div style="font-size:13px;margin-bottom:4px">${esc(st.name)} ${f.stunned ? '💫' : ''}${f.poison ? '☠️' : ''}${f.buff.grito > 0 ? '📣' : ''}${f.buff.postura > 0 ? '🗿' : ''}</div>${hpBar(h.hp, h.max)}</div></div>
-      <div class="acts" style="margin-top:8px">
-        <button class="btn red" data-fa="attack">⚔️ Atacar</button>
-        <button class="btn" data-fa="heavy" ${f.cd.heavy > 0 ? 'disabled' : ''}>💥 Golpe Forte${cdTxt('heavy')}</button>
-        <button class="btn" data-fa="guard">🛡️ Defender</button>
-        ${h.grito ? `<button class="btn" data-fa="grito" ${f.cd.grito > 0 ? 'disabled' : ''}>📣 Grito${cdTxt('grito')}</button>` : ''}
-        ${h.postura ? `<button class="btn" data-fa="postura" ${f.cd.postura > 0 ? 'disabled' : ''}>🗿 Postura${cdTxt('postura')}</button>` : ''}
-        ${potBtn('small', 'Poção P')}${potBtn('large', 'Poção G')}
-        <button class="btn" data-fa="flee" ${m.boss || f.mode !== 'zone' ? 'disabled' : ''}>🏃 Fugir</button></div></div>`;
+      <div class="herorow"><div class="herochip">${Avatar.svg(st.avatar, st.equipped)}</div><div class="grow"><div style="font-size:13px;margin-bottom:4px">${esc(st.name)} ${heroSt}</div>${hpBar(h.hp, h.max)}</div></div>
+      <div class="acts" style="margin-top:8px"><button class="btn red wide" data-fa="attack">${atkLabel}</button></div>
+      ${skillBtns ? `<div class="skgrid">${skillBtns}</div>` : ''}
+      <div class="acts" style="margin-top:6px">${potBtn('small', 'Poção P')}${potBtn('large', 'Poção G')}
+        <button class="btn" data-fa="flee" style="grid-column:span 2" ${m.boss || f.mode !== 'zone' ? 'disabled' : ''}>🏃 Fugir</button></div></div>`;
   }
   function lineHtml(e) {
     const c = e.kind === 'hit' ? (e.who === 'hero' ? 'hit-h' : 'hit-m') : e.kind;
@@ -533,7 +572,7 @@
       if (rep.dragonTrophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu de dragão</b><div>${rep.dragonTrophy.tIcon} ${rep.dragonTrophy.trophy}</div><div class="up" style="margin-top:4px">Bônus vitalício: ${G.bonusText(rep.dragonTrophy.bonus)}</div></div>`;
       if (rep.evTrophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu de evento</b><div>${rep.evTrophy.icon} ${esc(rep.evTrophy.name)}</div><div class="up" style="margin-top:4px">Bônus vitalício: ${G.bonusText(rep.evTrophy.bonus)}</div></div>`;
       if (rep.zoneCleared) h += `<div class="card center"><b>📜 ${esc(rep.zoneCleared.name)} vencido!</b><div class="sub" style="line-height:1.5;margin-top:4px">${rep.zoneCleared.clear}</div>${rep.nextZone ? `<div class="up" style="margin-top:6px">Novo local: ${rep.nextZone.icon} ${esc(rep.nextZone.name)}</div>` : ''}</div>`;
-      if (rep.levels.length) h += `<div class="card center"><b>⬆ Subiu para o nível ${rep.levels[rep.levels.length - 1]}!</b><div class="sub">Vida restaurada e novo estoque na loja.</div></div>`;
+      if (rep.levels.length) h += `<div class="card center"><b>⬆ Subiu para o nível ${rep.levels[rep.levels.length - 1]}!</b><div class="sub">Vida restaurada e novo estoque na loja.</div><div class="up" style="margin-top:4px">⭐ +${rep.levels.length} ponto(s) de habilidade${G.skillPoints(st).free ? ` (livres: ${G.skillPoints(st).free})` : ''}</div>${st.cls ? '<button class="btn sm go" data-go-tree style="margin-top:6px">🌳 Abrir a árvore</button>' : ''}</div>`;
       if (rep.finishedGame) h += `<div class="card center"><div class="big">👑</div><b>O fogo sagrado voltou à tribo!</b><div class="sub">Você venceu os 15 locais. Agora enfrente os dragões e os eventos!</div></div>`;
     }
     openModal(h + '<button class="btn go" data-close>Continuar</button>');
@@ -571,7 +610,7 @@
   }
 
   /* ---------- Eventos de clique ---------- */
-  const SEL = '[data-act],[data-nav],[data-item],[data-shopitem],[data-buy],[data-buyq],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ss],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-evbuy],[data-go-forge]';
+  const SEL = '[data-act],[data-nav],[data-item],[data-shopitem],[data-buy],[data-buyq],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ss],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-evbuy],[data-go-forge]';
   const after = (msg, ok = true) => { if (msg) toast(msg); if (ok) { save(); closeModal(); } render(); };
   document.addEventListener('click', (ev) => {
     const t = ev.target.closest(SEL);
@@ -602,6 +641,10 @@
     if (d.fuse) { const r = G.fuseRunes(st, d.fuse); return after(r.msg, r.ok); }
     if (d.pot) { const r = G.buyPotion(st, d.pot); return after(r.msg, r.ok); }
     if (d.train) { const r = G.startTraining(st, d.train); return after(r.msg, r.ok); }
+    if (d.sk) return showSkill(d.sk);
+    if (d.cls) { const r = G.setClass(st, d.cls); if (r.ok) { buzz(30); save(); closeModal(); screen = 'arvore'; render(); toast(r.msg + ' Aprenda sua 1ª habilidade!'); } else toast(r.msg); return; }
+    if (d.learn) { const r = G.learn(st, d.learn); if (r.ok) buzz(25); save(); if (r.ok) closeModal(); render(); return toast(r.msg); }
+    if (d.goTree !== undefined) { closeModal(); screen = 'arvore'; render(); return; }
     if (d.cdx) return showCodexEntry(d.cdx);
     if (d.jt) { jTab = d.jt; return render(); }
     if (d.zone) return showZone(+d.zone);
@@ -614,10 +657,11 @@
     switch (d.act) {
       case 'openall': return openAllBoxes();
       case 'codex': return showCodex();
+      case 'respec': { if (!confirm(`Redefinir a árvore e a classe por ${G.respecCost(st)} de ouro?`)) return; const r = G.respec(st); toast(r.msg); save(); render(); if (r.ok) showClassPick(); return; }
       case 'odds': return showOdds();
       case 'menu': return menu();
       case 'rename': return askName(false);
-      case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; if (draft) st.avatar = Object.assign({}, draft); closeModal(); save(); render(); return; }
+      case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; if (draft) st.avatar = Object.assign({}, draft); closeModal(); save(); render(); if (!st.cls) showClassPick(true); return; }
       case 'reset': if (confirm('Apagar todo o progresso?')) { G.wipe(); st = G.newState(''); fight = null; closeModal(); save(); render(); askName(true); } return;
       case 'refreshshop': { const c = G.shopRefreshCost(st); if (st.gold < c) return toast('Ouro insuficiente.'); st.gold -= c; G.refreshShop(st); return after('Estoque renovado.', false); }
       case 'rest': { const r = G.rest(st); return after(r.msg, false); }
@@ -656,7 +700,7 @@
   const fresh = !st;
   if (!st) { st = G.newState(''); st.name = 'Herói'; save(); }
   render();
-  if (fresh) askName(true);
+  if (fresh) askName(true); else if (!st.cls) showClassPick(true);
   Art.loadPack().then((j) => { if (j && !fight) render(); });
   setInterval(tick, 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !fight) render(); });

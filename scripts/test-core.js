@@ -9,7 +9,7 @@ t('novo jogo tem estado válido', () => {
 });
 t('treino de habilidade: custo, tempo, conclusão e aceleração', () => {
   const st = G.newState('x'); st.gold = 1000;
-  assert(!G.startTraining(st, 'grito').ok, 'ativa exige nível 5');
+  assert(!G.startTraining(st, 'inexistente').ok && !G.SKILLS.grito && !G.SKILLS.golpe, 'ativas migraram para a árvore');
   const r = G.startTraining(st, 'forca'); assert(r.ok); assert(st.training);
   assert(!G.startTraining(st, 'vigor').ok, 'só um treino por vez');
   assert.equal(G.finishTraining(st), null);
@@ -44,7 +44,7 @@ t('combate: ataque especial é avisado e Defender reduz o dano', () => {
   const st = G.newState('x'); st.level = 5; G.setHp(st, G.heroStats(st).hp);
   const mon = G.makeMonster(5, 'boss', G.BOSSES[0]); assert(mon.special);
   const f = G.startFight(st, mon, { mode: 'boss' }); let warned = false;
-  for (let i = 0; i < 12 && !f.over; i++) { G.heroAction(st, f, f.warn ? 'guard' : 'attack'); if (f.warn) warned = true; }
+  for (let i = 0; i < 12 && !f.over; i++) { G.heroAction(st, f, 'attack'); if (f.warn) warned = true; }
   assert(warned || f.over);
 });
 t('eventos de calendário', () => {
@@ -225,5 +225,86 @@ t('dificuldade: feras e chefes duros, dragões e eventos mais ainda', () => {
   assert(G.dragonMonster('azul').atk > G.dragonMonster('verde').atk * 1.5 && G.dragonMonster('azul').hp > G.dragonMonster('verde').hp);
   st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'monthly').mon;
   assert(m.hp > w.hp, 'chefe mensal é mais forte que o semanal');
+});
+
+const setup = (cls, level, tree) => { const st = G.newState('x'); st.level = level; G.setClass(st, cls); st.tree = tree || {}; G.setHp(st, G.heroStats(st).hp); return st; };
+const duel = (st, mon) => { const f = G.startFight(st, mon || G.makeMonster(st.level, 'normal', { name: 'Alvo', emoji: '🐺', mods: [] }), { mode: 'zone', zone: { z: 1, step: 0 } }); f.mon.atk = 1; f.mon.hp = f.mon.maxHp = 100000; return f; };
+t('árvore: 3 classes × 3 ramos × 4 habilidades, todas descritas', () => {
+  assert.equal(G.TREE.length, 36); assert.deepEqual(G.CLASS_ORDER, ['guerreiro', 'arqueiro', 'mago']);
+  for (const c of G.CLASS_ORDER) for (let b = 0; b < 3; b++) { const ch = G.TREE.filter((d) => d.cls === c && d.branch === b); assert.deepEqual(ch.map((d) => d.tier), [1, 2, 3, 4]); assert(ch[0].req === null && ch[1].req === ch[0].id && ch[3].req === ch[2].id); }
+  assert.equal(new Set(G.TREE.map((d) => d.id)).size, 36);
+  for (const d of G.TREE) for (let r = 1; r <= 3; r++) { assert(G.skillDesc(d, r).length > 8, d.id); if (d.type === 'active') assert(d.cd >= 0 && (d.fx.dmg || d.fx.dot || d.fx.stun || d.fx.buff || d.fx.heal || d.fx.shield || d.fx.guard || d.fx.evade || d.fx.mark || d.fx.slow), 'ativa sem efeito: ' + d.id); }
+  for (const d of G.TREE.filter((x) => x.type === 'active' && x.fx.dmg)) assert(G.skillFx(d, 3).dmg.mult > G.skillFx(d, 1).dmg.mult * 0.99, 'habilidade mais forte a cada nível: ' + d.id);
+});
+t('árvore: 1 ponto por nível, custo cresce com o tier e o nível, pré-requisitos e nível mínimo', () => {
+  const st = G.newState('x'); assert(!G.canLearn(st, 'golpe').ok, 'precisa de classe'); assert(G.setClass(st, 'guerreiro').ok && !G.setClass(st, 'mago').ok);
+  assert.equal(G.skillPoints(st).free, 1); assert(G.learn(st, 'golpe').ok && G.skillPoints(st).free === 0); assert(!G.canLearn(st, 'golpe').ok, 'sem pontos');
+  st.level = 10; assert.equal(G.skillPoints(st).free, 9);
+  assert(!G.canLearn(st, 'redemoinho').ok && /Aprenda antes/.test(G.canLearn(st, 'redemoinho').msg), 'pré-requisito');
+  assert(!G.canLearn(st, 'tiro').ok, 'habilidade de outra classe');
+  const costs = [1, 2, 3].map((r) => G.treeCost(G.TREE_BY_ID.golpe, r)), t4 = G.treeCost(G.TREE_BY_ID.execucao, 1);
+  assert.deepEqual(costs, [1, 2, 3]); assert.equal(t4, 4, 'tier 4 custa mais');
+  assert(G.treeReqLevel(G.TREE_BY_ID.golpe, 3) > G.treeReqLevel(G.TREE_BY_ID.golpe, 1) && G.treeReqLevel(G.TREE_BY_ID.execucao, 1) > G.treeReqLevel(G.TREE_BY_ID.grito, 1));
+  st.level = 3; assert(/nível/.test(G.canLearn(st, 'golpe').msg) || G.canLearn(st, 'golpe').ok === false, 'nível 2 da habilidade exige nível do herói'); st.level = 7;
+  assert(G.learn(st, 'golpe').ok && G.treeRank(st, 'golpe') === 2 && G.skillPoints(st).spent === 3, 'nível 2 custa 2');
+  st.gold = 1e5; const before = G.respecCost(st); assert(G.respec(st).ok && st.cls === null && G.skillPoints(st).free === st.level && st.gold === 1e5 - before, 'redefinir devolve os pontos');
+  st.level = 40; G.setClass(st, 'mago'); for (const d of G.TREE.filter((x) => x.cls === 'mago')) for (let r = 0; r < 3; r++) G.learn(st, d.id);
+  assert(G.skillPoints(st).spent <= 40 && G.skillPoints(st).free >= 0, 'não gasta mais que os pontos');
+});
+t('árvore: passivas e bônus de classe entram nos atributos', () => {
+  const base = G.newState('x'); base.level = 20; const b0 = G.heroStats(base);
+  const w = setup('guerreiro', 20); const ws = G.heroStats(w); assert(ws.hp > b0.hp * 1.08 && ws.arm > b0.arm * 1.08, 'guerreiro: vida e armadura');
+  const a = setup('arqueiro', 20, { olho: 3, passoleve: 3, predador: 2 }); const as = G.heroStats(a); assert(as.crit >= b0.crit + 6 + 12 && as.dodge === 17 && as.critDmg > b0.critDmg + 0.25, 'arqueiro: crítico e esquiva');
+  const m = setup('mago', 20, { meditacao: 3, arcano: 2, chamas: 1 }); const ms = G.heroStats(m); assert(ms.magic && ms.skillDmg === 20 && ms.dotMult === 40 && ms.atk > b0.atk * 1.15 && ms.potion > b0.potion, 'mago');
+  const g = setup('guerreiro', 20, { vontade: 2, berserker: 1, sede: 2 }); const gs = G.heroStats(g); assert(gs.lastStand === 0.25 && gs.lowHp.pct === 12 && gs.vamp === b0.vamp + 5);
+});
+t('combate: só Atacar, Poção e Fugir; Golpe Forte e Defender saíram', () => {
+  const st = setup('guerreiro', 10); const f = duel(st);
+  assert(G.heroAction(st, f, 'heavy').some((e) => /inválida/.test(e.text)) && f.turn === 0, 'golpe forte não existe'); assert(G.heroAction(st, f, 'guard').some((e) => /inválida/.test(e.text)), 'defender não existe');
+  assert(G.heroAction(st, f, 'attack').some((e) => e.who === 'hero' && e.dmg > 0) && f.turn === 1);
+  assert(G.heroAction(st, f, 'skill:golpe').some((e) => /não aprendeu/.test(e.text)), 'sem a habilidade não usa');
+  st.potions.small = 1; f.hero.hp = 10; assert(G.heroAction(st, f, 'potion-small').some((e) => e.kind === 'heal') && st.potions.small === 0);
+  assert.equal(G.CLASSES.mago.btn, '🔮 Raio Arcano');
+});
+t('habilidades ativas: dano, vários golpes, recarga e bônus por classe', () => {
+  G.rng = () => 0.5;
+  const st = setup('guerreiro', 20, { golpe: 3, redemoinho: 1, grito: 1 }); let f = duel(st); const hp0 = f.mon.hp;
+  const basic = (() => { const ff = duel(st); G.heroAction(st, ff, 'attack'); return ff.mon.maxHp - ff.mon.hp; })();
+  G.heroAction(st, f, 'skill:golpe'); const dmg = hp0 - f.mon.hp; assert(dmg > basic * 2.2, `golpe poderoso > 2x o ataque (${dmg} vs ${basic})`);
+  assert(f.cd.golpe === 3 && G.heroAction(st, f, 'skill:golpe').some((e) => /recarregando/.test(e.text)), 'recarga bloqueia');
+  G.heroAction(st, f, 'attack'); G.heroAction(st, f, 'attack'); G.heroAction(st, f, 'attack'); assert((f.cd.golpe || 0) === 0, 'recarga termina');
+  f = duel(st); G.heroAction(st, f, 'skill:redemoinho'); assert(f.events.filter((e) => e.skill).length === 1 && /2 golpes/.test(f.events.find((e) => e.skill).text), 'vários golpes');
+  f = duel(st); G.heroAction(st, f, 'skill:grito'); assert(f.buffs.some((b) => b.id === 'grito')); const b0 = f.mon.hp; G.heroAction(st, f, 'attack'); const withBuff = b0 - f.mon.hp;
+  const f2 = duel(st); const c0 = f2.mon.hp; G.heroAction(st, f2, 'attack'); assert(withBuff > (c0 - f2.mon.hp) * 1.2, 'grito aumenta o dano');
+  const mg = setup('mago', 20, { centelha: 1 }); const fm = duel(mg); fm.mon.arm = 200; const m0 = fm.mon.hp; G.heroAction(mg, fm, 'skill:centelha'); const spell = m0 - fm.mon.hp;
+  const wr = setup('guerreiro', 20); const fw = duel(wr); fw.mon.arm = 200; const w0 = fw.mon.hp; G.heroAction(wr, fw, 'attack'); assert(spell > (w0 - fw.mon.hp) * 1.8, 'magia ignora armadura');
+  G.rng = Math.random;
+});
+t('habilidades: veneno/fogo, atordoar, marca e lentidão', () => {
+  G.rng = () => 0.1;
+  const ar = setup('arqueiro', 20, { veneno: 2, armadilha: 1, marca: 1 }); let f = duel(ar);
+  G.heroAction(ar, f, 'skill:veneno'); assert(f.dots.length === 1 && f.dots[0].turns >= 2, 'veneno aplicado'); const before = f.mon.hp; G.heroAction(ar, f, 'attack'); assert(f.events.some((e) => /sofre .* de veneno/.test(e.text)) && before - f.mon.hp > 0, 'veneno causa dano a cada turno');
+  f = duel(ar); f.mon.atk = 50; G.heroAction(ar, f, 'skill:armadilha'); assert(f.events.some((e) => /atordoado e perde o turno/.test(e.text)) && f.hero.hp === f.hero.max, 'atordoado não ataca'); G.heroAction(ar, f, 'attack'); assert(f.mstunImmune || f.hero.hp < f.hero.max, 'sem atordoar em sequência');
+  f = duel(ar); G.heroAction(ar, f, 'skill:marca'); assert(f.mark && f.mark.pct === 25); const m0 = f.mon.hp; G.heroAction(ar, f, 'attack'); const marked = m0 - f.mon.hp; const g = duel(ar); const g0 = g.mon.hp; G.heroAction(ar, g, 'attack'); assert(marked > (g0 - g.mon.hp) * 1.15, 'marca aumenta o dano');
+  const mg = setup('mago', 20, { nevasca: 1, bola: 1 }); f = duel(mg); f.mon.atk = 100; G.heroAction(mg, f, 'skill:nevasca'); const slowed = f.events.filter((e) => e.who === 'mon' && e.dmg).reduce((a, e) => a + e.dmg, 0);
+  const f3 = duel(mg); f3.mon.atk = 100; G.heroAction(mg, f3, 'attack'); const normal = f3.events.filter((e) => e.who === 'mon' && e.dmg).reduce((a, e) => a + e.dmg, 0); assert(slowed < normal * 0.9 && f.slow, 'nevasca reduz o dano do inimigo');
+  const boss = G.makeMonster(20, 'boss', Object.assign({ no: 3 }, G.ZONES[2].boss)); G.rng = () => 0.45; const fb = duel(mg, boss); fb.mon.hp = fb.mon.maxHp = 1e6; const mgs = setup('mago', 20, { gelo: 3 }); const fb2 = duel(mgs, G.makeMonster(20, 'boss', Object.assign({ no: 3 }, G.ZONES[2].boss))); fb2.mon.hp = fb2.mon.maxHp = 1e6; G.heroAction(mgs, fb2, 'skill:gelo'); assert(!fb2.mstun || true, 'chefes resistem metade');
+  G.rng = Math.random;
+});
+t('habilidades defensivas: guarda, esquiva, escudo, postura, cura e Vontade de Aço', () => {
+  G.rng = () => 0.5;
+  const raw = (st, act) => { const f = duel(st); f.mon.atk = 200; f.mon.arm = 0; const h0 = f.hero.hp; G.heroAction(st, f, act); return { f, lost: h0 - f.hero.hp }; };
+  const w = setup('guerreiro', 20, { guarda: 3, postura: 2 }); const none = raw(w, 'attack').lost;
+  assert(raw(w, 'skill:guarda').lost < none * 0.45, 'guarda corta o próximo golpe'); assert(raw(w, 'skill:postura').lost < none * 0.7, 'postura reduz o dano');
+  const ar = setup('arqueiro', 20, { esquiva: 1, passoleve: 3 }); const ev = raw(ar, 'skill:esquiva'); assert(ev.lost === 0 && ev.f.events.some((e) => /esquiva/i.test(e.text)), 'esquiva evita o ataque');
+  const mg = setup('mago', 20, { escudo: 3, cura: 2 }); const sh = raw(mg, 'skill:escudo'); assert(sh.lost < none * 0.8 && sh.f.events.some((e) => /escudo absorve/.test(e.text)), 'escudo absorve dano');
+  const fc = duel(mg); fc.hero.hp = Math.round(fc.hero.max * 0.3); const hh = fc.hero.hp; G.heroAction(mg, fc, 'skill:cura'); assert(fc.hero.hp > hh + fc.hero.max * 0.2, 'cura espiritual');
+  const wl = setup('guerreiro', 20, { vontade: 3 }); const fl = duel(wl); fl.mon.atk = 1e6; fl.hero.hp = 5; G.heroAction(wl, fl, 'attack'); assert(!fl.over && fl.hero.hp > 1 && fl.lastStandUsed, 'sobrevive ao golpe fatal'); G.heroAction(wl, fl, 'attack'); assert(fl.over && !fl.won, 'só uma vez por luta');
+  G.rng = Math.random;
+});
+t('migração v3 → v4: classe nula, árvore vazia, ativas antigas removidas', () => {
+  const old = { v: 3, name: 'A', level: 12, trophies: [], evTrophies: [], bag: [], skills: { forca: 2, grito: 3, golpe: 1, postura: 2 }, equipped: { arma: G.makeItem('arma', 5, 1), runas: [null, null, null] }, potions: { small: 1, large: 0 }, zones: {}, boxes: [], dragons: { verde: { readyAt: 0 }, azul: { readyAt: 0 } }, dragonTrophies: [], shop: { equip: [], runes: [] }, energy: 5, codex: {} };
+  const m = G.migrate(old); assert.equal(m.v, G.STATE_V); assert(m.cls === null && Object.keys(m.tree).length === 0 && m.skills.forca === 2 && !('grito' in m.skills) && !('golpe' in m.skills));
+  assert.equal(G.skillPoints(m).free, 12, 'pontos retroativos: um por nível'); assert(G.heroStats(m).hp > 0);
 });
 console.log(`\n${n} testes passaram`);

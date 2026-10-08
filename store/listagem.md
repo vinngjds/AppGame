@@ -11,7 +11,8 @@ Você é um caçador de nível 1 numa terra selvagem. Cace feras, ganhe experiê
 • Percorra um mapa com 15 locais, da Caverna Sombria ao Covil do Tirano. Cada local tem 4 lutas: duas feras, um semi-chefe e o chefe, com troféu e bônus permanente.
 • Enfrente o Dragão Verde e o Dragão Azul, que voltam a cada 5 minutos.
 • Abra caixas +1 a +5 com equipamentos aleatórios, de comuns a lendários.
-• Combate por turnos: ataque, golpe forte, poções e fuga.
+• Escolha uma classe (Guerreiro, Arqueiro ou Mago) e evolua uma árvore de habilidades com 36 poderes: golpes, veneno, fogo, gelo, escudos, esquivas e muito mais.
+• Combate por turnos: ataque, habilidades, poções e fuga.
 • Monte seu equipamento: arma, elmo, armadura, botas e amuleto.
 • Loja do mercador, baú de itens, ferreiro para melhorar até +10 e salão de troféus.
 • Treine habilidades e rejogue locais para ficar mais forte quando um chefe parecer impossível.

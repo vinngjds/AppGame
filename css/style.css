@@ -198,3 +198,32 @@ h2.banner{margin:4px 0 12px;text-align:center;font-size:17px;letter-spacing:1px;
 .oddsbar{display:flex;height:10px;border-radius:5px;overflow:hidden;border:1px solid var(--edge);margin-top:8px;background:#0b0705}
 .oddsbar i{display:block;height:100%}
 .odds{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin-top:6px}
+
+/* ---------- v6: classes e árvore de habilidades ---------- */
+#nav button{position:relative}
+#nav .badge{position:absolute;top:2px;left:calc(50% + 6px);min-width:16px;height:16px;border-radius:8px;background:#d0402a;color:#fff;font:bold 10px/16px sans-serif;font-style:normal;text-align:center;padding:0 3px;box-shadow:0 0 0 2px #0d0805}
+.card.class{margin-bottom:10px}
+.ptsbox{text-align:center;min-width:64px}.pts{font-size:30px;font-weight:bold;color:var(--ochre);line-height:1}
+.branch{margin-bottom:12px;padding:8px 6px 6px;border:2px solid var(--edge);border-radius:12px;background:#00000030}
+.bhead{font-weight:bold;letter-spacing:.5px;margin:0 4px 6px;color:var(--ochre)}
+.tchain{display:grid;grid-template-columns:repeat(4,1fr)}
+.tnode{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 0;background:none;border:0;color:var(--bone);font:inherit;cursor:pointer}
+.tnode .ring{width:54px;height:54px;border-radius:50%;border:3px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:26px;background:radial-gradient(#4a3522,#1a110b);position:relative;z-index:1}
+.tnode.active .ring{border-radius:14px}
+.tnode.learned .ring{border-color:var(--ochre);box-shadow:0 0 10px #e0a83e66}
+.tnode.avail .ring{border-color:#8fe05a;box-shadow:0 0 12px #8fe05a99;animation:pulse2 1.4s infinite alternate}
+.tnode.locked .ring{opacity:.5;filter:grayscale(.8)}
+.tnode.maxed .ring{border-color:#ffd24a;background:radial-gradient(#7a5a28,#2a1d13)}
+@keyframes pulse2{to{box-shadow:0 0 4px #8fe05a55}}
+.tnode:not(:last-child)::after{content:'';position:absolute;top:28px;left:calc(50% + 27px);width:calc(100% - 54px);height:4px;background:var(--edge);z-index:0}
+.tnode.learned:not(:last-child)::after{background:var(--ochre)}
+.tnode .nm{font-size:10px;line-height:1.1;text-align:center;min-height:22px;padding:0 2px}
+.tnode .pips{display:flex;gap:3px}.tnode .pips b{width:8px;height:8px;border-radius:50%;border:1px solid var(--edge);background:#0b0705}.tnode .pips b.on{background:var(--ochre)}
+.tnode .cp{font-size:10px;color:var(--muted)}
+.rank{border:1px solid var(--edge);border-radius:8px;padding:6px 8px;margin:6px 0;background:#00000030}
+.rank.got{border-color:var(--ochre);background:#e0a83e14}
+.acts .btn.wide{grid-column:span 2;font-size:16px;padding:12px}
+.skgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.btn.sk{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;font-size:11px;line-height:1.1;margin:0}
+.btn.sk .ic{font-size:20px}.btn.sk i{font-style:normal;font-size:10px;opacity:.8}
+.tag.st{background:#3a1d0a;border-color:#d9822b}

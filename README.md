@@ -11,7 +11,9 @@ RPG de turnos ambientado na Idade da Pedra. Funciona como PWA (HTML/CSS/JS puro,
 - **Ritmo**: 12 encontros que voltam 1 a cada 4 min (chefe custa 2), 25 s de fôlego entre batalhas, vida cheia em 7 min (ou 🔥 Descansar por ouro). Dá para **pagar ouro** para pular o fôlego ou comprar encontros (o preço sobe a cada compra no dia). Ouro e XP são escassos.
 - **Avatar** (homem ou mulher, pele e cabelo à escolha): começa só com a roupa de baixo e mostra elmo, armadura, luvas, botas, arma, escudo, amuleto e runas conforme você equipa (material pelo nível, contorno pela raridade).
 - **Troféus**: cada chefe dá um **bônus vitalício** (Força +3%, Vida +4%, Armadura +4% ou Crítico +1,5, em rotação); troféus de evento também.
-- **Treino**: habilidades por tempo real (passivas e ativas *Grito de Guerra* / *Postura de Pedra*), que continuam com o app fechado.
+- **Combate**: só **Atacar**, **Poção** e **Fugir** — o poder vem das **habilidades da classe**, que viram botões na batalha (com recarga) e mostram seus efeitos (veneno, escudo, atordoamento, marca...).
+- **Classes e árvore de habilidades** (aba 🌳 Árvore): escolha **Guerreiro**, **Arqueiro** ou **Mago**. A cada nível você ganha **1 ponto**; cada classe tem 3 ramos de 4 habilidades (36 no total), com 3 níveis cada. Quanto maior o tier e o nível da habilidade, mais pontos custa e mais nível do herói exige. Passivas valem sempre; ativas têm botão. Redefinir a árvore (e trocar de classe) custa ouro.
+- **Treino**: atributos por tempo real (Força, Vida, Armadura, Crítico, dano crítico, vida roubada, poções, XP/ouro), que continuam com o app fechado.
 - **Loja**: estoque renova a cada 20 min, ofertas -25%, comparação com o equipado, venda, ampliar baú.
 - **Ferreiro**: melhorias até +10 com chance de falha (usa ossos 🦴), desmontar itens, fundir 3 runas.
 - **Baú**: filtros, ordenação, travar itens, limpeza em lote.
@@ -28,9 +30,9 @@ No iPhone: abra o link no Safari → Compartilhar → *Adicionar à Tela de Iní
 Um workflow (`.github/workflows/pages.yml`) publica no GitHub Pages ao fazer merge na `main` (ative Pages → Source: GitHub Actions).
 
 ## Estrutura
-- `js/art.js` ilustração dos monstros e cenários · `js/itemart.js` ilustração dos itens · `js/avatar.js` avatar em camadas
+- `js/skilltree.js` classes, árvore de habilidades e regras de aprendizado · `js/art.js` ilustração dos monstros e cenários · `js/itemart.js` ilustração dos itens · `js/avatar.js` avatar em camadas
 - `js/core.js` regras puras (itens, combate, recompensas, loja) — testável em Node.
 - `js/ui.js` telas e animações · `css/style.css` tema pedra/couro · `sw.js` offline.
 
 ## Balanceamento
-Fórmulas em `js/core.js` (`makeMonster`, `heroStats`, `makeItem`, `monsterXp`). A simulação (`node scripts/sim.js 30`) mostra a escalada de dificuldade (fera ≈ 10%, fera 2 ≈ 19%, semi-chefe ≈ 38%, chefe ≈ 80% da vida — um jogo difícil, mas não impossível), a vitória nos dragões e eventos. `node scripts/autotune.js` reajusta a força de cada chefe (`G.BOSS_TUNE`).
+Fórmulas em `js/core.js` (`makeMonster`, `heroStats`, `makeItem`, `monsterXp`). A simulação (`node scripts/sim.js 30`) mostra a escalada de dificuldade (fera ≈ 10%, fera 2 ≈ 19%, semi-chefe ≈ 38%, chefe ≈ 80% da vida — um jogo difícil, mas não impossível), a vitória nos dragões e eventos. `node scripts/autotune.js` reajusta a força de cada chefe (`G.BOSS_TUNE`). A simulação joga as 3 classes (`CLS=mago node scripts/sim.js`) e também sem árvore (`NOTREE=1`) para medir o impacto das habilidades.
