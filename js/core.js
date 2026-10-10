@@ -20,7 +20,7 @@
   G.SHOP_SECS = 20 * 60;          // estoque renova a cada 20 min
   G.GOLD_RATE = 0.6;              // ouro mais escasso
   G.XP_RATE = 0.8;                // XP mais escasso
-  G.STEP_COST = [1, 1, 1, 2];     // custo em encontros de cada luta do local (chefe custa 2)
+  G.STEP_COST = [1, 1, 1, 1];     // toda luta do local custa 1 encontro, seja qual for o monstro
 
   /* ---------- Raridades e slots ---------- */
   G.RARITIES = [
@@ -451,6 +451,7 @@
   };
 
   // Ajuste fino da força de cada chefe (nivela a dificuldade entre efeitos diferentes)
+  G.STEP_TUNE = [new Array(15).fill(1), new Array(15).fill(1), new Array(15).fill(1)];   // fera 1, fera 2, semi-chefe
   G.BOSS_TUNE = [0.8, 1.15, 1.26, 1.26, 0.87, 0.71, 1.52, 1.33, 1.48, 1.16, 1.73, 1.78, 2.28, 3.14, 2.88];
   // kind: normal | elite | semi | boss | event | dragon
   const KIND_MUL = {
@@ -771,7 +772,9 @@
     const Z = G.ZONES[z - 1], lvl = G.stepLevel(z, step), kind = G.STEPS[step].kind;
     if (kind === 'boss') return G.makeMonster(lvl, 'boss', Object.assign({ no: z }, Z.boss));
     const ease = Math.min(1, 0.2 + 0.13 * z);   // os primeiros locais são mais brandos
-    const soften = (mon) => { mon.atk = Math.round(mon.atk * ease); mon.hp = mon.maxHp = Math.round(mon.hp * (0.5 + 0.5 * ease)); return mon; };
+    // reforço por local: as lutas 1–3 do quarteto acompanham a evolução do herói (calibrado por scripts/autotune.js)
+    const tn = (G.STEP_TUNE[step] && G.STEP_TUNE[step][z - 1]) || 1;
+    const soften = (mon) => { mon.atk = Math.round(mon.atk * ease * tn); mon.hp = mon.maxHp = Math.round(mon.hp * (0.5 + 0.5 * ease) * Math.sqrt(tn)); return mon; };
     if (kind === 'semi') { const [n, e, md] = Z.semi; const mon = soften(G.makeMonster(lvl, 'semi', { name: n, emoji: e, mods: [md] })); if (z === 1) { mon.atk = Math.round(mon.atk * 0.8); } return mon; }
     const [n, e, md] = Z.m[step], elite = !noElite && R() < 0.08;
     const mon = G.makeMonster(lvl, elite ? 'elite' : 'normal', { name: n, emoji: e, mods: [md] });
@@ -828,7 +831,7 @@
   /* ---------- Caixas (+1 a +5) ---------- */
   G.BOX_ITEMS = [1, 1, 2, 2, 3];
   // chance de cada raridade (comum, incomum, raro, épico, lendário) por nível de caixa
-  G.BOX_ODDS = [[88, 11, 1, 0, 0], [40, 48, 12, 0, 0], [8, 37, 50, 5, 0], [0, 12, 50, 36, 2], [0, 0, 34, 52, 14]];   // lendário é raro: o caminho "garantido" é o conjunto da loja, em 💎
+  G.BOX_ODDS = [[88, 11, 1, 0, 0], [40, 48, 12, 0, 0], [8, 37, 50, 5, 0], [0, 10, 50, 36, 4], [0, 0, 30, 50, 20]];
   // chance de cada item da caixa ser uma runa: raras, só em caixas altas
   G.BOX_RUNE = [0, 0.03, 0.07, 0.15, 0.25];
   G.boxName = (tier) => `Caixa +${tier}`;

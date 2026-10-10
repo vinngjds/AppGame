@@ -103,10 +103,11 @@ t('XP e ouro escalonam entre as 4 lutas e rejogar rende menos', () => {
   st.level = 6; const f2 = G.startFight(st, G.stepMonster(3, 1, true), { mode: 'zone', zone: { z: 3, step: 1 } }); f2.over = f2.won = true; f2.hero.hp = f2.hero.max; st.zones[3] = 4;
   const rp = G.finishFight(st, f2); assert(rp.replay && rp.xp < g[1].xp, 'rejogar rende menos'); G.rng = Math.random;
 });
-t('custos: chefe do local gasta 2 encontros; fôlego bloqueia', () => {
-  const st = G.newState('x'); st.zones[1] = 3; st.energy = 1;
-  assert(!G.canFightZone(st, 1, 3).ok); st.energy = 5; assert.equal(G.canFightZone(st, 1, 3).cost, 2);
-  st.cdUntil = Date.now() + 10000; assert(!G.canFightZone(st, 1, 3).ok);
+t('custos: toda luta do local gasta 1 encontro (inclusive o chefe); sem encontros não luta', () => {
+  const st = G.newState('x'); st.zones[1] = 3; st.energy = 0;
+  assert(!G.canFightZone(st, 1, 3).ok); st.energy = 1;
+  for (let step = 0; step < 4; step++) assert.equal(G.STEP_COST[step], 1);
+  assert.equal(G.canFightZone(st, 1, 3).cost, 1); G.spendEnergy(st, 1); assert.equal(st.energy, 0);
 });
 t('caixas +1 a +5: chance por tipo de luta e abertura', () => {
   const count = (kind, z) => { const c = {}; for (let i = 0; i < 4000; i++) { const t = G.rollBoxTier(G.boxPower(kind, z)); c[t] = (c[t] || 0) + 1; } return c; };
@@ -345,7 +346,7 @@ t('caixas +4/+5: épico/lendário do material certo viram peças de conjunto; di
     for (const it of r.items) if (!it.rune && it.rarity >= 3) { if (it.set != null) { sets++; assert.equal(G.SETS[it.set].rarity, it.rarity); assert.equal(G.tierOf(it.ilvl), it.set); } else loose++; } }
   assert(sets > 0, 'peças de conjunto saem da caixa'); assert(dia / n > 0.2 && dia / n < 0.4, 'diamantes na +5 (' + dia / n + ')');
   const b = G.makeBox(1, 5); st.boxes.push(b); assert.equal(G.openBox(st, b.id).diamonds, 0);
-  assert(G.BOX_ODDS[4][4] / 100 < 0.2 && G.BOX_ODDS[3][4] / 100 < 0.05, 'lendário raro nas caixas');
+  assert(G.BOX_ODDS[4][4] / 100 <= 0.2 && G.BOX_ODDS[3][4] / 100 <= 0.04, 'lendário raro nas caixas');
 });
 
 console.log(`\n${n} testes passaram`);
