@@ -540,7 +540,7 @@
   function beginFight(mon, opts) {
     if (st.hp < 1) G.setHp(st, 1);
     fight = G.startFight(st, mon, opts);
-    closeModal(); save(); drawFight([]); overlay.hidden = false;
+    closeModal(); save(); drawFight([lineHtml({ kind: 'info', text: `${fight.mon.boss ? '👑 ' : ''}${fight.mon.name} apareceu! O que você vai fazer?` })]); overlay.hidden = false;
   }
   function startZone(z, step) {
     const chk = G.canFightZone(st, z, step);
@@ -573,16 +573,23 @@
     const monSt = [f.mstun ? '💫 atordoado' : '', ...f.dots.map((d) => `${d.icon} ${d.name}`), f.slow ? '🌨️ lento' : '', f.mark ? '📍 marcado' : ''].filter(Boolean).map((x) => `<span class="tag st">${x}</span>`).join('');
     const potBtn = (k, n) => `<button class="btn" data-fa="potion-${k}" ${st.potions[k] > 0 ? '' : 'disabled'}>🧪 ${n} (${st.potions[k]})</button>`;
     const label = KIND_LABEL[m.kind];
+    const biome = typeof sceneFor(f) === 'number' ? Art.biomeOf(sceneFor(f)) : sceneFor(f);
     overlay.innerHTML = `<div class="fight">
-      <div class="arena ${m.boss ? 'boss' : m.kind === 'semi' ? 'semi' : m.kind === 'elite' ? 'elite' : ''}" id="arena" style="position:relative">
+      <div class="stage ${m.boss ? 'boss' : m.kind === 'semi' ? 'semi' : m.kind === 'elite' ? 'elite' : ''}" id="arena" style="--gc:${Art.ground(biome)};--k:${Math.min(1.45, Math.max(1, (window.innerHeight - 480) / 310)).toFixed(3)}">
         <div class="sceneBg">${Art.scene(sceneFor(f))}</div>
-        <div class="arenatop"><span class="sub">${m.boss ? '👑 ' : ''}${label} · Nível ${m.level}</span><div class="name">${esc(m.name)}</div></div>
-        <div class="mon ${m.dragon === 'azul' ? '' : ''}" id="mon">${Art.monster(m)}</div>
-        <div class="arenabot">${hpBar(m.hp, m.maxHp, 'mhp')}
-        <div class="tags" style="justify-content:center">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}${monSt}</div></div></div>
+        <div class="world"><div class="cam" style="animation-delay:-${((Date.now() / 1000) % 16).toFixed(2)}s">
+          <div class="floor">
+            <div class="plat pm"></div><div class="plat ph"></div>
+            <div class="spr smon" id="mon"><div class="inner">${Art.monster(m)}</div></div>
+            <div class="spr shero" id="hero"><div class="inner">${Avatar.svg(st.avatar, st.equipped, { back: true })}</div></div>
+          </div>
+        </div></div>
+        <div class="hpbox mb"><div class="hn"><b>${m.boss ? '👑 ' : ''}${esc(m.name)}</b><span>Nv ${m.level}</span></div>${hpBar(m.hp, m.maxHp, 'mhp')}<div class="hn sm"><span>${label}</span><span class="mst">${monSt}</span></div></div>
+        <div class="hpbox hb"><div class="hn"><b>${esc(st.name)}</b><span>Nv ${st.level}${cls ? ' · ' + G.classIcon(st) : ''}</span></div>${hpBar(h.hp, h.max)}<div class="hn sm"><span class="hst">${heroSt || '&nbsp;'}</span></div></div>
+      </div>
+      <div class="tags" style="justify-content:center;margin-top:6px">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}</div>
       <div class="warn" id="warn" ${f.warn ? '' : 'hidden'}>⚠️ ${esc(m.name)} vai usar ${esc(m.special ? m.special.name : '')}! Proteja-se!</div>
       <div class="log" id="log">${logLines.join('')}</div>
-      <div class="herorow"><div class="herochip">${Avatar.svg(st.avatar, st.equipped)}</div><div class="grow"><div style="font-size:13px;margin-bottom:4px">${esc(st.name)} ${heroSt}</div>${hpBar(h.hp, h.max)}</div></div>
       <div class="acts" style="margin-top:8px"><button class="btn red wide" data-fa="attack">${atkLabel}</button></div>
       ${skillBtns ? `<div class="skgrid">${skillBtns}</div>` : ''}
       <div class="acts" style="margin-top:6px">${potBtn('small', 'Poção P')}${potBtn('large', 'Poção G')}
@@ -595,7 +602,7 @@
   function floatDmg(txt, cls, onMon) {
     const arena = $('#arena'); if (!arena) return;
     const d = document.createElement('div'); d.className = 'floatdmg ' + cls; d.textContent = txt;
-    d.style.left = onMon ? '55%' : '20%'; d.style.top = onMon ? '45%' : '85%';
+    d.style.left = onMon ? '64%' : '26%'; d.style.top = onMon ? '22%' : '52%';
     arena.appendChild(d); setTimeout(() => d.remove(), 900);
   }
   async function doAction(action) {
@@ -606,11 +613,12 @@
     for (const e of events) {
       lines.push(lineHtml(e));
       const logEl = $('#log'); if (logEl) logEl.innerHTML = lines.slice(-6).join('');
-      const mon = $('#mon');
-      if (mon && e.kind === 'hit' && e.who === 'hero') { mon.classList.remove('shake'); void mon.offsetWidth; mon.classList.add('shake'); floatDmg('-' + e.dmg, e.crit ? 'crit' : '', true); buzz(e.crit ? 40 : 15); }
-      if (mon && e.kind === 'hit' && e.who === 'mon') { mon.classList.remove('lunge'); void mon.offsetWidth; mon.classList.add('lunge'); floatDmg('-' + e.dmg, e.special ? 'crit' : '', false); buzz(e.special ? 60 : 25); }
+      const mon = $('#mon .inner'), hero = $('#hero .inner');
+      const play = (el, cls) => { if (!el) return; el.classList.remove('hatk', 'matk', 'hurt', 'smash'); void el.offsetWidth; el.classList.add(cls); };
+      if (mon && e.kind === 'hit' && e.who === 'hero') { play(hero, 'hatk'); setTimeout(() => play(mon, e.crit ? 'smash' : 'hurt'), 170); floatDmg('-' + e.dmg, e.crit ? 'crit' : '', true); buzz(e.crit ? 40 : 15); }
+      if (mon && e.kind === 'hit' && e.who === 'mon') { play(mon, 'matk'); setTimeout(() => play(hero, 'hurt'), 170); floatDmg('-' + e.dmg, e.special ? 'crit' : '', false); buzz(e.special ? 60 : 25); }
       if (e.kind === 'heal') floatDmg('+', 'heal', e.who !== 'hero');
-      const bars = document.querySelectorAll('#overlay .bar');
+      const bars = document.querySelectorAll('#overlay .hpbox .bar');
       if (bars[0]) { bars[0].firstElementChild.style.width = (e.m / f.mon.maxHp) * 100 + '%'; bars[0].querySelector('.t').textContent = fmt(e.m) + ' / ' + fmt(f.mon.maxHp); }
       if (bars[1]) { bars[1].firstElementChild.style.width = (e.h / f.hero.max) * 100 + '%'; bars[1].querySelector('.t').textContent = fmt(e.h) + ' / ' + fmt(f.hero.max); }
       await sleep(e.kind === 'info' || e.kind === 'warn' ? 380 : 520);

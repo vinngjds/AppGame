@@ -555,6 +555,7 @@
       <rect width="360" height="220" fill="url(#${id})"/>${far}${mid}${fx}<path d="M0 200 Q90 190 180 200 T360 198 L360 220 L0 220 Z" fill="${gnd}"/>${fg}<rect width="360" height="220" fill="url(#${id}v)"/></svg>`;
   };
   Art.biomeOf = (z) => BIOME[z] || 'neutral';
+  Art.ground = (b) => GROUND[b] || GROUND.neutral;
   Art.BIOMES = Object.values(BIOME).concat(['glade', 'ice']);
 
   // pacote de imagens opcional (art/manifest.json): { "monsters": { "Lobo Jovem": "art/monsters/lobo-jovem.png" }, "scenes": { "forest": "art/scenes/forest.jpg" } }
