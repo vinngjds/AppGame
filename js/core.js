@@ -451,7 +451,7 @@
   };
 
   // Ajuste fino da força de cada chefe (nivela a dificuldade entre efeitos diferentes)
-  G.STEP_TUNE = [new Array(15).fill(1), new Array(15).fill(1), new Array(15).fill(1)];   // fera 1, fera 2, semi-chefe
+  G.STEP_TUNE = [[0.47, 0.86, 1.12, 0.97, 1.04, 1.18, 1.27, 1.52, 1.75, 2.94, 3.92, 3.93, 4.00, 4.00, 4.00], [0.39, 0.62, 1.17, 1.03, 0.87, 1.34, 1.33, 1.81, 1.88, 2.81, 4.00, 4.00, 4.00, 4.00, 4.00], [0.32, 0.54, 0.72, 0.72, 0.74, 0.84, 0.96, 1.33, 1.70, 2.32, 2.59, 2.63, 3.61, 4.00, 4.00]];   // fera 1, fera 2, semi-chefe
   G.BOSS_TUNE = [0.8, 1.15, 1.26, 1.26, 0.87, 0.71, 1.52, 1.33, 1.48, 1.16, 1.73, 1.78, 2.28, 3.14, 2.88];
   // kind: normal | elite | semi | boss | event | dragon
   const KIND_MUL = {

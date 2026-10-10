@@ -14,7 +14,7 @@ for (let r = 0; r < rounds; r++) {
     for (let k = 0; k < 3; k++) {
       if (!zl[k][1]) continue;
       const loss = Math.max(0.02, Math.min(0.95, zl[k][0] / zl[k][1]));
-      G.STEP_TUNE[k][z - 1] = Math.max(0.3, Math.min(4, G.STEP_TUNE[k][z - 1] * Math.pow(TARGET[k](z) / loss, 0.8)));
+      G.STEP_TUNE[k][z - 1] = Math.max(0.3, Math.min(8, G.STEP_TUNE[k][z - 1] * Math.pow(TARGET[k](z) / loss, 0.8)));
       rows[k].push(`${z}:${(100 * loss).toFixed(0)}`);
     }
   }
