@@ -347,10 +347,10 @@
 
   function showOdds() {
     const names = G.RARITIES.map((r) => `<span style="color:${r.color}">${r.name}</span>`);
-    let h = `<h2 class="banner">📦 Chances das Caixas</h2><div class="sub center" style="margin-bottom:8px">Itens épicos, lendários e runas são raros: só as caixas mais altas os trazem. A loja não vende épicos nem lendários.</div>`;
+    let h = `<h2 class="banner">📦 Chances das Caixas</h2><div class="sub center" style="margin-bottom:8px">Épicos, lendários e runas são raros: só as caixas mais altas os trazem. Peças épicas e lendárias do material certo entram nos conjuntos da loja. 💎 Diamantes também podem sair das caixas +4 e +5.</div>`;
     for (let t = 1; t <= 5; t++) {
       const od = G.BOX_ODDS[t - 1], tot = od.reduce((a, b) => a + b, 0);
-      h += `<div class="cfam"><div class="row">${boxChip(G.makeBox(t, 1))}<div class="grow"><div class="name">Caixa +${t}</div><div class="sub">${G.BOX_ITEMS[t - 1]} item(ns) · 🔶 runa: ${Math.round(G.BOX_RUNE[t - 1] * 100)}% por item</div></div></div>
+      h += `<div class="cfam"><div class="row">${boxChip(G.makeBox(t, 1))}<div class="grow"><div class="name">Caixa +${t}</div><div class="sub">${G.BOX_ITEMS[t - 1]} item(ns) · 🔶 runa: ${Math.round(G.BOX_RUNE[t - 1] * 100)}% por item${G.BOX_DIAMOND[t - 1] ? ` · 💎 ${Math.round(G.BOX_DIAMOND[t - 1] * 100)}% de 1 diamante` : ''}</div></div></div>
         <div class="oddsbar">${od.map((v, i) => (v ? `<i style="width:${(100 * v) / tot}%;background:${G.RARITIES[i].color}" title="${G.RARITIES[i].name}"></i>` : '')).join('')}</div>
         <div class="odds">${od.map((v, i) => (v ? `<span>${names[i]} ${Math.round((100 * v) / tot * 10) / 10}%</span>` : '')).join('')}</div></div>`;
     }

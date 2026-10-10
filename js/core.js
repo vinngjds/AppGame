@@ -828,7 +828,7 @@
   /* ---------- Caixas (+1 a +5) ---------- */
   G.BOX_ITEMS = [1, 1, 2, 2, 3];
   // chance de cada raridade (comum, incomum, raro, épico, lendário) por nível de caixa
-  G.BOX_ODDS = [[88, 11, 1, 0, 0], [40, 48, 12, 0, 0], [8, 37, 50, 5, 0], [0, 10, 50, 36, 4], [0, 0, 30, 50, 20]];
+  G.BOX_ODDS = [[88, 11, 1, 0, 0], [40, 48, 12, 0, 0], [8, 37, 50, 5, 0], [0, 12, 50, 36, 2], [0, 0, 34, 52, 14]];   // lendário é raro: o caminho "garantido" é o conjunto da loja, em 💎
   // chance de cada item da caixa ser uma runa: raras, só em caixas altas
   G.BOX_RUNE = [0, 0.03, 0.07, 0.15, 0.25];
   G.boxName = (tier) => `Caixa +${tier}`;
@@ -847,6 +847,8 @@
       let x = R() * tot, rar = 0;
       for (let r = 0; r < odds.length; r++) { x -= odds[r]; if (x <= 0) { rar = r; break; } }
       const it = R() < G.BOX_RUNE[box.tier - 1] ? G.makeRune(box.ilvl, rar) : G.makeItem(pick(G.SLOT_ORDER), box.ilvl, rar);
+      // épico/lendário do material certo entra no conjunto da loja (conta para o bônus de conjunto)
+      if (!it.rune && it.rarity >= 3) { const set = G.SETS[tierOf(it.ilvl)]; if (set && set.rarity === it.rarity) it.set = set.id; }
       st.bag.push(it); items.push(it); G.discover(st, it);
     }
     st.boxes.splice(i, 1);

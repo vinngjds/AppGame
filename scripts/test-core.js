@@ -339,4 +339,13 @@ t('evolução de classe: exige nível, tier 2 do ramo e ouro; dá bônus e habil
   G.respec(st); assert.equal(st.evo, null);
 });
 
+t('caixas +4/+5: épico/lendário do material certo viram peças de conjunto; diamantes só nas altas', () => {
+  const st = G.newState('x'); st.bagSize = 60; let sets = 0, loose = 0, dia = 0, n = 0;
+  for (let i = 0; i < 400; i++) { st.bag = []; const bx = G.makeBox(5, 36); st.boxes.push(bx); const r = G.openBox(st, bx.id); dia += r.diamonds; n++;
+    for (const it of r.items) if (!it.rune && it.rarity >= 3) { if (it.set != null) { sets++; assert.equal(G.SETS[it.set].rarity, it.rarity); assert.equal(G.tierOf(it.ilvl), it.set); } else loose++; } }
+  assert(sets > 0, 'peças de conjunto saem da caixa'); assert(dia / n > 0.2 && dia / n < 0.4, 'diamantes na +5 (' + dia / n + ')');
+  const b = G.makeBox(1, 5); st.boxes.push(b); assert.equal(G.openBox(st, b.id).diamonds, 0);
+  assert(G.BOX_ODDS[4][4] / 100 < 0.2 && G.BOX_ODDS[3][4] / 100 < 0.05, 'lendário raro nas caixas');
+});
+
 console.log(`\n${n} testes passaram`);
