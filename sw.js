@@ -1,5 +1,5 @@
-const CACHE = 'era-da-pedra-v9';
-const FILES = ['./', 'index.html', 'css/style.css', 'js/core.js', 'js/skilltree.js', 'js/art.js', 'js/avatar.js', 'js/itemart.js', 'js/ui.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png'];
+const CACHE = 'era-da-pedra-v10';
+const FILES = ['./', 'index.html', 'css/style.css', 'js/core.js', 'js/skilltree.js', 'js/shop.js', 'js/art.js', 'js/avatar.js', 'js/itemart.js', 'js/ui.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

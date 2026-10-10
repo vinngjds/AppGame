@@ -35,9 +35,21 @@ function chooseAction(st, f) {
   }
   return best ? 'skill:' + best : 'attack';
 }
+// ramo da evolução que o bot escolhe (EVO=0|1|2|none); padrão = o ramo principal da build
+const EVO_DEFAULT = { guerreiro: 0, arqueiro: 1, mago: 0 };
 function learnBuild(st, opts) {
   if (!st.cls) return;
-  for (const [id, r] of BUILDS[st.cls]) {
+  const evoB = process.env.EVO === 'none' ? null : process.env.EVO != null ? +process.env.EVO : EVO_DEFAULT[st.cls];
+  if (evoB != null && st.evo == null && st.level >= G.EVO_LEVEL) {
+    // só evolui se o ramo tem a habilidade de tier 2; senão aprende-a antes
+    G.evolve(st, evoB);
+  }
+  const list = BUILDS[st.cls].slice();
+  if (evoB != null && st.evo === evoB) {
+    const ev = G.TREE.filter((d) => d.evo && d.cls === st.cls && d.branch === evoB).map((d) => [d.id, 1]);
+    list.splice(10, 0, ev[0], ev[1], [ev[0][0], 2], [ev[1][0], 2]);
+  }
+  for (const [id, r] of list) {
     if (G.treeRank(st, id) >= r) continue;
     const c = G.canLearn(st, id);
     if (c.ok) G.learn(st, id);
@@ -64,8 +76,12 @@ function play(opts = {}) {
       } else if (G.itemScore(it) > G.itemScore(st.equipped[it.slot])) G.equip(st, it.id);
     }
     for (const it of st.bag.slice()) G.dismantle(st, it.id);
-    for (const it of st.shop.equip) {
-      if (G.itemScore(it) > G.itemScore(st.equipped[it.slot]) * 1.1 && st.gold > G.shopPrice(st, it) + 200) { G.buyItem(st, it.id); G.equip(st, it.id); }
+    for (const set of G.SETS.slice().reverse()) {
+      if (set.cur !== 'gold' || !G.setUnlocked(st, set)) continue;
+      for (const sl of G.SLOT_ORDER) {
+        const p = G.setPrice(st, set, sl), it = G.setPiece(st, set, sl);
+        if (!G.setOwned(st, set, sl) && G.itemScore(it) > G.itemScore(st.equipped[sl]) * 1.1 && st.gold > p.n + 200) { const r = G.buySetPiece(st, set.id, sl); if (r.ok) G.equip(st, r.item.id); }
+      }
     }
     for (const s of G.SLOT_ORDER) {
       const it = st.equipped[s];

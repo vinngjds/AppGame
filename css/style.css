@@ -227,3 +227,22 @@ h2.banner{margin:4px 0 12px;text-align:center;font-size:17px;letter-spacing:1px;
 .btn.sk{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;font-size:11px;line-height:1.1;margin:0}
 .btn.sk .ic{font-size:20px}.btn.sk i{font-style:normal;font-size:10px;opacity:.8}
 .tag.st{background:#3a1d0a;border-color:#d9822b}
+
+/* ---- v7: diamantes, VIP, loja de conjuntos, evoluções ---- */
+.gold.gem{color:#7fe3ff}
+.vipbadge{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:10px;background:linear-gradient(#f6d46a,#b8841f);color:#2a1d13;font-size:10px;font-weight:bold;vertical-align:middle}
+.card.vip{border-color:#e0a83e;background:radial-gradient(circle at 50% 0,#4a3512,#1d130a 70%)}
+.vipl{list-style:none;padding:0;margin:8px 0;font-size:14px;line-height:1.7}
+.setcard{cursor:pointer;align-items:stretch}
+.setcard.locked{opacity:.55;filter:grayscale(.5)}
+.setpic{width:84px;flex:none;background:radial-gradient(circle at 50% 45%,#6a4a2a,#2a1b10 75%);border-radius:10px;padding:4px;display:flex;align-items:flex-end}
+.setpic.big{width:110px}
+.setpic svg{width:100%;height:auto;display:block}
+.setdet{border-width:2px}
+.card.evo{border-color:#8a6e4a}
+.card.evo.on{border-color:#e0a83e;background:linear-gradient(#2e2210,#1a110a)}
+.evolist{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.evobtn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:2px solid var(--edge);border-radius:10px;background:#00000050;color:var(--bone);font:inherit;font-size:11px;cursor:pointer;text-align:center}
+.evobtn .e{font-size:26px}.evobtn span{opacity:.75;font-size:10px}
+.evobtn.ready{border-color:#e0a83e;box-shadow:0 0 10px #e0a83e88}
+.tchain.two{grid-template-columns:repeat(2,1fr)}
