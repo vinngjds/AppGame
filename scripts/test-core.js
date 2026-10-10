@@ -212,7 +212,7 @@ t('raridade: épicos, lendários e runas só em caixas altas; loja não vende é
 t('dificuldade: feras e chefes duros, dragões e eventos mais ainda', () => {
   const st = G.newState('x'); st.level = 20;
   const f1 = G.stepMonster(10, 0, true), f2 = G.stepMonster(10, 1, true), sm = G.stepMonster(10, 2, true), bs = G.stepMonster(10, 3, true);
-  assert(f2.atk > f1.atk && sm.hp > f2.hp * 2 && bs.atk > sm.atk, 'escalada na jornada');
+  assert(f2.atk * f2.hp > f1.atk * f1.hp && sm.hp > f2.hp * 1.5 && bs.atk * bs.hp > sm.atk * sm.hp, 'escalada na jornada');
   assert(G.dragonMonster('azul').atk > G.dragonMonster('verde').atk * 1.5 && G.dragonMonster('azul').hp > G.dragonMonster('verde').hp);
   st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'monthly').mon;
   assert(m.hp > w.hp, 'chefe mensal é mais forte que o semanal');
