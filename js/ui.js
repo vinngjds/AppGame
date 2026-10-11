@@ -30,7 +30,7 @@
     const s = G.heroStats(st), need = G.xpToNext(st.level);
     const pct = st.level >= G.MAX_LEVEL ? 100 : Math.floor((st.xp / need) * 100);
     top.innerHTML = `
-      <div class="toprow"><div class="title">🦴 ERA DA PEDRA${G.isVip(st) ? ' <span class="vipbadge">👑 VIP</span>' : ''}</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold" style="margin-left:6px">🦴 ${fmt(st.ossos)}</span> <span class="gold gem" style="margin-left:6px" title="Diamantes">💎 ${fmt(st.diamonds || 0)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
+      <div class="toprow"><div class="title">🦴 ERA DA PEDRA${G.isVip(st) ? ' <span class="vipbadge">👑 VIP</span>' : ''}</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold gem" style="margin-left:6px" title="Diamantes">💎 ${fmt(st.diamonds || 0)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
       <div class="stats"><span>⚔️ ${fmt(s.atk)}</span><span>❤️ ${fmt(s.hp)}</span><span>🛡️ ${fmt(s.arm)}</span><span>🎯 ${s.crit.toFixed(0)}%</span></div>
       <div class="xpbar"><b>⬆ ${st.level}</b><div class="bar"><i style="width:${pct}%"></i></div><b>${st.level >= G.MAX_LEVEL ? 'MÁX' : pct + '%'}</b></div>`;
     const free = G.skillPoints(st).free;
@@ -125,11 +125,11 @@
     const mon = G.dragonMonster(id), blue = id === 'azul';
     return `<div class="card dragon ${id}"><div class="row"><div class="pic art big">${Art.monster(mon)}</div><div class="grow">
       <div class="name">${d.name} · nível ${d.level}</div><div class="sub">${d.blurb}</div><div class="tags">${modTags(d.mods)}<span class="tag">💥 ${d.sp}</span></div></div></div>
-      <div class="sub" style="margin-top:6px">Recompensa: 📦 Caixas ${blue ? '+4 / +5' : '+3 / +4'} · troféu ${d.tIcon} ${G.bonusText(d.bonus)}</div>
-      <div class="sub">Volta a cada 5 minutos.</div>
-      ${!unlocked ? `<button class="btn" disabled>🔒 Vença ${d.unlockZone} locais (${G.zonesCleared(st)}/${d.unlockZone})</button>`
+      <div class="sub" style="margin-top:6px">Taxa para lutar: <b>🪙 ${fmt(G.dragonFee(st, id))}</b> · Prêmio: 🪙 ${fmt(G.dragonPrize(st, id))} + 📦 Caixas ${blue ? '+4 / +5' : '+3 / +4'} + 💎 ${blue ? '60% de chance: 6–9 · 10–12 · 13–16 (20% cada)' : '35% de chance: 2–6'}</div>
+      <div class="sub">Volta a cada 5 minutos. Sem troféu.</div>
+      ${!unlocked ? `<button class="btn" disabled>🔒 Alcance o nível ${G.DRAGON_LEVEL} (você: ${st.level})</button>`
         : left > 0 ? `<div class="row waitrow"><button class="btn sm" disabled>⏳ Volta em <span data-live="dr-${id}">${mmss(left)}</span></button><button class="btn sm" data-skipdr="${id}">⏩ Chamar agora · 🪙 <span data-live="drcost-${id}">${G.dragonSkipCost(st, id)}</span></button></div>`
-        : `<button class="btn red" data-dragon="${id}" ${chk.ok ? '' : 'disabled'}>🔥 Desafiar o ${d.name}</button>${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}`}</div>`;
+        : `<button class="btn red" data-dragon="${id}" ${chk.ok ? '' : 'disabled'}>🔥 Pagar 🪙 ${fmt(G.dragonFee(st, id))} e desafiar</button>${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}`}</div>`;
   }
   function vMapa() {
     const s = G.heroStats(st), mxEn = G.maxEnergy(st);
@@ -321,7 +321,7 @@
     }
     if (where === 'eq') h += `<button class="btn" data-uneq="${it.slot}" data-ri="${st.equipped.runas.findIndex((x) => x && x.id === it.id)}">Desequipar</button>`;
     h += it.plus >= G.MAX_PLUS ? '<button class="btn" disabled>Ferreiro: nível máximo</button>' : `<button class="btn" data-go-forge="${it.id}">🔨 Melhorar no ferreiro</button>`;
-    if (where === 'bag' && !it.lock) h += `<button class="btn" data-dis="${it.id}">♻️ Desmontar · 🦴 +${G.dismantleYield(it)}</button><button class="btn red" data-sell="${it.id}">Vender · 🪙 ${fmt(G.sellPrice(it))}</button>`;
+    if (where === 'bag' && !it.lock) h += `<button class="btn red" data-sell="${it.id}">Vender · 🪙 ${fmt(G.sellPrice(it))}</button>`;
     openModal(h + '<button class="btn" data-close>Fechar</button>');
   }
   function showEmptySlot(slot, ri) {
@@ -374,15 +374,15 @@
   function bulkMenu() {
     openModal(`<h2 class="banner">Limpar baú</h2><div class="sub" style="margin-bottom:8px">Itens travados 🔒 e itens melhores que o equipado nunca entram.</div>
       <button class="btn" data-bulk="sell:0">Vender todos os Comuns</button><button class="btn" data-bulk="sell:1">Vender até Incomuns</button>
-      <button class="btn" data-bulk="dis:0">♻️ Desmontar todos os Comuns</button><button class="btn" data-bulk="dis:1">♻️ Desmontar até Incomuns</button><button class="btn" data-close>Fechar</button>`);
+      <button class="btn" data-close>Fechar</button>`);
   }
   function doBulk(mode, max) {
     let total = 0, n = 0;
     for (const it of st.bag.slice()) {
       if (it.lock || it.rarity > max || betterThanEquipped(it)) continue;
-      total += mode === 'sell' ? G.sell(st, it.id) : G.dismantle(st, it.id); n++;
+      total += G.sell(st, it.id); n++;
     }
-    toast(n ? (mode === 'sell' ? `${n} item(ns) vendidos: 🪙 ${fmt(total)}` : `${n} item(ns) desmontados: 🦴 ${fmt(total)}`) : 'Nenhum item elegível.');
+    toast(n ? `${n} item(ns) vendidos: 🪙 ${fmt(total)}` : 'Nenhum item elegível.');
     save(); closeModal(); render();
   }
 
@@ -469,18 +469,15 @@
   /* ---------- Ferreiro ---------- */
   function vForja() {
     const forge = G.bonusMul(new Date()).forge;
-    const tabs = [['melhorar', 'Melhorar'], ['desmontar', 'Desmontar'], ['fundir', 'Fundir runas']];
-    let h = `<div class="card"><div class="sub">🦴 Ossos: <b>${fmt(st.ossos)}</b> · Melhorias dão +12% por nível (até +${G.MAX_PLUS}); acima de +2 podem falhar. Desmonte o que sobra para ganhar ossos.${forge < 1 ? ' <b class="up">Quarta da Forja: -25%!</b>' : ''}</div></div>
+    const tabs = [['melhorar', 'Melhorar'], ['fundir', 'Fundir runas']];
+    let h = `<div class="card"><div class="sub">Melhorias dão +12% por nível (até +${G.MAX_PLUS}) e custam <b>ouro</b>, mais caro quanto mais forte o item; acima de +2 podem falhar. Lendários e runas também gastam 💎 diamantes.${forge < 1 ? ' <b class="up">Quarta da Forja: -25%!</b>' : ''}</div></div>
       <div class="seg">${tabs.map(([id, n]) => `<button data-ft="${id}" class="${id === forgeTab ? 'on' : ''}">${n}</button>`).join('')}</div>`;
     if (forgeTab === 'melhorar') {
       const all = G.SLOT_ORDER.map((s) => st.equipped[s]).concat(st.equipped.runas).filter(Boolean).concat(st.bag);
       h += all.length ? all.map((i) => {
         const max = i.plus >= G.MAX_PLUS;
-        return itemRow(i, max ? '<span class="sub">MÁX</span>' : `<div class="pricebox"><div class="sub">${Math.round(G.upgradeChance(i) * 100)}% de sucesso</div><button class="btn sm" data-upq="${i.id}">🪙 ${fmt(G.upgradeCost(i, forge))} · 🦴 ${G.upgradeOssos(i)}${G.upgradeDiamonds(i) ? ' · 💎 ' + G.upgradeDiamonds(i) : ''}</button></div>`, 'data-noop', true);
+        return itemRow(i, max ? '<span class="sub">MÁX</span>' : `<div class="pricebox"><div class="sub">${Math.round(G.upgradeChance(i) * 100)}% de sucesso</div><button class="btn sm" data-upq="${i.id}">🪙 ${fmt(G.upgradeCost(i, forge))}${G.upgradeDiamonds(i) ? ' · 💎 ' + G.upgradeDiamonds(i) : ''}</button></div>`, 'data-noop', true);
       }).join('') : '<div class="card center muted">Sem itens.</div>';
-    } else if (forgeTab === 'desmontar') {
-      const list = st.bag.filter((i) => !i.lock).sort(SORTS.raridade);
-      h += list.length ? list.map((i) => itemRow(i, `<button class="btn sm" data-disq="${i.id}">🦴 +${G.dismantleYield(i)}</button>`, 'data-item="' + i.id + '"', true)).join('') : '<div class="card center muted">Nada para desmontar.</div>';
     } else {
       const gr = G.runeGroups(st);
       h += gr.length ? gr.map((g) => `<div class="card"><div class="row"><div class="pic">${G.RUNES[g.t].icon}</div><div class="grow"><div class="name">3x Runa ${G.RUNES[g.t].name} ${G.RARITIES[g.rarity].name}</div><div class="sub">→ 1 runa ${G.RARITIES[g.rarity + 1].name} · tem ${g.items.length}</div></div><button class="btn sm" data-fuse="${g.key}">🪙 ${G.fuseCost(g.rarity)}</button></div></div>`).join('')
@@ -521,7 +518,7 @@
       return `<div class="card boss"><div class="row"><div class="pic art big">${Art.monster({ name: e.def.name, emoji: e.def.emoji, kind: 'event' })}</div><div class="grow"><div class="tag">${label}</div><div class="name">${e.def.name}</div>
         <div class="sub">Nível ${e.mon.level} · golpe especial: ${e.def.sp}</div><div class="tags">${modTags(e.def.mods)}</div></div></div>
         <div class="sub" style="margin-top:6px">Tentativas hoje: <b>${st.ev[type]}</b> · ${tryTxt}</div>
-        <div class="sub">Recompensa: 🦕 Fósseis${claimed ? ' (prêmio de hoje já resgatado)' : type === 'weekly' ? ' + 📦 2 caixas + 💎 3 + troféu ' + e.def.tIcon + ' (1ª vitória da semana)' : ' + 📦 caixa + 40% de chance de 💎 (1ª vitória do dia)'}</div>
+        <div class="sub">Recompensa: ${claimed ? 'prêmio já resgatado (as próximas vitórias dão só o ouro da luta)' : type === 'weekly' ? '🪙 ' + fmt(G.eventPrize(st, 'weekly', e.mon.level)) + ' + 📦 2 caixas + 40% de chance de 💎 3 (1ª vitória da semana, sem troféu)' : '🪙 ' + fmt(G.eventPrize(st, 'daily', e.mon.level)) + ' + 📦 caixa + 20% de chance de 💎 (1ª vitória do dia)'}</div>
         <button class="btn red" data-ev="${type}" ${chk.ok ? '' : 'disabled'}>${unlocked ? '⚔️ Enfrentar' : '🔒 Derrote ' + G.EVENT_UNLOCK[type] + ' chefes'}</button>${unlocked && !chk.ok ? `<div class="sub center" style="margin-top:6px">${chk.msg}</div>` : ''}</div>`;
     };
     const bonus = G.bonusEvents(now);
@@ -531,8 +528,6 @@
     h += `<h2 class="banner">Desafio do Dia</h2>${card('daily', dy, 'DIÁRIO · ' + dy.key, 'renova todo dia')}`;
     h += `<h2 class="banner">Chefe da Semana</h2>${card('weekly', wk, 'SEMANAL · ' + wk.key, 'renova toda segunda')}`;
 
-    h += `<h2 class="banner">Troca de Fósseis (🦕 ${st.fossils})</h2>` + G.EVENT_SHOP.map((o) =>
-      `<div class="card"><div class="row"><div class="pic">${o.icon}</div><div class="grow"><div class="name">${o.name}</div></div><button class="btn sm go" data-evbuy="${o.id}" ${st.fossils < o.cost ? 'disabled' : ''}>🦕 ${o.cost}</button></div></div>`).join('');
     view.innerHTML = h;
   }
 
@@ -552,6 +547,8 @@
   function startDragon(id) {
     const chk = G.canFightDragon(st, id);
     if (!chk.ok) { toast(chk.msg); render(); return; }
+    if (!confirm(`Pagar 🪙 ${fmt(G.dragonFee(st, id))} para enfrentar o ${G.DRAGONS[id].name}? A taxa não volta se você perder.`)) return;
+    G.payDragonFee(st, id);
     beginFight(G.dragonMonster(id), { mode: 'dragon' });
   }
   function startEvent(type) {
@@ -638,7 +635,7 @@
       const big = rep.dragonTrophy ? rep.dragonTrophy.tIcon : rep.trophy ? rep.trophy.tIcon : rep.evTrophy ? rep.evTrophy.icon : rep.kind === 'semi' ? '🐾' : rep.kind === 'dragon' ? '🐉' : '🏆';
       const title = rep.kind === 'dragon' ? 'Dragão derrotado!' : rep.trophy ? 'Chefe derrotado!' : rep.kind === 'semi' ? 'Semi-chefe derrotado!' : rep.kind === 'event' ? 'Chefe de evento derrotado!' : 'Vitória!';
       h = `<div class="big">${big}</div><h2 class="banner">${title}</h2>
-        <div class="center">✨ +${fmt(rep.xp)} XP · 🪙 +${fmt(rep.gold)} · 🦴 +${rep.ossos}${rep.fossils ? ' · 🦕 +' + rep.fossils : ''}${rep.diamonds ? ' · 💎 +' + rep.diamonds : ''}</div>${rep.replay ? '<div class="sub center">Local já vencido: 60% de XP e ouro.</div>' : ''}`;
+        <div class="center">✨ +${fmt(rep.xp)} XP · 🪙 +${fmt(rep.gold)}${rep.prize ? ' (prêmio ' + fmt(rep.prize) + ')' : ''}${rep.diamonds ? ' · 💎 +' + rep.diamonds : ''}</div>${rep.replay ? '<div class="sub center">Local já vencido: 60% de XP e ouro.</div>' : ''}`;
       if (rep.boxes.length) h += `<div class="sub center" style="margin:10px 0 4px">Você ganhou:</div><div class="boxes" style="justify-content:center">${rep.boxes.map((b) => boxChip(b)).join('')}</div><div class="sub center">Abra as caixas no Baú 🧳</div>`;
       else h += '<div class="sub center" style="margin-top:8px">Nenhuma caixa desta vez.</div>';
       if (rep.trophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu conquistado</b><div>${rep.trophy.tIcon} ${rep.trophy.trophy}</div><div class="up" style="margin-top:4px">Bônus vitalício: ${G.bonusText(rep.trophyBonus)}</div></div>`;
@@ -683,7 +680,7 @@
   }
 
   /* ---------- Eventos de clique ---------- */
-  const SEL = '[data-act],[data-nav],[data-item],[data-set],[data-buyset],[data-buyrune],[data-evolve],[data-do-evolve],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-evbuy],[data-go-forge]';
+  const SEL = '[data-act],[data-nav],[data-item],[data-set],[data-buyset],[data-buyrune],[data-evolve],[data-do-evolve],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-go-forge]';
   const after = (msg, ok = true) => { if (msg) toast(msg); if (ok) { save(); closeModal(); } render(); };
   document.addEventListener('click', (ev) => {
     const t = ev.target.closest(SEL);
@@ -709,7 +706,6 @@
     if (d.uneq) { const ok = G.unequip(st, d.uneq, +d.ri); return after(ok ? 'Desequipado.' : 'Baú cheio!', ok); }
     if (d.lock) { const l = G.toggleLock(st, d.lock); return after(l ? 'Item travado 🔒' : 'Item destravado'); }
     if (d.sell || d.sellq) { const p = G.sell(st, d.sell || d.sellq); return after(p ? `Vendido por ${p} 🪙` : 'Item travado.'); }
-    if (d.dis || d.disq) { const p = G.dismantle(st, d.dis || d.disq); return after(p ? `Desmontado: 🦴 +${p}` : 'Item travado.'); }
     if (d.upq) { const r = G.upgrade(st, d.upq); if (r.ok) buzz(r.success ? 30 : 10); return after(r.msg, r.ok); }
     if (d.goForge !== undefined) { closeModal(); screen = 'loja'; shopTab = 'forja'; forgeTab = 'melhorar'; return render(); }
     if (d.bulk) { const [m, x] = d.bulk.split(':'); return doBulk(m, +x); }
@@ -728,7 +724,6 @@
     if (d.skipdr) { const r = G.skipDragon(st, d.skipdr); if (r.ok) buzz(20); return after(r.msg, false); }
     if (d.box) return openOneBox(d.box);
     if (d.ev) return startEvent(d.ev);
-    if (d.evbuy) { const r = G.buyEventOffer(st, d.evbuy); return after(r.msg, r.ok); }
     switch (d.act) {
       case 'openall': return openAllBoxes();
       case 'codex': return showCodex();

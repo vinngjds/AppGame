@@ -7,16 +7,16 @@
 
   /* ---------- Conjuntos: cada um é um material (tier) com raridade fixa ---------- */
   G.SETS = [
-    { id: 0, name: 'Conjunto do Rastreador', mat: 'Madeira e couro', minLevel: 1,  rarity: 0, cur: 'gold' },
-    { id: 1, name: 'Conjunto do Batedor',    mat: 'Sílex e pele',    minLevel: 8,  rarity: 1, cur: 'gold' },
-    { id: 2, name: 'Conjunto do Caçador',    mat: 'Pedra polida',    minLevel: 16, rarity: 2, cur: 'gold' },
-    { id: 3, name: 'Conjunto do Bárbaro',    mat: 'Osso e casco',    minLevel: 24, rarity: 3, cur: 'gold' },
-    { id: 4, name: 'Conjunto do Rei Mamute', mat: 'Marfim de mamute', minLevel: 32, rarity: 4, cur: 'gem' },
+    { id: 0, name: 'Conjunto do Rastreador', mat: 'Madeira e couro', minLevel: 10, ilvlMin: 1,  rarity: 0, cur: 'gold' },
+    { id: 1, name: 'Conjunto do Batedor',    mat: 'Sílex e pele',    minLevel: 10, ilvlMin: 8,  rarity: 1, cur: 'gold' },
+    { id: 2, name: 'Conjunto do Caçador',    mat: 'Pedra polida',    minLevel: 10, ilvlMin: 16, rarity: 2, cur: 'gold' },
+    { id: 3, name: 'Conjunto do Bárbaro',    mat: 'Osso e casco',    minLevel: 10, ilvlMin: 24, rarity: 3, cur: 'gold' },
+    { id: 4, name: 'Conjunto do Rei Mamute', mat: 'Marfim de mamute', minLevel: 10, ilvlMin: 32, rarity: 4, cur: 'gem' },
   ];
   G.SET_MARKUP = 3.5;
   G.setUnlocked = (st, set) => st.level >= set.minLevel;
   // o nível do item acompanha o herói, dentro da faixa do material do conjunto
-  G.setIlvl = (st, set) => Math.max(set.minLevel, Math.min(st.level, set.id === 4 ? 99 : set.id * 8 + 7));
+  G.setIlvl = (st, set) => Math.max(set.ilvlMin, Math.min(st.level, set.id === 4 ? 99 : set.id * 8 + 7));
   G.setPiece = function (st, set, slot) {
     const it = G.makeItem(slot, G.setIlvl(st, set), set.rarity);
     it.set = set.id;
@@ -52,7 +52,7 @@
   };
 
   /* ---------- Runas: só por diamantes ---------- */
-  G.RUNE_SHOP_LEVEL = 8;
+  G.RUNE_SHOP_LEVEL = 10;
   G.runeOffers = function (st) {
     const out = [];
     for (const t of Object.keys(G.RUNES)) for (const rar of [2, 3]) {

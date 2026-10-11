@@ -75,7 +75,7 @@ function play(opts = {}) {
         }
       } else if (G.itemScore(it) > G.itemScore(st.equipped[it.slot])) G.equip(st, it.id);
     }
-    for (const it of st.bag.slice()) G.dismantle(st, it.id);
+    for (const it of st.bag.slice()) G.sell(st, it.id);
     for (const set of G.SETS.slice().reverse()) {
       if (set.cur !== 'gold' || !G.setUnlocked(st, set)) continue;
       for (const sl of G.SLOT_ORDER) {
@@ -85,7 +85,7 @@ function play(opts = {}) {
     }
     for (const s of G.SLOT_ORDER) {
       const it = st.equipped[s];
-      for (let i = 0; it && i < 6 && it.plus < (opts.maxPlus || 6) && st.gold > G.upgradeCost(it) * (opts.forgeReserve || 1.5) && st.ossos >= G.upgradeOssos(it); i++) G.upgrade(st, it.id);
+      for (let i = 0; it && i < 6 && it.plus < (opts.maxPlus || 6) && st.gold > G.upgradeCost(it) * (opts.forgeReserve || 1.5) ; i++) G.upgrade(st, it.id);
     }
     if (!opts.noSkills) for (const id of G.SKILL_ORDER) {
       if (st.gold > G.skillCost(st, id) * (opts.skillReserve || 1.1) && G.skillRank(st, id) < G.SKILLS[id].max && st.level >= G.skillReqLevel(st, id)) {
