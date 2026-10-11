@@ -5,7 +5,7 @@ let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok -', name); };
 
 t('novo jogo tem estado válido', () => {
   const st = G.newState('x');
-  assert.equal(st.level, 1); assert.equal(st.v, G.STATE_V); assert(st.shop.equip.length >= 8); assert(st.equipped.runas.length === 3);
+  assert.equal(st.level, 1); assert.equal(st.v, G.STATE_V); assert(st.diamonds === 0 && st.vipUntil === 0); assert(st.equipped.runas.length === 3);
 });
 t('treino de habilidade: custo, tempo, conclusão e aceleração', () => {
   const st = G.newState('x'); st.gold = 1000;
@@ -23,16 +23,13 @@ t('runas somam bônus percentual e vampirismo', () => {
   st.equipped.runas[0] = G.makeRune(10, 2, 'forca'); st.equipped.runas[1] = G.makeRune(10, 2, 'sangue');
   const s = G.heroStats(st); assert(s.atk > base.atk); assert(s.vamp > 0);
 });
-t('ferreiro: sucesso garantido até +3, falha dá pity e consome ossos', () => {
-  const st = G.newState('x'); st.gold = 1e6; st.ossos = 1e4; const it = st.equipped.arma;
-  for (let i = 0; i < 3; i++) assert(G.upgrade(st, it.id).success); assert.equal(it.plus, 3);
-  G.rng = () => 0.99; const r = G.upgrade(st, it.id); G.rng = Math.random;
-  assert(r.ok && !r.success); assert.equal(it.plus, 3); assert(it.pity > 0);
-});
-t('desmontar rende ossos e itens travados são protegidos', () => {
-  const st = G.newState('x'); const it = G.makeItem('elmo', 10, 2); st.bag.push(it);
-  G.toggleLock(st, it.id); assert.equal(G.dismantle(st, it.id), 0); G.toggleLock(st, it.id);
-  assert(G.dismantle(st, it.id) > 0 && st.bag.length === 0);
+t('ferreiro: só ouro; sucesso garantido até +3, falha dá pity; custo sobe com item e +', () => {
+  const st = G.newState('x'); st.gold = 1e6; const it = st.equipped.arma;
+  assert(!('ossos' in st) && !('fossils' in st) && !G.dismantle && !G.upgradeOssos);
+  const c0 = G.upgradeCost(it); for (let i = 0; i < 3; i++) assert(G.upgrade(st, it.id).success); assert.equal(it.plus, 3);
+  assert(G.upgradeCost(it) > c0 * 3, 'cada + custa mais'); assert(G.upgradeCost(G.makeItem('arma', 30, 2)) > G.upgradeCost(G.makeItem('arma', 10, 2)));
+  G.rng = () => 0.99; const g0 = st.gold, r = G.upgrade(st, it.id); G.rng = Math.random;
+  assert(r.ok && !r.success && st.gold < g0); assert.equal(it.plus, 3); assert(it.pity > 0);
 });
 t('fundir 3 runas iguais gera 1 de raridade maior', () => {
   const st = G.newState('x'); st.gold = 1e5;
@@ -53,7 +50,7 @@ t('eventos de calendário', () => {
   assert.notEqual(G.weeklyEvent(new Date(2026, 9, 7)).key, G.weeklyEvent(new Date(2026, 9, 14)).key);
 });
 t('pular espera com ouro: fôlego e encontros (preço sobe no dia)', () => {
-  const st = G.newState('x'); st.level = 10; st.gold = 1000; st.cdUntil = Date.now() + 20000;
+  const st = G.newState('x'); st.level = 10; st.gold = 1000; st.cdUntil = Date.now() + 20000; assert.equal(G.BATTLE_CD, 0);
   const c = G.cooldownSkipCost(st); assert(c > 0); assert(G.skipCooldown(st).ok); assert.equal(G.cooldownLeft(st), 0); assert.equal(st.gold, 1000 - c);
   st.energy = 3; const p1 = G.energyBuyCost(st); assert(G.buyEnergy(st).ok); assert.equal(st.energy, 4); assert(G.energyBuyCost(st) > p1);
   st.energy = G.MAX_ENERGY; assert(!G.buyEnergy(st).ok); st.energy = 2; st.gold = 0; assert(!G.buyEnergy(st).ok);
@@ -72,8 +69,8 @@ t('arte: todo monstro, dragão e cenário tem ilustração válida', () => {
   const Art = require(path.join(__dirname, '..', 'js', 'art.js'));
   const names = [];
   G.ZONES.forEach((z) => { z.m.forEach((m) => names.push(m[0])); names.push(z.semi[0], z.boss.name); });
-  [...G.WEEKLY, ...G.MONTHLY].forEach((e) => names.push(e.name)); Object.values(G.DRAGONS).forEach((d) => names.push(d.name));
-  assert.equal(names.length, 70);
+  [...G.WEEKLY, ...G.DAILY].forEach((e) => names.push(e.name)); Object.values(G.DRAGONS).forEach((d) => names.push(d.name));
+  assert.equal(names.length, 76);
   for (const n of names) { assert(Art.hasSpec(n), 'sem arte: ' + n); const svg = Art.monster({ name: n, emoji: '🐺', kind: 'normal' }); assert(svg.startsWith('<svg') && svg.endsWith('</svg>') && svg.includes('viewBox="0 0 240 200"'), 'svg inválido: ' + n); }
   assert(Art.monster({ name: 'Lobo Jovem Veterano', emoji: '🐺', kind: 'elite' }).includes('<svg'), 'veterano usa a arte da fera');
   for (const b of Art.BIOMES) assert(Art.scene(b).includes('<svg'), 'cenário ' + b);
@@ -103,10 +100,11 @@ t('XP e ouro escalonam entre as 4 lutas e rejogar rende menos', () => {
   st.level = 6; const f2 = G.startFight(st, G.stepMonster(3, 1, true), { mode: 'zone', zone: { z: 3, step: 1 } }); f2.over = f2.won = true; f2.hero.hp = f2.hero.max; st.zones[3] = 4;
   const rp = G.finishFight(st, f2); assert(rp.replay && rp.xp < g[1].xp, 'rejogar rende menos'); G.rng = Math.random;
 });
-t('custos: chefe do local gasta 2 encontros; fôlego bloqueia', () => {
-  const st = G.newState('x'); st.zones[1] = 3; st.energy = 1;
-  assert(!G.canFightZone(st, 1, 3).ok); st.energy = 5; assert.equal(G.canFightZone(st, 1, 3).cost, 2);
-  st.cdUntil = Date.now() + 10000; assert(!G.canFightZone(st, 1, 3).ok);
+t('custos: toda luta do local gasta 1 encontro (inclusive o chefe); sem encontros não luta', () => {
+  const st = G.newState('x'); st.zones[1] = 3; st.energy = 0;
+  assert(!G.canFightZone(st, 1, 3).ok); st.energy = 1;
+  for (let step = 0; step < 4; step++) assert.equal(G.STEP_COST[step], 1);
+  assert.equal(G.canFightZone(st, 1, 3).cost, 1); G.spendEnergy(st, 1); assert.equal(st.energy, 0);
 });
 t('caixas +1 a +5: chance por tipo de luta e abertura', () => {
   const count = (kind, z) => { const c = {}; for (let i = 0; i < 4000; i++) { const t = G.rollBoxTier(G.boxPower(kind, z)); c[t] = (c[t] || 0) + 1; } return c; };
@@ -119,32 +117,41 @@ t('caixas +1 a +5: chance por tipo de luta e abertura', () => {
   assert.equal(st.boxes.length, 0);
   st.bagSize = st.bag.length; st.boxes.push(G.makeBox(5, 10)); assert(!G.openBox(st, st.boxes[0].id).ok, 'baú cheio impede abrir');
 });
-t('dragões: desbloqueio, volta a cada 5 min, recompensa e troféu', () => {
-  const st = G.newState('x'); assert(!G.canFightDragon(st, 'verde').ok);
-  for (let z = 1; z <= 6; z++) st.zones[z] = 4; assert(G.canFightDragon(st, 'verde').ok && !G.canFightDragon(st, 'azul').ok);
+t('dragões: nível 10, taxa em ouro, prêmio em ouro/caixas/diamantes, sem troféu, volta em 5 min', () => {
+  const st = G.newState('x'); st.gold = 1e5; assert(!G.canFightDragon(st, 'verde').ok);
+  st.level = 10; assert(G.canFightDragon(st, 'verde').ok && G.canFightDragon(st, 'azul').ok, 'nível 10 libera os dois');
+  const fee = G.dragonFee(st, 'verde'); assert(G.dragonFee(st, 'azul') > fee && G.dragonPrize(st, 'verde') > fee);
+  st.gold = fee - 1; assert(!G.canFightDragon(st, 'verde').ok && !G.payDragonFee(st, 'verde')); st.gold = 1e5; const g0 = st.gold; assert(G.payDragonFee(st, 'verde') && st.gold === g0 - fee);
   const mon = G.dragonMonster('verde'); assert(mon.special && mon.mods.length === 2);
   assert(G.dragonMonster('azul').hp > mon.hp * 1.3 && G.dragonMonster('azul').atk > mon.atk * 1.5, 'azul é bem mais forte');
   const f = G.startFight(st, mon, { mode: 'dragon' }); f.over = f.won = true; f.hero.hp = f.hero.max;
-  const t0 = Date.now(); const rep = G.finishFight(st, f, new Date(t0));
-  assert(rep.boxes.length >= 1 && rep.boxes[0].tier >= 3 && rep.dragonTrophy && st.dragonTrophies.includes('verde'));
+  const t0 = Date.now(), gb = st.gold, p0 = G.dragonPrize(st, 'verde'); const rep = G.finishFight(st, f, new Date(t0));
+  assert(rep.boxes.length >= 1 && rep.boxes[0].tier >= 3 && !rep.dragonTrophy && st.dragonTrophies.length === 0 && rep.prize === p0 && st.gold >= gb + p0);
   assert(Math.abs(st.dragons.verde.readyAt - (t0 + 300000)) < 50, 'volta em 5 minutos'); st.cdUntil = 0; assert(!G.canFightDragon(st, 'verde').ok);
   st.gold = 1e5; assert(G.skipDragon(st, 'verde').ok && G.canFightDragon(st, 'verde').ok);
-  const a = G.newState('y'); a.level = 20; const b0 = G.heroStats(a).hp; a.dragonTrophies = ['verde']; assert(G.heroStats(a).hp > b0, 'troféu de dragão dá bônus');
+  const a = G.newState('y'); a.level = 20; const b0 = G.heroStats(a).hp; a.dragonTrophies = ['verde']; assert(G.heroStats(a).hp > b0, 'troféus antigos continuam valendo');
+  // diamantes: Verde 35% de 2–6; Azul 60% no total em 3 faixas
+  let vn = 0, vmin = 99, vmax = 0; const N = 20000; const az = { 0: 0, a: 0, b: 0, c: 0 };
+  for (let i = 0; i < N; i++) { const d = G.dragonDiamonds('verde'); if (d) { vn++; vmin = Math.min(vmin, d); vmax = Math.max(vmax, d); } const z = G.dragonDiamonds('azul'); if (!z) az[0]++; else if (z <= 9) { az.a++; assert(z >= 6); } else if (z <= 12) az.b++; else { az.c++; assert(z <= 16); } }
+  assert(Math.abs(vn / N - 0.35) < 0.02 && vmin === 2 && vmax === 6, 'verde'); for (const k of ['a', 'b', 'c']) assert(Math.abs(az[k] / N - 0.2) < 0.02, 'azul faixa ' + k); assert(Math.abs(az[0] / N - 0.4) < 0.02);
 });
-t('chefe de evento: tentativas diárias, fósseis, caixas e troféu na 1ª vitória', () => {
+t('chefe da semana: ouro, caixas e 40% de 💎, sem troféu; só a 1ª vitória dá prêmio', () => {
   const st = G.newState('x'); st.level = 20; st.trophies = [1, 2, 3, 4, 5, 6]; G.evSync(st);
   assert(G.canFight(st, 'event-weekly').ok);
-  const e = G.eventMonster(st, 'weekly'); const f = G.startFight(st, e.mon, { mode: 'event-weekly', event: { key: e.key, def: e.def } });
-  f.over = true; f.won = true; f.mon.hp = 0; f.hero.hp = f.hero.max;
-  const rep = G.finishFight(st, f); assert(rep.fossils > 0 && rep.evTrophy && st.ev.weekly === 2 && rep.boxes.length === 2);
-  const f2 = G.startFight(st, G.eventMonster(st, 'weekly').mon, { mode: 'event-weekly', event: { key: e.key, def: e.def } });
-  f2.over = true; f2.won = true; f2.hero.hp = f2.hero.max; st.cdUntil = 0; const rep2 = G.finishFight(st, f2);
-  assert(!rep2.evTrophy && rep2.fossils > 0 && rep2.boxes.length === 0, 'troféu e caixas só na 1ª vitória');
+  const e = G.eventMonster(st, 'weekly'); const mk = () => { const f = G.startFight(st, G.eventMonster(st, 'weekly').mon, { mode: 'event-weekly', event: { key: e.key, def: e.def } }); f.over = f.won = true; f.hero.hp = f.hero.max; return f; };
+  const g0 = st.gold, p0 = G.eventPrize(st, 'weekly', e.mon.level), rep = G.finishFight(st, mk()); assert(!rep.evTrophy && st.evTrophies.length === 0 && st.ev.weekly === 2 && rep.boxes.length === 2);
+  assert.equal(rep.prize, p0); assert(st.gold >= g0 + p0); st.cdUntil = 0;
+  const rep2 = G.finishFight(st, mk()); assert(rep2.prize === 0 && rep2.boxes.length === 0 && rep2.diamonds === 0, 'prêmio só na 1ª vitória');
+  assert(G.eventPrize(st, 'weekly', 20) > G.eventPrize(st, 'daily', 20) * 2, 'semanal paga bem mais ouro');
+  let w = 0, d = 0; const N = 6000; for (let i = 0; i < N; i++) { const s1 = G.newState('x'); s1.level = 20; G.evSync(s1); s1.ev.claimW = ''; s1.ev.claimD = '';
+    const fw = G.startFight(s1, G.eventMonster(s1, 'weekly').mon, { mode: 'event-weekly', event: { key: 'k' + i, def: G.WEEKLY[0] } }); fw.over = fw.won = true; fw.hero.hp = fw.hero.max; w += G.finishFight(s1, fw).diamonds > 0 ? 1 : 0;
+    const fd = G.startFight(s1, G.eventMonster(s1, 'daily').mon, { mode: 'event-daily', event: { key: 'd' + i, def: G.DAILY[0] } }); fd.over = fd.won = true; fd.hero.hp = fd.hero.max; s1.cdUntil = 0; d += G.finishFight(s1, fd).diamonds > 0 ? 1 : 0; }
+  assert(Math.abs(w / N - 0.4) < 0.03, 'semanal 40% (' + w / N + ')'); assert(Math.abs(d / N - 0.2) < 0.03, 'diário 20% (' + d / N + ')');
 });
 t('migração de saves antigos (v1 e v2) para a jornada v3', () => {
   const old = { v: 1, name: 'A', level: 12, xp: 5, hp: 100, hpAt: Date.now(), gold: 500, kills: 1, bossNo: 3, totalKills: 20, trophies: [1, 2], bag: [], equipped: { arma: G.makeItem('arma', 5, 1), elmo: null, armadura: null, botas: null, amuleto: null }, potions: { small: 1, large: 0 }, energy: 10, energyAt: Date.now(), shop: { level: 1, equip: [], amulet: [] } };
   const m = G.migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(m.v, G.STATE_V); assert(m.equipped.runas.length === 3 && Array.isArray(m.shop.runes) && Array.isArray(m.boxes) && m.dragons.azul);
+  assert.equal(m.v, G.STATE_V); assert(m.equipped.runas.length === 3 && m.diamonds === 0 && Array.isArray(m.boxes) && m.dragons.azul);
   assert.equal(G.zoneProgress(m, 1), 4); assert.equal(G.zoneProgress(m, 2), 4); assert.equal(G.zoneProgress(m, 3), 1); assert(G.zoneUnlocked(m, 3) && !G.zoneUnlocked(m, 4));
   assert(G.heroStats(m).atk > 0); G.syncTime(m);
   const fin = G.migrate({ v: 2, name: 'B', level: 30, finished: true, bossNo: 15, kills: 0, trophies: [], evTrophies: [], bag: [], equipped: { runas: [null, null, null] }, potions: { small: 0, large: 0 }, energy: 3, shop: { equip: [], runes: [] } });
@@ -204,35 +211,25 @@ t('raridade: épicos, lendários e runas só em caixas altas; loja não vende é
   assert(b4.c[4] > 0 && b4.c[3] > b3.c[3], 'lendário aparece na +4'); assert(b5.c[4] / b5.n > b4.c[4] / b4.n, 'lendário mais comum na +5');
   assert(b1.runes === 0 && b2.runes / b2.n < 0.06 && b5.runes / b5.n > 0.18 && b5.runes / b5.n < 0.32, 'runas: nenhuma na +1, raras nas baixas, mais nas altas');
   assert(b5.runes / b5.n > b4.runes / b4.n && b4.runes / b4.n > b3.runes / b3.n, 'chance de runa cresce com a caixa');
-  let epic = 0, runes = 0, minRuneR = 9; const N = 1500;
-  for (let i = 0; i < N; i++) { const st = G.newState('x'); st.level = 25; G.refreshShop(st); st.shop.equip.concat(st.shop.runes).forEach((it) => { if (it.rarity >= 3) epic++; }); runes += st.shop.runes.length; st.shop.runes.forEach((r) => { minRuneR = Math.min(minRuneR, r.rarity); }); assert(st.shop.runes.length <= 2); }
-  assert.equal(epic, 0, 'loja nunca vende épico/lendário'); assert(runes / N < 0.6 && runes / N > 0.15, 'runas na loja: raras (' + runes / N + ')'); assert(minRuneR >= 1, 'runas da loja nunca são comuns');
+    assert(G.runeOffers(G.newState('x')).every((o) => o.rarity >= 2), 'runas da loja nunca são comuns');
   const eq = G.makeItem('arma', 20, 2), ru = G.makeRune(20, 2, 'forca'); assert(G.itemPrice(ru) > G.itemPrice(eq) * 3, 'runa custa bem mais que um item raro');
-  assert(!G.EVENT_SHOP.some((o) => /ndário|Épica|Caixa/.test(o.name)), 'troca de fósseis não vende épico/lendário/caixa');
-});
-t('loja: só comum/incomum/raro, itens bem mais caros que o valor base, sem caixas', () => {
-  const st = G.newState('x'); st.level = 20; G.refreshShop(st);
-  const it = st.shop.equip[0]; st.shop.deal = null;
-  assert.equal(G.shopPrice(st, it), Math.round(G.itemPrice(it) * G.SHOP_MARKUP)); assert(G.SHOP_MARKUP >= 3, 'markup alto');
-  assert(G.shopPrice(st, it) > G.sellPrice(it) * 10, 'comprar custa muito mais que vender');
-  assert(!('boxes' in st.shop) && !G.EVENT_SHOP.some((o) => /caixa|box/i.test(o.name)), 'caixas não se compram');
-  assert(st.shop.equip.every((x) => x.rarity <= 2));
+  assert(!G.EVENT_SHOP && !G.buyEventOffer, 'sem troca de fósseis');
 });
 t('dificuldade: feras e chefes duros, dragões e eventos mais ainda', () => {
   const st = G.newState('x'); st.level = 20;
   const f1 = G.stepMonster(10, 0, true), f2 = G.stepMonster(10, 1, true), sm = G.stepMonster(10, 2, true), bs = G.stepMonster(10, 3, true);
-  assert(f2.atk > f1.atk && sm.hp > f2.hp * 2 && bs.atk > sm.atk, 'escalada na jornada');
+  assert(f2.atk > f1.atk && sm.hp > f2.hp * 1.5 && bs.hp > sm.hp, 'escalada na jornada (o chefe ainda tem golpe especial e fúria)');
   assert(G.dragonMonster('azul').atk > G.dragonMonster('verde').atk * 1.5 && G.dragonMonster('azul').hp > G.dragonMonster('verde').hp);
-  st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'monthly').mon;
-  assert(m.hp > w.hp, 'chefe mensal é mais forte que o semanal');
+  st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'daily').mon;
+  assert(m.hp < w.hp, 'o desafio diário é mais fraco que o chefe da semana');
 });
 
 const setup = (cls, level, tree) => { const st = G.newState('x'); st.level = level; G.setClass(st, cls); st.tree = tree || {}; G.setHp(st, G.heroStats(st).hp); return st; };
 const duel = (st, mon) => { const f = G.startFight(st, mon || G.makeMonster(st.level, 'normal', { name: 'Alvo', emoji: '🐺', mods: [] }), { mode: 'zone', zone: { z: 1, step: 0 } }); f.mon.atk = 1; f.mon.hp = f.mon.maxHp = 100000; return f; };
 t('árvore: 3 classes × 3 ramos × 4 habilidades, todas descritas', () => {
-  assert.equal(G.TREE.length, 36); assert.deepEqual(G.CLASS_ORDER, ['guerreiro', 'arqueiro', 'mago']);
-  for (const c of G.CLASS_ORDER) for (let b = 0; b < 3; b++) { const ch = G.TREE.filter((d) => d.cls === c && d.branch === b); assert.deepEqual(ch.map((d) => d.tier), [1, 2, 3, 4]); assert(ch[0].req === null && ch[1].req === ch[0].id && ch[3].req === ch[2].id); }
-  assert.equal(new Set(G.TREE.map((d) => d.id)).size, 36);
+  assert.equal(G.TREE.filter((d) => !d.evo).length, 36); assert.deepEqual(G.CLASS_ORDER, ['guerreiro', 'arqueiro', 'mago']);
+  for (const c of G.CLASS_ORDER) for (let b = 0; b < 3; b++) { const ch = G.TREE.filter((d) => d.cls === c && d.branch === b && !d.evo); assert.deepEqual(ch.map((d) => d.tier), [1, 2, 3, 4]); assert(ch[0].req === null && ch[1].req === ch[0].id && ch[3].req === ch[2].id); }
+  assert.equal(new Set(G.TREE.map((d) => d.id)).size, 54);
   for (const d of G.TREE) for (let r = 1; r <= 3; r++) { assert(G.skillDesc(d, r).length > 8, d.id); if (d.type === 'active') assert(d.cd >= 0 && (d.fx.dmg || d.fx.dot || d.fx.stun || d.fx.buff || d.fx.heal || d.fx.shield || d.fx.guard || d.fx.evade || d.fx.mark || d.fx.slow), 'ativa sem efeito: ' + d.id); }
   for (const d of G.TREE.filter((x) => x.type === 'active' && x.fx.dmg)) assert(G.skillFx(d, 3).dmg.mult > G.skillFx(d, 1).dmg.mult * 0.99, 'habilidade mais forte a cada nível: ' + d.id);
 });
@@ -248,7 +245,7 @@ t('árvore: 1 ponto por nível, custo cresce com o tier e o nível, pré-requisi
   st.level = 3; assert(/nível/.test(G.canLearn(st, 'golpe').msg) || G.canLearn(st, 'golpe').ok === false, 'nível 2 da habilidade exige nível do herói'); st.level = 7;
   assert(G.learn(st, 'golpe').ok && G.treeRank(st, 'golpe') === 2 && G.skillPoints(st).spent === 3, 'nível 2 custa 2');
   st.gold = 1e5; const before = G.respecCost(st); assert(G.respec(st).ok && st.cls === null && G.skillPoints(st).free === st.level && st.gold === 1e5 - before, 'redefinir devolve os pontos');
-  st.level = 40; G.setClass(st, 'mago'); for (const d of G.TREE.filter((x) => x.cls === 'mago')) for (let r = 0; r < 3; r++) G.learn(st, d.id);
+  st.level = 40; G.setClass(st, 'mago'); for (const d of G.TREE.filter((x) => x.cls === 'mago' && !x.evo)) for (let r = 0; r < 3; r++) G.learn(st, d.id);
   assert(G.skillPoints(st).spent <= 40 && G.skillPoints(st).free >= 0, 'não gasta mais que os pontos');
 });
 t('árvore: passivas e bônus de classe entram nos atributos', () => {
@@ -307,4 +304,80 @@ t('migração v3 → v4: classe nula, árvore vazia, ativas antigas removidas', 
   const m = G.migrate(old); assert.equal(m.v, G.STATE_V); assert(m.cls === null && Object.keys(m.tree).length === 0 && m.skills.forca === 2 && !('grito' in m.skills) && !('golpe' in m.skills));
   assert.equal(G.skillPoints(m).free, 12, 'pontos retroativos: um por nível'); assert(G.heroStats(m).hp > 0);
 });
+t('loja de conjuntos: tudo liberado no nível 10, compra por peça, bônus de conjunto, lendário em diamantes', () => {
+  const st = G.newState('x'); st.level = 9; st.gold = 1e6; st.bagSize = 60;
+  assert(!G.buySetPiece(st, 2, 'arma').ok && G.SETS.every((x) => !G.setUnlocked(st, x)), 'abaixo do nível 10 nada é vendido'); st.level = 10;
+  assert(G.SETS.every((x) => G.setUnlocked(st, x)) && G.setIlvl(st, G.SETS[4]) === 32 && G.setIlvl(st, G.SETS[0]) === 7);
+  const g0 = st.gold, r = G.buySetPiece(st, 1, 'arma'); assert(r.ok && r.item.set === 1 && r.item.rarity === 1 && st.gold < g0);
+  assert(!G.buySetPiece(st, 1, 'arma').ok, 'não compra a mesma peça duas vezes'); assert.equal(G.setProgress(st, G.SETS[1]), 1);
+  for (const sl of G.SLOT_ORDER) G.buySetPiece(st, 1, sl); assert.equal(G.setProgress(st, G.SETS[1]), 7);
+  const base = G.heroStats(st).atk; for (const it of st.bag.filter((x) => x.set === 1)) G.equip(st, it.id);
+  assert.equal(G.setBonus(st), 10); assert(G.heroStats(st).atk > base);
+  const w = st.bag.length; st.level = 35; st.diamonds = 0;
+  assert(G.setPrice(st, G.SETS[4], 'arma').cur === 'diamonds' && !G.buySetPiece(st, 4, 'arma').ok && st.bag.length === w);
+  st.diamonds = 500; const l = G.buySetPiece(st, 4, 'arma'); assert(l.ok && l.item.rarity === 4 && st.diamonds < 500);
+  const nd = G.makeItem('arma', 30, 4); assert(G.upgradeDiamonds(nd) > 0 && G.upgradeDiamonds(G.makeItem('arma', 30, 2)) === 0);
+  assert(G.runeOffers(st).every((o) => o.price > 0)); st.diamonds = 100; assert(G.buyRune(st, 'forca', 2).ok && st.diamonds < 100);
+});
+t('slots: sem espera entre lutas, VIP dobra, zerar custa caro e sobe com o nível', () => {
+  const st = G.newState('x'); st.level = 12; st.energy = 12; st.gold = 1e5;
+  const f = G.startFight(st, G.stepMonster(1, 0, true), { mode: 'zone', zone: { z: 1, step: 0 } }); f.over = f.won = true; f.hero.hp = f.hero.max; G.finishFight(st, f);
+  assert.equal(G.cooldownLeft(st), 0, 'sem fôlego/espera'); assert(G.canFightZone(st, 1, 0).ok);
+  assert.equal(G.maxEnergy(st), 12); st.diamonds = G.VIP.price; assert(G.buyVip(st).ok && G.isVip(st) && G.maxEnergy(st) === 24 && st.diamonds === 0);
+  assert(G.energySecs(st) < G.ENERGY_SECS);
+  const a = G.energyResetCost(st); st.level = 30; const b = G.energyResetCost(st); assert(b > a, 'reset sobe com o nível');
+  st.energy = 5; assert(!G.resetEnergy(st).ok); st.energy = 0; const g = st.gold; assert(G.resetEnergy(st).ok && st.energy === 24 && st.gold === g - b);
+  const free = G.newState('x'); free.level = 30; assert(G.energyResetCost(free) > b, 'sem VIP o reset é mais caro');
+  assert(G.rollDiamonds(0, 1) === 0 && G.rollDiamonds(1, 1) === 1 && Math.max(...G.BOX_DIAMOND) <= 0.3);
+});
+
+t('evolução de classe: exige nível, tier 2 do ramo e ouro; dá bônus e habilidades exclusivas', () => {
+  const st = G.newState('x'); st.level = 12; st.gold = 1e5; G.setClass(st, 'mago');
+  assert(!G.canEvolve(st, 2).ok, 'nível baixo'); st.level = 16;
+  assert(!G.canEvolve(st, 2).ok, 'sem a habilidade do ramo');
+  st.tree = { meditacao: 1, cura: 1 }; const base = G.heroStats(st).hp;
+  assert(G.canEvolve(st, 2).ok && !G.canEvolve(st, 0).ok);
+  assert(!G.learn(st, 'drenar').ok, 'habilidade de evolução trancada antes de evoluir');
+  const g = st.gold; assert(G.evolve(st, 2).ok && st.evo === 2 && st.gold === g - G.evoCost(st) && G.classTitle(st) === 'Necromante');
+  assert(G.heroStats(st).hp > base, 'bônus da evolução'); assert(!G.evolve(st, 0).ok, 'só evolui uma vez');
+  st.level = 40; assert(!G.learn(st, 'pacto').ok, 'a 2ª exige a 1ª'); assert(G.learn(st, 'drenar').ok && G.learn(st, 'pacto').ok);
+  assert(G.activeSkills(st).some((a) => a.id === 'drenar') && G.TREE.filter((d) => d.evo).length === 18);
+  assert(!G.canLearn(st, 'inferno').ok, 'evolução de outro ramo não vale');
+  G.respec(st); assert.equal(st.evo, null);
+});
+
+t('caixas +4/+5: épico/lendário do material certo viram peças de conjunto; diamantes só nas altas', () => {
+  const st = G.newState('x'); st.bagSize = 60; let sets = 0, loose = 0, dia = 0, n = 0;
+  for (let i = 0; i < 400; i++) { st.bag = []; const bx = G.makeBox(5, 36); st.boxes.push(bx); const r = G.openBox(st, bx.id); dia += r.diamonds; n++;
+    for (const it of r.items) if (!it.rune && it.rarity >= 3) { if (it.set != null) { sets++; assert.equal(G.SETS[it.set].rarity, it.rarity); assert.equal(G.tierOf(it.ilvl), it.set); } else loose++; } }
+  assert(sets > 0, 'peças de conjunto saem da caixa'); assert(dia / n > 0.2 && dia / n < 0.4, 'diamantes na +5 (' + dia / n + ')');
+  const b = G.makeBox(1, 5); st.boxes.push(b); assert.equal(G.openBox(st, b.id).diamonds, 0);
+  assert(G.BOX_ODDS[4][4] / 100 <= 0.2 && G.BOX_ODDS[3][4] / 100 <= 0.04, 'lendário raro nas caixas');
+});
+
+t('eventos: diário (2 tentativas) e semanal (3), ambos sem troféu; mensal removido', () => {
+  assert(!G.MONTHLY && G.DAILY.length >= 6 && !('monthly' in G.EVENT_UNLOCK));
+  const st = G.newState('x'); st.level = 10; st.trophies = [1, 2, 3]; G.evSync(st, new Date());
+  assert.equal(st.ev.daily, 2); assert.equal(st.ev.weekly, 3); assert(G.canFight(st, 'event-daily').ok && !G.canFight(st, 'event-monthly').ok === false);
+  const day = G.eventMonster(st, 'daily'), wk = G.eventMonster(st, 'weekly');
+  const win = (e, type) => { const f = G.startFight(st, e.mon, { mode: 'event-' + type, event: { key: e.key, def: e.def } }); f.over = f.won = true; f.hero.hp = f.hero.max; return G.finishFight(st, f); };
+  const r1 = win(day, 'daily'); assert(r1.boxes.length === 1 && !r1.evTrophy && st.ev.claimD === day.key);
+  const r2 = win(day, 'daily'); assert(r2.boxes.length === 0, 'prêmio do dia só na 1ª vitória'); assert.equal(st.ev.daily, 0); assert(!G.canFight(st, 'event-daily').ok);
+  const w1 = win(wk, 'weekly'); assert(!w1.evTrophy && (w1.diamonds === 0 || w1.diamonds === 3) && w1.boxes.length === 2 && w1.prize > r1.prize); assert(win(wk, 'weekly').diamonds === 0);
+  assert.equal(G.VIP.price, 200);
+  const st2 = G.newState('x'); st2.level = 40; assert.equal(G.setPrice(st2, G.SETS[4], 'arma').n, 24);
+});
+
+t('caixas: itens com material e raridade do conjunto viram peças dele; peça de caixa fraca não bloqueia a compra', () => {
+  const st = G.newState('x'); st.level = 22; st.gold = 1e6; st.bagSize = 60; let tagged = 0, plain = 0;
+  for (let i = 0; i < 300; i++) { st.bag = []; const bx = G.makeBox(3, 20); st.boxes.push(bx); for (const it of G.openBox(st, bx.id).items) if (!it.rune) { const s = G.SETS[G.tierOf(it.ilvl)]; if (s.rarity === it.rarity) { assert.equal(it.set, s.id); tagged++; } else { assert(it.set == null); plain++; } } }
+  assert(tagged > 0 && plain > 0);
+  const set = G.SETS[2], il = G.setIlvl(st, set); st.bag = [];
+  const weak = G.makeItem('arma', 16, 2); weak.set = 2; st.bag.push(weak);
+  assert(il > 16 && !G.setOwned(st, set, 'arma'), 'peça de caixa mais fraca não conta como comprada'); assert(G.buySetPiece(st, 2, 'arma').ok);
+  const strong = G.makeItem('elmo', il, 2); strong.set = 2; st.bag.push(strong); assert(G.setOwned(st, set, 'elmo') && !G.buySetPiece(st, 2, 'elmo').ok, 'peça de caixa igual/melhor conta');
+  assert.equal(G.setProgress(st, set), 2);
+  st.level = 23; assert(G.setOwned(st, set, 'arma'), 'peça comprada na loja continua comprada ao subir de nível'); assert(!G.setOwned(st, set, 'elmo'), 'peça de caixa fica defasada quando a loja passa a vender nível maior');
+});
+
 console.log(`\n${n} testes passaram`);

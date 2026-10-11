@@ -35,9 +35,21 @@ function chooseAction(st, f) {
   }
   return best ? 'skill:' + best : 'attack';
 }
+// ramo da evolução que o bot escolhe (EVO=0|1|2|none); padrão = o ramo principal da build
+const EVO_DEFAULT = { guerreiro: 0, arqueiro: 1, mago: 0 };
 function learnBuild(st, opts) {
   if (!st.cls) return;
-  for (const [id, r] of BUILDS[st.cls]) {
+  const evoB = process.env.EVO === 'none' ? null : process.env.EVO != null ? +process.env.EVO : EVO_DEFAULT[st.cls];
+  if (evoB != null && st.evo == null && st.level >= G.EVO_LEVEL) {
+    // só evolui se o ramo tem a habilidade de tier 2; senão aprende-a antes
+    G.evolve(st, evoB);
+  }
+  const list = BUILDS[st.cls].slice();
+  if (evoB != null && st.evo === evoB) {
+    const ev = G.TREE.filter((d) => d.evo && d.cls === st.cls && d.branch === evoB).map((d) => [d.id, 1]);
+    list.splice(10, 0, ev[0], ev[1], [ev[0][0], 2], [ev[1][0], 2]);
+  }
+  for (const [id, r] of list) {
     if (G.treeRank(st, id) >= r) continue;
     const c = G.canLearn(st, id);
     if (c.ok) G.learn(st, id);
@@ -48,7 +60,7 @@ function learnBuild(st, opts) {
 function play(opts = {}) {
   const st = G.newState('bot');
   if (!opts.noTree) G.setClass(st, opts.cls || 'guerreiro');
-  const S = { fights: 0, farm: 0, stepLoss: [[0, 0], [0, 0], [0, 0], [0, 0]], deaths: [0, 0, 0, 0], first: {}, arrive: {}, bossLoss: {}, dragon: {}, ev: {}, tries: {} };
+  const S = { fights: 0, farm: 0, stepLoss: [[0, 0], [0, 0], [0, 0], [0, 0]], deaths: [0, 0, 0, 0], first: {}, zl: {}, arrive: {}, bossLoss: {}, dragon: {}, ev: {}, tries: {} };
 
   function manage() {
     if (!opts.noTree) learnBuild(st, opts);
@@ -63,13 +75,17 @@ function play(opts = {}) {
         }
       } else if (G.itemScore(it) > G.itemScore(st.equipped[it.slot])) G.equip(st, it.id);
     }
-    for (const it of st.bag.slice()) G.dismantle(st, it.id);
-    for (const it of st.shop.equip) {
-      if (G.itemScore(it) > G.itemScore(st.equipped[it.slot]) * 1.1 && st.gold > G.shopPrice(st, it) + 200) { G.buyItem(st, it.id); G.equip(st, it.id); }
+    for (const it of st.bag.slice()) G.sell(st, it.id);
+    for (const set of G.SETS.slice().reverse()) {
+      if (set.cur !== 'gold' || !G.setUnlocked(st, set)) continue;
+      for (const sl of G.SLOT_ORDER) {
+        const p = G.setPrice(st, set, sl), it = G.setPiece(st, set, sl);
+        if (!G.setOwned(st, set, sl) && G.itemScore(it) > G.itemScore(st.equipped[sl]) * 1.1 && st.gold > p.n + 200) { const r = G.buySetPiece(st, set.id, sl); if (r.ok) G.equip(st, r.item.id); }
+      }
     }
     for (const s of G.SLOT_ORDER) {
       const it = st.equipped[s];
-      for (let i = 0; it && i < 6 && it.plus < (opts.maxPlus || 6) && st.gold > G.upgradeCost(it) * (opts.forgeReserve || 1.5) && st.ossos >= G.upgradeOssos(it); i++) G.upgrade(st, it.id);
+      for (let i = 0; it && i < 6 && it.plus < (opts.maxPlus || 6) && st.gold > G.upgradeCost(it) * (opts.forgeReserve || 1.5) ; i++) G.upgrade(st, it.id);
     }
     if (!opts.noSkills) for (const id of G.SKILL_ORDER) {
       if (st.gold > G.skillCost(st, id) * (opts.skillReserve || 1.1) && G.skillRank(st, id) < G.SKILLS[id].max && st.level >= G.skillReqLevel(st, id)) {
@@ -115,7 +131,7 @@ function play(opts = {}) {
         const mon = G.stepMonster(z, step);
         const r = fight(mon, 'zone', { zone: { z, step } });
         tries++; S.stepLoss[step][0] += r.loss; S.stepLoss[step][1]++;
-        if (tries === 1) { (S.first[z] = S.first[z] || [])[step] = r.rep.won ? 1 : 0; }
+        if (tries === 1) { (S.first[z] = S.first[z] || [])[step] = r.rep.won ? 1 : 0; const zl = (S.zl[z] = S.zl[z] || [[0, 0], [0, 0], [0, 0], [0, 0]]); zl[step][0] += r.loss; zl[step][1]++; }
         if (step === 3) { const b = (S.bossLoss[z] = S.bossLoss[z] || { n: 0, loss: 0, turns: 0 }); b.n++; b.loss += r.loss; b.turns += r.turns; }
         if (!r.rep.won) {
           S.deaths[step]++;
@@ -132,8 +148,8 @@ function play(opts = {}) {
       for (const id of ['verde', 'azul']) if (G.dragonUnlocked(st, id)) S.dragon[`${id}@zona${z}(nv${st.level})`] = probe(id, () => fight(G.dragonMonster(id), 'dragon'));
     }
     if ([5, 9, 13].includes(z)) {
-      for (const type of ['weekly', 'monthly']) {
-        S.ev[`${type}@zona${z}`] = probe(type, () => { G.evSync(st); st.ev.weekly = st.ev.monthly = 9; const e = G.eventMonster(st, type); return fight(e.mon, 'event-' + type, { event: { key: 'k' + Math.random(), def: e.def } }); });
+      for (const type of ['daily', 'weekly']) {
+        S.ev[`${type}@zona${z}`] = probe(type, () => { G.evSync(st); st.ev.weekly = st.ev.daily = 9; const e = G.eventMonster(st, type); return fight(e.mon, 'event-' + type, { event: { key: 'k' + Math.random(), def: e.def } }); });
       }
     }
   }
@@ -141,7 +157,7 @@ function play(opts = {}) {
 }
 
 function evaluate(N, opts) {
-const A = { lvl: 0, fights: 0, farm: 0, d: [0, 0, 0, 0], sl: [[0, 0], [0, 0], [0, 0], [0, 0]] }, arrive = {}, first = {}, bl = {}, dr = {}, ev = {}, byCls = {};
+const A = { lvl: 0, fights: 0, farm: 0, d: [0, 0, 0, 0], sl: [[0, 0], [0, 0], [0, 0], [0, 0]] }, arrive = {}, first = {}, zl = {}, bl = {}, dr = {}, ev = {}, byCls = {};
 for (let i = 0; i < N; i++) {
   const cls = opts.cls || G.CLASS_ORDER[i % 3];
   const { st, S } = play(Object.assign({}, opts, { cls }));
@@ -153,20 +169,22 @@ for (let i = 0; i < N; i++) {
   A.lvl += st.level; A.fights += S.fights; A.farm += S.farm; S.deaths.forEach((v, k) => (A.d[k] += v));
   for (const [z, v] of Object.entries(S.arrive)) arrive[z] = (arrive[z] || 0) + v;
   for (const [z, arr] of Object.entries(S.first)) { first[z] = first[z] || [0, 0, 0, 0]; arr.forEach((v, k) => (first[z][k] += v || 0)); }
+  for (const [z, arr] of Object.entries(S.zl)) { zl[z] = zl[z] || [[0, 0], [0, 0], [0, 0], [0, 0]]; arr.forEach((v, k) => { zl[z][k][0] += v[0]; zl[z][k][1] += v[1]; }); }
   for (const [z, v] of Object.entries(S.bossLoss)) { const a = (bl[z] = bl[z] || { n: 0, loss: 0, turns: 0 }); a.n += v.n; a.loss += v.loss; a.turns += v.turns; }
   for (const [k, v] of Object.entries(S.dragon)) { const key = k.replace(/\(nv\d+\)/, ''); dr[key] = (dr[key] || 0) + v; }
   for (const [k, v] of Object.entries(S.ev)) ev[k] = (ev[k] || 0) + v;
 }
-return { N, A, arrive, first, bl, dr, ev, byCls };
+return { N, A, arrive, first, zl, bl, dr, ev, byCls };
 }
 function report(r) {
-const { N, A, arrive, first, bl, dr, ev, byCls } = r;
+const { N, A, arrive, first, zl, bl, dr, ev, byCls } = r;
 const f = (x) => (x / N).toFixed(1);
 console.log(`Execuções: ${N} | nível final ${f(A.lvl)} | lutas ${f(A.fights)} (farm ${f(A.farm)})`);
 console.log('Vida perdida média por luta (fera1/fera2/semi/chefe):', A.sl.map((v) => (100 * v[0] / v[1]).toFixed(0) + '%').join(' / '));
 console.log(`Mortes médias por luta do local — fera1 ${f(A.d[0])} · fera2 ${f(A.d[1])} · semi ${f(A.d[2])} · chefe ${f(A.d[3])}`);
 console.log('Nível do herói ao chegar em cada local   :', Object.keys(arrive).map((z) => `${z}:${(arrive[z] / N).toFixed(0)}`).join(' '), '| nível-base:', G.ZONE_LEVELS.join(','));
 console.log('Vitória 1ª tentativa (fera1/fera2/semi/chefe):', Object.keys(first).map((z) => `${z}:${first[z].map((v) => Math.round(100 * v / N)).join('/')}`).join('  '));
+console.log('Vida perdida na 1ª tentativa (fera1/fera2/semi/chefe):', Object.keys(zl).map((z) => `${z}:${zl[z].map((v) => (v[1] ? Math.round(100 * v[0] / v[1]) : '-')).join('/')}`).join('  '));
 console.log('Vida perdida/turnos no chefe do local    :', Object.keys(bl).map((z) => `${z}:${(100 * bl[z].loss / bl[z].n).toFixed(0)}%/${(bl[z].turns / bl[z].n).toFixed(0)}t`).join(' '));
 console.log('Dragões (vitória do bot):', Object.keys(dr).map((k) => `${k} ${(dr[k] / N).toFixed(0)}%`).join(' | '));
 console.log('Eventos (vitória do bot):', Object.keys(ev).map((k) => `${k} ${(ev[k] / N).toFixed(0)}%`).join(' | '));

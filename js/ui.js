@@ -4,7 +4,7 @@
   const $ = (s) => document.querySelector(s);
   const view = $('#view'), top = $('#top'), nav = $('#nav'), overlay = $('#overlay'), modal = $('#modal'), toastEl = $('#toast');
   let st = G.load();
-  let jTab = 'mapa', screen = 'mapa', shopTab = 'equip', shopSlot = 'todos', bagFilter = 'todos', bagSort = 'poder', forgeTab = 'melhorar';
+  let jTab = 'mapa', screen = 'mapa', shopTab = 'equip', shopSet = null, bagFilter = 'todos', bagSort = 'poder', forgeTab = 'melhorar';
   let fight = null, busy = false, lastSnap = '';
 
   const TABS = [['mapa', '🗺️', 'Jornada'], ['heroi', '🧍', 'Herói'], ['arvore', '🌳', 'Árvore'], ['bau', '🧳', 'Baú'], ['loja', '🛒', 'Loja'], ['treino', '💪', 'Treino'], ['eventos', '🎉', 'Eventos']];
@@ -30,7 +30,7 @@
     const s = G.heroStats(st), need = G.xpToNext(st.level);
     const pct = st.level >= G.MAX_LEVEL ? 100 : Math.floor((st.xp / need) * 100);
     top.innerHTML = `
-      <div class="toprow"><div class="title">🦴 ERA DA PEDRA</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold" style="margin-left:6px">🦴 ${fmt(st.ossos)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
+      <div class="toprow"><div class="title">🦴 ERA DA PEDRA${G.isVip(st) ? ' <span class="vipbadge">👑 VIP</span>' : ''}</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold gem" style="margin-left:6px" title="Diamantes">💎 ${fmt(st.diamonds || 0)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
       <div class="stats"><span>⚔️ ${fmt(s.atk)}</span><span>❤️ ${fmt(s.hp)}</span><span>🛡️ ${fmt(s.arm)}</span><span>🎯 ${s.crit.toFixed(0)}%</span></div>
       <div class="xpbar"><b>⬆ ${st.level}</b><div class="bar"><i style="width:${pct}%"></i></div><b>${st.level >= G.MAX_LEVEL ? 'MÁX' : pct + '%'}</b></div>`;
     const free = G.skillPoints(st).free;
@@ -80,9 +80,9 @@
 
   /* ---------- Pular espera com ouro ---------- */
   function waitRow() {
-    const cd = G.cooldownLeft(st);
-    return `<div class="row waitrow"><button class="btn sm" data-act="skipcd" ${cd > 0 ? '' : 'disabled'}>⏩ Pular fôlego · 🪙 <span data-live="cdcost">${cd > 0 ? G.cooldownSkipCost(st) : 0}</span></button>
-      <button class="btn sm" data-act="buyen" ${st.energy < G.MAX_ENERGY ? '' : 'disabled'}>⚡ +1 encontro · 🪙 ${G.energyBuyCost(st)}</button></div>`;
+    const zero = st.energy <= 0, mx = G.maxEnergy(st);
+    return `<div class="row waitrow"><button class="btn sm" data-act="buyen" ${st.energy < mx ? '' : 'disabled'}>⚡ +1 encontro · 🪙 ${fmt(G.energyBuyCost(st))}</button>
+      <button class="btn sm ${zero ? 'go' : ''}" data-act="resetEn" ${zero ? '' : 'disabled'}>♻️ Restaurar tudo · 🪙 ${fmt(G.energyResetCost(st))}</button></div>`;
   }
 
   /* ---------- Caçar ---------- */
@@ -105,13 +105,11 @@
     }
     G.ZONES.forEach((z, i) => {
       const p = pts[i], prog = G.zoneProgress(st, z.id), unlocked = G.zoneUnlocked(st, z.id), cleared = prog >= 4, cur = z.id === G.currentZone(st) && !st.finished;
-      deco += `<text x="${360 - p.x}" y="${p.y + 12}" font-size="46" text-anchor="middle" opacity="0.14">${z.icon}</text>`;
       const pips = [0, 1, 2, 3].map((k) => `<circle cx="${p.x - 21 + k * 14}" cy="${p.y + 46}" r="4.5" fill="${prog > k ? '#e0a83e' : '#0b0705'}" stroke="${k === 3 ? '#d0583a' : k === 2 ? '#d9822b' : '#8a6e4a'}" stroke-width="1.6"/>`).join('');
       nodes += `<g data-zone="${z.id}" class="mnode ${unlocked ? '' : 'locked'}" role="button" aria-label="${esc(z.name)}">
         ${cur ? `<circle cx="${p.x}" cy="${p.y}" r="38" fill="none" stroke="#ffd24a" stroke-width="3" class="pulse"/>` : ''}
         <circle cx="${p.x}" cy="${p.y}" r="31" fill="${z.color}" stroke="${cleared ? '#e0a83e' : unlocked ? '#c9a678' : '#5a4a38'}" stroke-width="${cleared ? 5 : 3.5}"/>
         <text x="${p.x}" y="${p.y + 11}" font-size="30" text-anchor="middle">${z.icon}</text>
-        <text x="${p.x}" y="${p.y + 36}" font-size="0">.</text>
         <text x="${p.x}" y="${p.y + 66}" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#efe3c8" stroke="#000" stroke-width="3" paint-order="stroke">${z.id}. ${esc(z.name)}</text>
         ${pips}
         ${!unlocked ? `<text x="${p.x + 24}" y="${p.y - 20}" font-size="18" text-anchor="middle">🔒</text>` : ''}
@@ -127,22 +125,22 @@
     const mon = G.dragonMonster(id), blue = id === 'azul';
     return `<div class="card dragon ${id}"><div class="row"><div class="pic art big">${Art.monster(mon)}</div><div class="grow">
       <div class="name">${d.name} · nível ${d.level}</div><div class="sub">${d.blurb}</div><div class="tags">${modTags(d.mods)}<span class="tag">💥 ${d.sp}</span></div></div></div>
-      <div class="sub" style="margin-top:6px">Recompensa: 📦 Caixas ${blue ? '+4 / +5' : '+3 / +4'} · troféu ${d.tIcon} ${G.bonusText(d.bonus)}</div>
-      <div class="sub">Volta a cada 5 minutos.</div>
-      ${!unlocked ? `<button class="btn" disabled>🔒 Vença ${d.unlockZone} locais (${G.zonesCleared(st)}/${d.unlockZone})</button>`
+      <div class="sub" style="margin-top:6px">Taxa para lutar: <b>🪙 ${fmt(G.dragonFee(st, id))}</b> · Prêmio: 🪙 ${fmt(G.dragonPrize(st, id))} + 📦 Caixas ${blue ? '+4 / +5' : '+3 / +4'} + 💎 ${blue ? '60% de chance: 6–9 · 10–12 · 13–16 (20% cada)' : '35% de chance: 2–6'}</div>
+      <div class="sub">Volta a cada 5 minutos. Sem troféu.</div>
+      ${!unlocked ? `<button class="btn" disabled>🔒 Alcance o nível ${G.DRAGON_LEVEL} (você: ${st.level})</button>`
         : left > 0 ? `<div class="row waitrow"><button class="btn sm" disabled>⏳ Volta em <span data-live="dr-${id}">${mmss(left)}</span></button><button class="btn sm" data-skipdr="${id}">⏩ Chamar agora · 🪙 <span data-live="drcost-${id}">${G.dragonSkipCost(st, id)}</span></button></div>`
-        : `<button class="btn red" data-dragon="${id}" ${chk.ok ? '' : 'disabled'}>🔥 Desafiar o ${d.name}</button>${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}`}</div>`;
+        : `<button class="btn red" data-dragon="${id}" ${chk.ok ? '' : 'disabled'}>🔥 Pagar 🪙 ${fmt(G.dragonFee(st, id))} e desafiar</button>${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}`}</div>`;
   }
   function vMapa() {
-    const s = G.heroStats(st), cd = G.cooldownLeft(st);
+    const s = G.heroStats(st), mxEn = G.maxEnergy(st);
     const cz = G.currentZone(st), Z = G.ZONES[cz - 1], prog = G.zoneProgress(st, cz);
-    const nextEn = st.energy < G.MAX_ENERGY ? Math.ceil(G.ENERGY_SECS - (Date.now() - st.energyAt) / 1000) : 0;
+    const nextEn = st.energy < mxEn ? Math.ceil(G.energySecs(st) - (Date.now() - st.energyAt) / 1000) : 0;
     let h = bonusBanner(new Date());
     h += `<div class="card"><div class="sub">Vida do herói</div>${hpBar(st.hp, s.hp)}
       <div class="row" style="margin-top:8px"><div class="grow sub">🧪 ${st.potions.small} pequenas · ${st.potions.large} grandes</div>
       <button class="btn sm" data-act="rest" ${G.restCost(st) <= 0 ? 'disabled' : ''}>🔥 Descansar · 🪙 ${G.restCost(st)}</button></div></div>`;
-    h += `<div class="card"><div class="row"><div class="grow"><div class="name">⚡ Encontros: <span data-live="en">${st.energy}</span>/${G.MAX_ENERGY}</div>
-      <div class="sub">${st.energy < G.MAX_ENERGY ? `próximo em <span data-live="ent">${mmss(nextEn)}</span>` : 'cheio'} · fôlego: <span data-live="cd">${cd > 0 ? cd + 's' : 'pronto'}</span></div></div></div>${waitRow()}</div>`;
+    h += `<div class="card"><div class="row"><div class="grow"><div class="name">⚡ Encontros: <span data-live="en">${st.energy}</span>/${mxEn}${G.isVip(st) ? ' <span class="vipbadge">👑 x2</span>' : ''}</div>
+      <div class="sub">${st.energy < mxEn ? `próximo em <span data-live="ent">${mmss(nextEn)}</span>` : 'cheio — pode lutar sem esperar'}${st.energy <= 0 ? ' · <b class="down">acabaram!</b>' : ''}</div></div></div>${waitRow()}</div>`;
     h += `<div class="chips" style="margin-top:4px"><button data-jt="mapa" class="${jTab === 'mapa' ? 'on' : ''}">🗺️ Mapa</button><button data-jt="drag" class="${jTab === 'drag' ? 'on' : ''}">🐉 Dragões</button></div>`;
     if (jTab === 'drag') { view.innerHTML = h + `<h2 class="banner">🐉 Covil dos Dragões</h2>${dragonCard('verde')}${dragonCard('azul')}`; return; }
     if (st.finished) h += `<div class="card center"><div class="big">👑</div><div class="name">Você recuperou o fogo sagrado!</div><div class="sub">Os 15 locais foram vencidos. Rejogue os locais, enfrente os dragões e os eventos até o nível ${G.MAX_LEVEL}.</div></div>`;
@@ -196,8 +194,8 @@
     const dt = Object.values(G.DRAGONS).map((d) => { const got = st.dragonTrophies.includes(d.id); return `<div class="t ${got ? '' : 'lock'}"><div class="e">${got ? d.tIcon : '❔'}</div><b>${got ? d.trophy : d.name}</b><div class="muted">${got ? d.name : 'Bloqueado'}</div><div class="bonus">${G.bonusText(d.bonus)}</div></div>`; }).join('');
     const tt = G.trophyTotals(st);
     const ttLine = ['atk', 'hp', 'arm', 'crit'].map((k) => `<span>${G.TB_ICON[k]} +${Math.round(tt[k] * 10) / 10}${k === 'crit' ? '' : '%'}</span>`).join(' · ');
-    const et = st.evTrophies.length ? st.evTrophies.slice().reverse().map((t) => `<div class="t"><div class="e">${t.icon}</div><b>${esc(t.name)}</b><div class="muted">${t.type === 'weekly' ? 'Semanal' : 'Mensal'}</div>${t.bonus ? `<div class="bonus">${G.bonusText(t.bonus)}</div>` : ''}</div>`).join('') : '<div class="sub">Vença os chefes de evento para ganhar troféus especiais.</div>';
-    view.innerHTML = `<div class="card center"><div class="name">${esc(st.name)} · Nível ${st.level}${st.cls ? ` · ${G.CLASSES[st.cls].icon} ${G.CLASSES[st.cls].name}` : ''}</div>
+    const et = st.evTrophies.length ? st.evTrophies.slice().reverse().map((t) => `<div class="t"><div class="e">${t.icon}</div><b>${esc(t.name)}</b><div class="muted">${t.type === 'monthly' ? 'Mensal' : 'Semanal'}</div>${t.bonus ? `<div class="bonus">${G.bonusText(t.bonus)}</div>` : ''}</div>`).join('') : '<div class="sub">Vença os chefes de evento para ganhar troféus especiais.</div>';
+    view.innerHTML = `<div class="card center"><div class="name">${esc(st.name)} · Nível ${st.level}${st.cls ? ` · ${G.classIcon(st)} ${G.classTitle(st)}` : ''}${G.isVip(st) ? ' · 👑' : ''}</div>
       <div class="sub">Chefes: ${st.trophies.length}/15 · Feras abatidas: ${st.totalKills}</div>${doll()}<div class="sub" style="margin-top:6px">Toque num espaço para equipar ou ver detalhes.</div></div>
       <div class="card"><div class="name">Atributos</div><div class="hr"></div>
       <div class="row"><span class="grow">⚔️ Força</span><b>${fmt(s.atk)}</b></div><div class="row"><span class="grow">❤️ Vida</span><b>${fmt(s.hp)}</b></div>
@@ -256,14 +254,40 @@
     openModal(`<h2 class="banner">Escolha sua classe</h2><div class="sub center" style="margin-bottom:8px">Sua classe define a árvore de habilidades. A cada nível você ganha 1 ponto. Para trocar depois, é preciso redefinir a árvore (custa ouro).</div>${classCards()}`);
   }
   const nodeState = (d) => { const r = G.treeRank(st, d.id), c = G.canLearn(st, d.id); return r >= G.TREE_MAX_RANK ? 'maxed learned' : c.ok ? (r > 0 ? 'learned avail' : 'avail') : r > 0 ? 'learned' : 'locked'; };
+  const evoBonusText = (b) => [b.atkPct && `+${b.atkPct}% Força`, b.hpPct && `+${b.hpPct}% Vida`, b.armPct && `+${b.armPct}% Armadura`, b.crit && `+${b.crit} Crítico`, b.critDmg && `+${Math.round(b.critDmg * 100)}% dano crítico`,
+    b.vamp && `+${b.vamp}% vida roubada`, b.dodge && `+${b.dodge}% esquiva`, b.dotMult && `+${b.dotMult}% veneno/fogo`, b.poisonChance && `+${Math.round(b.poisonChance * 100)}% de envenenar`, b.skillDmg && `+${b.skillDmg}% dano de habilidades`].filter(Boolean).join(', ');
+  function evoCard(c) {
+    const evs = G.EVOS[st.cls];
+    if (st.evo != null) {
+      const e = evs[st.evo], list = G.TREE.filter((d) => d.cls === st.cls && d.evo && d.branch === st.evo);
+      return `<div class="card evo on"><div class="row"><div class="pic" style="font-size:34px">${e.icon}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${e.blurb}</div><div class="sub up">${evoBonusText(e.bonus)}</div></div></div>
+        <div class="bhead" style="margin-top:8px">Habilidades de ${e.name}</div><div class="tchain two">${list.map((d) => {
+        const r = G.treeRank(st, d.id), stt = nodeState(d), cost = G.canLearn(st, d.id).cost;
+        return `<button class="tnode ${stt} ${d.type}" data-sk="${d.id}"><div class="ring">${d.icon}</div><div class="nm">${esc(d.name)}</div>
+          <div class="pips">${[1, 2, 3].map((k) => `<b class="${r >= k ? 'on' : ''}"></b>`).join('')}</div>${r < G.TREE_MAX_RANK && cost ? `<span class="cp">${cost} pt</span>` : '<span class="cp">&nbsp;</span>'}</button>`;
+      }).join('')}</div></div>`;
+    }
+    return `<div class="card evo"><div class="name">🌟 Evolução de classe</div><div class="sub">No nível ${G.EVO_LEVEL}, o caminho que você seguiu na árvore vira uma <b>nova classe</b>: bônus permanente e 2 habilidades exclusivas. Aprenda ao menos a 2ª habilidade de um ramo e escolha a evolução.</div>
+      <div class="evolist">${c.branches.map((b, bi) => { const e = evs[bi], pp = G.branchPoints(st, bi), ck = G.canEvolve(st, bi);
+        return `<button class="evobtn ${ck.ok ? 'ready' : ''}" data-evolve="${bi}"><div class="e">${e.icon}</div><b>${e.name}</b><span>${b[1]} ${b[0]} · ${pp} pt</span></button>`; }).join('')}</div></div>`;
+  }
+  function showEvolve(b) {
+    const e = G.EVOS[st.cls][b], ck = G.canEvolve(st, b), sk = G.TREE.filter((d) => d.cls === st.cls && d.evo && d.branch === b);
+    openModal(`<div class="row"><div class="pic" style="font-size:38px">${e.icon}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${G.CLASSES[st.cls].name} · ramo ${G.CLASSES[st.cls].branches[b][0]}</div></div></div>
+      <div class="flavor">${e.blurb}</div><div class="sub up">Bônus permanente: ${evoBonusText(e.bonus)}</div><div class="hr"></div>
+      ${sk.map((d) => `<div class="rank"><b>${d.icon} ${esc(d.name)}</b> <span class="tag">${d.type === 'active' ? 'ATIVA' : 'PASSIVA'}</span><div class="sub">${G.skillDesc(d, 1)}</div><div class="sub">Custo ${G.treeCost(d, 1)} pt · requer nível ${G.treeReqLevel(d, 1)}</div></div>`).join('')}
+      <div class="sub" style="margin-top:6px">⚠️ A evolução é definitiva (até redefinir a árvore). Só as habilidades da sua evolução ficam disponíveis.</div>
+      <button class="btn go" data-do-evolve="${b}" ${ck.ok ? '' : 'disabled'}>Evoluir · 🪙 ${fmt(G.evoCost(st))}</button>${ck.ok ? '' : `<div class="sub center down" style="margin-top:6px">${ck.msg}</div>`}<button class="btn" data-close>Fechar</button>`);
+  }
   function vArvore() {
     if (!st.cls) { view.innerHTML = `<h2 class="banner">🌳 Árvore de Habilidades</h2><div class="sub center" style="margin-bottom:8px">Escolha uma classe para começar.</div>${classCards()}`; return; }
     const c = G.CLASSES[st.cls], pts = G.skillPoints(st);
-    let h = `<div class="card" style="border-color:${c.color}"><div class="row"><div class="pic" style="font-size:36px">${c.icon}</div><div class="grow"><div class="name">${c.name} · nível ${st.level}</div><div class="sub">${c.bonusText}</div></div>
+    let h = `<div class="card" style="border-color:${c.color}"><div class="row"><div class="pic" style="font-size:36px">${G.classIcon(st)}</div><div class="grow"><div class="name">${G.classTitle(st)} · nível ${st.level}</div><div class="sub">${st.evo != null ? `${c.icon} ${c.name} → evolução` : c.bonusText}</div></div>
       <div class="ptsbox"><div class="pts">${pts.free}</div><div class="sub">pontos livres</div></div></div>
       <div class="sub" style="margin-top:6px">⭐ ${pts.spent} usados de ${pts.total} (1 por nível). Habilidades <b>ativas</b> (quadradas) viram botões na batalha; <b>passivas</b> (redondas) valem sempre.</div></div>`;
+    h += evoCard(c);
     c.branches.forEach((b, bi) => {
-      const list = G.TREE.filter((d) => d.cls === st.cls && d.branch === bi);
+      const list = G.TREE.filter((d) => d.cls === st.cls && d.branch === bi && !d.evo);
       h += `<div class="branch"><div class="bhead">${b[1]} ${b[0]}</div><div class="tchain">${list.map((d) => {
         const r = G.treeRank(st, d.id), stt = nodeState(d), cost = G.canLearn(st, d.id).cost;
         return `<button class="tnode ${stt} ${d.type}" data-sk="${d.id}"><div class="ring">${d.icon}</div><div class="nm">${esc(d.name)}</div>
@@ -277,30 +301,27 @@
     const d = G.TREE_BY_ID[id], r = G.treeRank(st, id), c = G.canLearn(st, id);
     const rows = [1, 2, 3].map((k) => `<div class="rank ${r >= k ? 'got' : ''}"><b>Nível ${k}</b> ${r >= k ? '✅' : ''}<div class="sub">${G.skillDesc(d, k)}</div><div class="sub">Custo: ${G.treeCost(d, k)} pt · requer nível ${G.treeReqLevel(d, k)} do herói</div></div>`).join('');
     const btn = r >= G.TREE_MAX_RANK ? '<button class="btn" disabled>Nível máximo</button>' : `<button class="btn go" data-learn="${id}" ${c.ok ? '' : 'disabled'}>${r ? 'Melhorar' : 'Aprender'} · ${c.cost || G.treeCost(d, r + 1)} pt</button>${c.ok ? '' : `<div class="sub center down" style="margin-top:6px">${c.msg}</div>`}`;
-    openModal(`<div class="row"><div class="pic" style="font-size:36px;border-radius:${d.type === 'active' ? 12 : 50}%">${d.icon}</div><div class="grow"><div class="name">${esc(d.name)}</div><div class="sub"><span class="tag">${d.type === 'active' ? 'ATIVA · botão na batalha' : 'PASSIVA'}</span> tier ${d.tier}${d.req ? ' · requer ' + esc(G.TREE_BY_ID[d.req].name) : ''}</div></div></div>${rows}${btn}<button class="btn" data-close>Fechar</button>`);
+    openModal(`<div class="row"><div class="pic" style="font-size:36px;border-radius:${d.type === 'active' ? 12 : 50}%">${d.icon}</div><div class="grow"><div class="name">${esc(d.name)}</div><div class="sub"><span class="tag">${d.type === 'active' ? 'ATIVA · botão na batalha' : 'PASSIVA'}</span> ${d.evo ? 'evolução' : 'tier ' + d.tier}${d.req ? ' · requer ' + esc(G.TREE_BY_ID[d.req].name) : ''}</div></div></div>${rows}${btn}<button class="btn" data-close>Fechar</button>`);
   }
 
   /* ---------- Itens: detalhe ---------- */
-  function showItem(id, shopMode) {
-    let it, where;
-    if (shopMode) { it = st.shop.equip.concat(st.shop.runes).find((x) => x.id === id); where = 'shop'; }
-    else { const f = G.findItem(st, id); if (!f) return; it = f.it; where = f.where; }
-    if (!it) return;
+  function showItem(id) {
+    const f = G.findItem(st, id); if (!f) return;
+    const it = f.it, where = f.where;
     let h = itemRow(it, '', 'data-noop');
     h += `<div class="flavor"><b>${esc(G.itemMaterial(it))}</b> — ${esc(G.itemDesc(it))}</div>`;
     if (it.rune) {
       st.equipped.runas.forEach((r, i) => { if (r && r.id !== it.id) h += `<div class="sub">Runa ${i + 1}: ${esc(G.itemName(r))} — ${statLine(r)}</div>`; });
     } else if (st.equipped[it.slot] && st.equipped[it.slot].id !== it.id) h += `<div class="sub">Equipado: ${esc(G.itemName(st.equipped[it.slot]))} — ${statLine(st.equipped[it.slot])}</div>`;
     h += '<div class="hr"></div>';
-    if (where === 'shop') h += `<button class="btn go" data-buy="${it.id}">Comprar · 🪙 ${fmt(G.shopPrice(st, it))}</button>`;
     if (where === 'bag') {
       if (it.rune) h += [0, 1, 2].map((i) => `<button class="btn go" data-eq="${it.id}" data-ri="${i}">Equipar na runa ${i + 1}${st.equipped.runas[i] ? ' (troca)' : ''}</button>`).join('');
       else h += `<button class="btn go" data-eq="${it.id}">Equipar</button>`;
       h += `<button class="btn" data-lock="${it.id}">${it.lock ? '🔓 Destravar' : '🔒 Travar (protege de venda)'}</button>`;
     }
     if (where === 'eq') h += `<button class="btn" data-uneq="${it.slot}" data-ri="${st.equipped.runas.findIndex((x) => x && x.id === it.id)}">Desequipar</button>`;
-    if (where !== 'shop') h += it.plus >= G.MAX_PLUS ? '<button class="btn" disabled>Ferreiro: nível máximo</button>' : `<button class="btn" data-go-forge="${it.id}">🔨 Melhorar no ferreiro</button>`;
-    if (where === 'bag' && !it.lock) h += `<button class="btn" data-dis="${it.id}">♻️ Desmontar · 🦴 +${G.dismantleYield(it)}</button><button class="btn red" data-sell="${it.id}">Vender · 🪙 ${fmt(G.sellPrice(it))}</button>`;
+    h += it.plus >= G.MAX_PLUS ? '<button class="btn" disabled>Ferreiro: nível máximo</button>' : `<button class="btn" data-go-forge="${it.id}">🔨 Melhorar no ferreiro</button>`;
+    if (where === 'bag' && !it.lock) h += `<button class="btn red" data-sell="${it.id}">Vender · 🪙 ${fmt(G.sellPrice(it))}</button>`;
     openModal(h + '<button class="btn" data-close>Fechar</button>');
   }
   function showEmptySlot(slot, ri) {
@@ -316,20 +337,20 @@
   function openOneBox(id) {
     const r = G.openBox(st, id);
     if (!r.ok) return toast(r.msg);
-    buzz(30); save(); showOpened(r.items, `Caixa +${r.box.tier} aberta!`); render();
+    buzz(30); save(); showOpened(r.items, `Caixa +${r.box.tier} aberta!${r.diamonds ? ' 💎 +' + r.diamonds : ''}`); render();
   }
   function openAllBoxes() {
-    const got = []; let n = 0;
-    for (const b of st.boxes.slice().sort((a, c) => c.tier - a.tier)) { const r = G.openBox(st, b.id); if (!r.ok) { if (!n) return toast(r.msg); break; } got.push(...r.items); n++; }
-    buzz(40); save(); showOpened(got.sort((a, b) => b.rarity - a.rarity), `${n} caixa(s) aberta(s)`); render();
+    const got = []; let n = 0, dia = 0;
+    for (const b of st.boxes.slice().sort((a, c) => c.tier - a.tier)) { const r = G.openBox(st, b.id); if (!r.ok) { if (!n) return toast(r.msg); break; } got.push(...r.items); dia += r.diamonds || 0; n++; }
+    buzz(40); save(); showOpened(got.sort((a, b) => b.rarity - a.rarity), `${n} caixa(s) aberta(s)${dia ? ' · 💎 +' + dia : ''}`); render();
   }
 
   function showOdds() {
     const names = G.RARITIES.map((r) => `<span style="color:${r.color}">${r.name}</span>`);
-    let h = `<h2 class="banner">📦 Chances das Caixas</h2><div class="sub center" style="margin-bottom:8px">Itens épicos, lendários e runas são raros: só as caixas mais altas os trazem. A loja não vende épicos nem lendários.</div>`;
+    let h = `<h2 class="banner">📦 Chances das Caixas</h2><div class="sub center" style="margin-bottom:8px">Épicos, lendários e runas são raros: só as caixas mais altas os trazem. Peças épicas e lendárias do material certo entram nos conjuntos da loja. 💎 Diamantes também podem sair das caixas +4 e +5.</div>`;
     for (let t = 1; t <= 5; t++) {
       const od = G.BOX_ODDS[t - 1], tot = od.reduce((a, b) => a + b, 0);
-      h += `<div class="cfam"><div class="row">${boxChip(G.makeBox(t, 1))}<div class="grow"><div class="name">Caixa +${t}</div><div class="sub">${G.BOX_ITEMS[t - 1]} item(ns) · 🔶 runa: ${Math.round(G.BOX_RUNE[t - 1] * 100)}% por item</div></div></div>
+      h += `<div class="cfam"><div class="row">${boxChip(G.makeBox(t, 1))}<div class="grow"><div class="name">Caixa +${t}</div><div class="sub">${G.BOX_ITEMS[t - 1]} item(ns) · 🔶 runa: ${Math.round(G.BOX_RUNE[t - 1] * 100)}% por item${G.BOX_DIAMOND[t - 1] ? ` · 💎 ${Math.round(G.BOX_DIAMOND[t - 1] * 100)}% de 1 diamante` : ''}</div></div></div>
         <div class="oddsbar">${od.map((v, i) => (v ? `<i style="width:${(100 * v) / tot}%;background:${G.RARITIES[i].color}" title="${G.RARITIES[i].name}"></i>` : '')).join('')}</div>
         <div class="odds">${od.map((v, i) => (v ? `<span>${names[i]} ${Math.round((100 * v) / tot * 10) / 10}%</span>` : '')).join('')}</div></div>`;
     }
@@ -353,15 +374,15 @@
   function bulkMenu() {
     openModal(`<h2 class="banner">Limpar baú</h2><div class="sub" style="margin-bottom:8px">Itens travados 🔒 e itens melhores que o equipado nunca entram.</div>
       <button class="btn" data-bulk="sell:0">Vender todos os Comuns</button><button class="btn" data-bulk="sell:1">Vender até Incomuns</button>
-      <button class="btn" data-bulk="dis:0">♻️ Desmontar todos os Comuns</button><button class="btn" data-bulk="dis:1">♻️ Desmontar até Incomuns</button><button class="btn" data-close>Fechar</button>`);
+      <button class="btn" data-close>Fechar</button>`);
   }
   function doBulk(mode, max) {
     let total = 0, n = 0;
     for (const it of st.bag.slice()) {
       if (it.lock || it.rarity > max || betterThanEquipped(it)) continue;
-      total += mode === 'sell' ? G.sell(st, it.id) : G.dismantle(st, it.id); n++;
+      total += G.sell(st, it.id); n++;
     }
-    toast(n ? (mode === 'sell' ? `${n} item(ns) vendidos: 🪙 ${fmt(total)}` : `${n} item(ns) desmontados: 🦴 ${fmt(total)}`) : 'Nenhum item elegível.');
+    toast(n ? `${n} item(ns) vendidos: 🪙 ${fmt(total)}` : 'Nenhum item elegível.');
     save(); closeModal(); render();
   }
 
@@ -370,20 +391,57 @@
     if (it.rune) return '';
     return diffLine(it);
   }
+  /* ---------- Loja de conjuntos ---------- */
+  const SET_SLOT_NAMES = { arma: 'Arma', escudo: 'Escudo', elmo: 'Elmo', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas', amuleto: 'Amuleto' };
+  function setPreview(set) {
+    const eq = { runas: [null, null, null] };
+    for (const sl of G.SLOT_ORDER) eq[sl] = G.setPiece(st, set, sl);
+    return Avatar.svg(st.avatar, eq);
+  }
+  function setPriceText(set) {
+    const ps = G.SLOT_ORDER.map((sl) => G.setPrice(st, set, sl)), tot = ps.reduce((a, p) => a + p.n, 0);
+    return set.cur === 'gem' ? `💎 ${fmt(tot)} (conjunto completo)` : `🪙 ${fmt(tot)} (conjunto completo)`;
+  }
+  function vSetList() {
+    let h = `<div class="card"><div class="sub">Compre o conjunto <b>peça por peça</b>. Cada peça já vem pronta; juntando 3, 5 ou 7 do mesmo conjunto você ganha bônus de atributos. Os conjuntos mais fortes liberam com o nível do herói. O conjunto lendário só se compra com <b>💎 Diamantes</b>.</div></div>`;
+    h += G.SETS.map((set) => {
+      const un = G.setUnlocked(st, set), n = G.setProgress(st, set), col = G.RARITIES[set.rarity].color;
+      return `<div class="item setcard ${un ? '' : 'locked'}" data-set="${set.id}" style="border-color:${col}"><div class="setpic">${setPreview(set)}</div>
+        <div class="grow"><div class="name" style="color:${col}">${set.name}</div>
+        <div class="stat">${G.RARITIES[set.rarity].name} · ${set.mat}</div>
+        <div class="stat">${un ? `Peças: <b>${n}/7</b>` : `🔒 Alcance o nível ${set.minLevel}`}</div>
+        <div class="stat">${setPriceText(set)}</div>
+        ${un ? `<div class="bar"><i style="width:${(n / 7) * 100}%"></i><div class="t">${n}/7</div></div>` : ''}</div></div>`;
+    }).join('');
+    return h;
+  }
+  function vSetDetail(set) {
+    const un = G.setUnlocked(st, set), n = G.setProgress(st, set), col = G.RARITIES[set.rarity].color;
+    let h = `<button class="btn sm" data-set="">← Conjuntos</button>
+      <div class="card setdet" style="border-color:${col}"><div class="row"><div class="setpic big">${setPreview(set)}</div><div class="grow">
+        <div class="name" style="color:${col}">${set.name}</div><div class="sub">${G.RARITIES[set.rarity].name} · ${set.mat} · nível do item ${G.setIlvl(st, set)}</div>
+        <div class="sub">Peças: <b>${n}/7</b></div><div class="bar"><i style="width:${(n / 7) * 100}%"></i><div class="t">${n}/7</div></div>
+        <div class="sub" style="margin-top:6px">Bônus equipando: ${G.SET_BONUS.slice().reverse().map(([k, v]) => `${k} peças +${v}%`).join(' · ')} em Força, Vida e Armadura.</div>
+        ${set.cur === 'gem' ? `<div class="sub">Você tem 💎 ${fmt(st.diamonds)}</div>` : ''}</div></div></div>`;
+    if (!un) h += `<div class="card center"><b class="down">🔒 Alcance o nível ${set.minLevel} para comprar este conjunto.</b></div>`;
+    h += G.SLOT_ORDER.map((sl) => {
+      const it = G.setPiece(st, set, sl), p = G.setPrice(st, set, sl), own = G.setOwned(st, set, sl);
+      const right = own ? '<span class="tag">✔ Comprado</span>' : `<div class="pricebox"><button class="btn sm go" data-buyset="${set.id}:${sl}" ${un ? '' : 'disabled'}>${p.cur === 'diamonds' ? '💎' : '🪙'} ${fmt(p.n)}</button></div>`;
+      return itemRow(it, right, 'data-noop', true);
+    }).join('');
+    return h;
+  }
   function vLoja() {
-    const tabs = [['equip', '🛡️ Equip.'], ['runas', '🔶 Runas'], ['pocao', '🧪 Poções'], ['vender', '💰 Vender'], ['forja', '🔨 Ferreiro'], ['mochila', '🎒 Baú']];
-    const left = Math.max(0, G.SHOP_SECS - (Date.now() - st.shop.at) / 1000);
+    const tabs = [['equip', '🛡️ Conjuntos'], ['runas', '🔶 Runas'], ['pocao', '🧪 Poções'], ['vender', '💰 Vender'], ['forja', '🔨 Ferreiro'], ['mochila', '🎒 Baú'], ['vip', '👑 VIP']];
     let h = `<h2 class="banner">Mercador</h2><div class="chips wrap">${tabs.map(([id, n]) => `<button data-st="${id}" class="${id === shopTab ? 'on' : ''}">${n}</button>`).join('')}</div>`;
-    const stock = (list) => list.map((i) => itemRow(i, `<div class="pricebox">${st.shop.deal === i.id ? '<div class="deal">🔥 -25%</div>' : ''}<button class="btn sm go" data-buyq="${i.id}">🪙 ${fmt(G.shopPrice(st, i))}</button></div>`, `data-shopitem="${i.id}"`)).join('');
-    const renew = `<button class="btn" data-act="refreshshop">🔄 Renovar estoque · 🪙 ${G.shopRefreshCost(st)}</button><div class="sub center" style="margin-top:6px">Renova sozinho em <span data-live="shop">${mmss(left)}</span> ou ao subir de nível.</div>`;
     if (shopTab === 'equip') {
-      const f = ['todos', ...G.SLOT_ORDER];
-      h += `<div class="chips small">${f.map((x) => `<button data-ss="${x}" class="${x === shopSlot ? 'on' : ''}">${x === 'todos' ? 'Todos' : G.SLOTS[x].icon}</button>`).join('')}</div>`;
-      const list = st.shop.equip.filter((i) => shopSlot === 'todos' || i.slot === shopSlot);
-      h += (list.length ? stock(list) : '<div class="card center muted">Sem itens desse tipo agora.</div>') + `<div class="sub center" style="margin-top:6px">A loja só vende itens comuns, incomuns e, raramente, raros — e cobra caro. Épicos e lendários saem de caixas altas, que não se compram.</div>` + renew;
+      h += shopSet == null ? vSetList() : vSetDetail(G.SETS[shopSet]);
     } else if (shopTab === 'runas') {
-      h += `<div class="card"><div class="sub">🔶 Runas são <b>raras e caras</b>. O mercador quase nunca tem uma; elas saem melhor das caixas +3 ou maiores.</div></div>`;
-      h += (st.shop.runes.length ? stock(st.shop.runes) : '<div class="card center muted">Nenhuma runa no estoque agora. Renove o estoque ou abra caixas altas.</div>') + renew;
+      h += `<div class="card"><div class="sub">🔶 Runas só se compram com <b>💎 Diamantes</b> — raros: vêm de dragões, eventos e caixas +4/+5. Também saem de caixas altas. Você tem <b>💎 ${fmt(st.diamonds)}</b>.${st.level < G.RUNE_SHOP_LEVEL ? ` <b class="down">Disponível a partir do nível ${G.RUNE_SHOP_LEVEL}.</b>` : ''}</div></div>`;
+      h += G.runeOffers(st).map((o) => {
+        const it = G.makeRune(st.level, o.rarity, o.t), ok = st.level >= G.RUNE_SHOP_LEVEL;
+        return itemRow(it, `<div class="pricebox"><button class="btn sm go" data-buyrune="${o.t}:${o.rarity}" ${ok ? '' : 'disabled'}>💎 ${o.price}</button></div>`, 'data-noop', true);
+      }).join('');
     } else if (shopTab === 'pocao') {
       h += [['small', 'Poção Pequena', 'Recupera 35% da vida em combate'], ['large', 'Poção Grande', 'Recupera 65% da vida em combate']].map(([k, n, d]) =>
         `<div class="card"><div class="row"><div class="pic">🧪</div><div class="grow"><div class="name">${n} (x${st.potions[k]})</div><div class="sub">${d}</div></div>
@@ -392,6 +450,13 @@
     } else if (shopTab === 'vender') {
       const list = st.bag.filter((i) => !i.lock).sort(SORTS.raridade);
       h += list.length ? list.map((i) => itemRow(i, `<button class="btn sm red" data-sellq="${i.id}">🪙 ${fmt(G.sellPrice(i))}</button>`, `data-item="${i.id}"`, true)).join('') : '<div class="card center muted">Nada para vender (itens travados não aparecem).</div>';
+    } else if (shopTab === 'vip') {
+      const vip = G.isVip(st), V = G.VIP;
+      h += `<div class="card vip"><div class="big">👑</div><div class="name center">Passe VIP · ${V.days} dias</div>
+        <ul class="vipl"><li>⚡ <b>${V.slots} encontros</b> (em vez de ${G.MAX_ENERGY}) e recarga ${Math.round((1 - V.regen) * 100)}% mais rápida</li><li>🪙 +${Math.round((V.gold - 1) * 100)}% de ouro e ⭐ +${Math.round((V.xp - 1) * 100)}% de XP</li><li>♻️ Restaurar encontros ${Math.round((1 - V.resetDiscount) * 100)}% mais barato</li><li>👑 Selo VIP no herói</li></ul>
+        ${vip ? `<div class="sub center up">VIP ativo — restam <span data-live="vip">${mmss(G.vipLeft(st) / 1000)}</span></div>` : ''}
+        <button class="btn go" data-act="buyvip">${vip ? 'Renovar' : 'Comprar'} · 💎 ${V.price}</button>
+        <div class="sub center" style="margin-top:6px">Você tem 💎 ${fmt(st.diamonds)}. Diamantes são raros: dragões, eventos especiais e caixas +4/+5.</div></div>`;
     } else if (shopTab === 'forja') {
       h += vForja();
     } else {
@@ -404,18 +469,15 @@
   /* ---------- Ferreiro ---------- */
   function vForja() {
     const forge = G.bonusMul(new Date()).forge;
-    const tabs = [['melhorar', 'Melhorar'], ['desmontar', 'Desmontar'], ['fundir', 'Fundir runas']];
-    let h = `<div class="card"><div class="sub">🦴 Ossos: <b>${fmt(st.ossos)}</b> · Melhorias dão +12% por nível (até +${G.MAX_PLUS}); acima de +2 podem falhar. Desmonte o que sobra para ganhar ossos.${forge < 1 ? ' <b class="up">Quarta da Forja: -25%!</b>' : ''}</div></div>
+    const tabs = [['melhorar', 'Melhorar'], ['fundir', 'Fundir runas']];
+    let h = `<div class="card"><div class="sub">Melhorias dão +12% por nível (até +${G.MAX_PLUS}) e custam <b>ouro</b>, mais caro quanto mais forte o item; acima de +2 podem falhar. Lendários e runas também gastam 💎 diamantes.${forge < 1 ? ' <b class="up">Quarta da Forja: -25%!</b>' : ''}</div></div>
       <div class="seg">${tabs.map(([id, n]) => `<button data-ft="${id}" class="${id === forgeTab ? 'on' : ''}">${n}</button>`).join('')}</div>`;
     if (forgeTab === 'melhorar') {
       const all = G.SLOT_ORDER.map((s) => st.equipped[s]).concat(st.equipped.runas).filter(Boolean).concat(st.bag);
       h += all.length ? all.map((i) => {
         const max = i.plus >= G.MAX_PLUS;
-        return itemRow(i, max ? '<span class="sub">MÁX</span>' : `<div class="pricebox"><div class="sub">${Math.round(G.upgradeChance(i) * 100)}% de sucesso</div><button class="btn sm" data-upq="${i.id}">🪙 ${fmt(G.upgradeCost(i, forge))} · 🦴 ${G.upgradeOssos(i)}</button></div>`, 'data-noop', true);
+        return itemRow(i, max ? '<span class="sub">MÁX</span>' : `<div class="pricebox"><div class="sub">${Math.round(G.upgradeChance(i) * 100)}% de sucesso</div><button class="btn sm" data-upq="${i.id}">🪙 ${fmt(G.upgradeCost(i, forge))}${G.upgradeDiamonds(i) ? ' · 💎 ' + G.upgradeDiamonds(i) : ''}</button></div>`, 'data-noop', true);
       }).join('') : '<div class="card center muted">Sem itens.</div>';
-    } else if (forgeTab === 'desmontar') {
-      const list = st.bag.filter((i) => !i.lock).sort(SORTS.raridade);
-      h += list.length ? list.map((i) => itemRow(i, `<button class="btn sm" data-disq="${i.id}">🦴 +${G.dismantleYield(i)}</button>`, 'data-item="' + i.id + '"', true)).join('') : '<div class="card center muted">Nada para desmontar.</div>';
     } else {
       const gr = G.runeGroups(st);
       h += gr.length ? gr.map((g) => `<div class="card"><div class="row"><div class="pic">${G.RUNES[g.t].icon}</div><div class="grow"><div class="name">3x Runa ${G.RUNES[g.t].name} ${G.RARITIES[g.rarity].name}</div><div class="sub">→ 1 runa ${G.RARITIES[g.rarity + 1].name} · tem ${g.items.length}</div></div><button class="btn sm" data-fuse="${g.key}">🪙 ${G.fuseCost(g.rarity)}</button></div></div>`).join('')
@@ -449,25 +511,23 @@
 
   /* ---------- Eventos ---------- */
   function vEventos() {
-    const now = new Date(), wk = G.eventMonster(st, 'weekly', now), mo = G.eventMonster(st, 'monthly', now);
-    const cd = G.cooldownLeft(st);
+    const now = new Date(), wk = G.eventMonster(st, 'weekly', now), dy = G.eventMonster(st, 'daily', now);
     const card = (type, e, label, tryTxt) => {
       const unlocked = G.eventUnlocked(st, type), chk = G.canFight(st, 'event-' + type);
-      const claimed = st.ev[type === 'weekly' ? 'claimW' : 'claimM'] === e.key;
+      const claimed = st.ev[type === 'weekly' ? 'claimW' : 'claimD'] === e.key;
       return `<div class="card boss"><div class="row"><div class="pic art big">${Art.monster({ name: e.def.name, emoji: e.def.emoji, kind: 'event' })}</div><div class="grow"><div class="tag">${label}</div><div class="name">${e.def.name}</div>
         <div class="sub">Nível ${e.mon.level} · golpe especial: ${e.def.sp}</div><div class="tags">${modTags(e.def.mods)}</div></div></div>
         <div class="sub" style="margin-top:6px">Tentativas hoje: <b>${st.ev[type]}</b> · ${tryTxt}</div>
-        <div class="sub">Recompensa: 🦕 Fósseis ${claimed ? '' : '+ item e runa ' + (type === 'monthly' ? 'épicos/lendários' : 'raros/épicos') + ' + troféu ' + e.def.tIcon + ' (1ª vitória)'}</div>
+        <div class="sub">Recompensa: ${claimed ? 'prêmio já resgatado (as próximas vitórias dão só o ouro da luta)' : type === 'weekly' ? '🪙 ' + fmt(G.eventPrize(st, 'weekly', e.mon.level)) + ' + 📦 2 caixas + 40% de chance de 💎 3 (1ª vitória da semana, sem troféu)' : '🪙 ' + fmt(G.eventPrize(st, 'daily', e.mon.level)) + ' + 📦 caixa + 20% de chance de 💎 (1ª vitória do dia)'}</div>
         <button class="btn red" data-ev="${type}" ${chk.ok ? '' : 'disabled'}>${unlocked ? '⚔️ Enfrentar' : '🔒 Derrote ' + G.EVENT_UNLOCK[type] + ' chefes'}</button>${unlocked && !chk.ok ? `<div class="sub center" style="margin-top:6px">${chk.msg}</div>` : ''}</div>`;
     };
     const bonus = G.bonusEvents(now);
     let h = `<h2 class="banner">Eventos</h2>`;
     h += bonus.length ? bonusBanner(now) : '<div class="card"><div class="sub">Sem bônus hoje. Fins de semana: +50% XP · dias 1–3: +50% ouro · quartas: ferreiro -25%.</div></div>';
     h += `<div class="card">${waitRow()}</div>`;
+    h += `<h2 class="banner">Desafio do Dia</h2>${card('daily', dy, 'DIÁRIO · ' + dy.key, 'renova todo dia')}`;
     h += `<h2 class="banner">Chefe da Semana</h2>${card('weekly', wk, 'SEMANAL · ' + wk.key, 'renova toda segunda')}`;
-    h += `<h2 class="banner">Chefe do Mês</h2>${card('monthly', mo, 'MENSAL · ' + mo.key, 'só 1 por dia, forte!')}`;
-    h += `<h2 class="banner">Troca de Fósseis (🦕 ${st.fossils})</h2>` + G.EVENT_SHOP.map((o) =>
-      `<div class="card"><div class="row"><div class="pic">${o.icon}</div><div class="grow"><div class="name">${o.name}</div></div><button class="btn sm go" data-evbuy="${o.id}" ${st.fossils < o.cost ? 'disabled' : ''}>🦕 ${o.cost}</button></div></div>`).join('');
+
     view.innerHTML = h;
   }
 
@@ -476,7 +536,7 @@
   function beginFight(mon, opts) {
     if (st.hp < 1) G.setHp(st, 1);
     fight = G.startFight(st, mon, opts);
-    closeModal(); save(); drawFight([]); overlay.hidden = false;
+    closeModal(); save(); drawFight([lineHtml({ kind: 'info', text: `${fight.mon.boss ? '👑 ' : ''}${fight.mon.name} apareceu! O que você vai fazer?` })]); overlay.hidden = false;
   }
   function startZone(z, step) {
     const chk = G.canFightZone(st, z, step);
@@ -487,6 +547,8 @@
   function startDragon(id) {
     const chk = G.canFightDragon(st, id);
     if (!chk.ok) { toast(chk.msg); render(); return; }
+    if (!confirm(`Pagar 🪙 ${fmt(G.dragonFee(st, id))} para enfrentar o ${G.DRAGONS[id].name}? A taxa não volta se você perder.`)) return;
+    G.payDragonFee(st, id);
     beginFight(G.dragonMonster(id), { mode: 'dragon' });
   }
   function startEvent(type) {
@@ -498,7 +560,7 @@
   function sceneFor(f) {
     if (f.zone) return f.zone.z;
     if (f.mode === 'dragon') return f.mon.dragon === 'azul' ? 'ice' : 'glade';
-    return f.mode === 'event-monthly' ? 'volcano' : 'cursed';
+    return f.mode === 'event-daily' ? 'plain' : 'cursed';
   }
   function drawFight(logLines) {
     const f = fight, m = f.mon, h = f.hero;
@@ -509,16 +571,23 @@
     const monSt = [f.mstun ? '💫 atordoado' : '', ...f.dots.map((d) => `${d.icon} ${d.name}`), f.slow ? '🌨️ lento' : '', f.mark ? '📍 marcado' : ''].filter(Boolean).map((x) => `<span class="tag st">${x}</span>`).join('');
     const potBtn = (k, n) => `<button class="btn" data-fa="potion-${k}" ${st.potions[k] > 0 ? '' : 'disabled'}>🧪 ${n} (${st.potions[k]})</button>`;
     const label = KIND_LABEL[m.kind];
+    const biome = typeof sceneFor(f) === 'number' ? Art.biomeOf(sceneFor(f)) : sceneFor(f);
     overlay.innerHTML = `<div class="fight">
-      <div class="arena ${m.boss ? 'boss' : m.kind === 'semi' ? 'semi' : m.kind === 'elite' ? 'elite' : ''}" id="arena" style="position:relative">
+      <div class="stage ${m.boss ? 'boss' : m.kind === 'semi' ? 'semi' : m.kind === 'elite' ? 'elite' : ''}" id="arena" style="--gc:${Art.ground(biome)};--k:${Math.min(1.45, Math.max(1, (window.innerHeight - 480) / 310)).toFixed(3)}">
         <div class="sceneBg">${Art.scene(sceneFor(f))}</div>
-        <div class="arenatop"><span class="sub">${m.boss ? '👑 ' : ''}${label} · Nível ${m.level}</span><div class="name">${esc(m.name)}</div></div>
-        <div class="mon ${m.dragon === 'azul' ? '' : ''}" id="mon">${Art.monster(m)}</div>
-        <div class="arenabot">${hpBar(m.hp, m.maxHp, 'mhp')}
-        <div class="tags" style="justify-content:center">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}${monSt}</div></div></div>
+        <div class="world"><div class="cam" style="animation-delay:-${((Date.now() / 1000) % 16).toFixed(2)}s">
+          <div class="floor">
+            <div class="plat pm"></div><div class="plat ph"></div>
+            <div class="spr smon" id="mon"><div class="inner">${Art.monster(m)}</div></div>
+            <div class="spr shero" id="hero"><div class="inner">${Avatar.svg(st.avatar, st.equipped, { back: true })}</div></div>
+          </div>
+        </div></div>
+        <div class="hpbox mb"><div class="hn"><b>${m.boss ? '👑 ' : ''}${esc(m.name)}</b><span>Nv ${m.level}</span></div>${hpBar(m.hp, m.maxHp, 'mhp')}<div class="hn sm"><span>${label}</span><span class="mst">${monSt}</span></div></div>
+        <div class="hpbox hb"><div class="hn"><b>${esc(st.name)}</b><span>Nv ${st.level}${cls ? ' · ' + G.classIcon(st) : ''}</span></div>${hpBar(h.hp, h.max)}<div class="hn sm"><span class="hst">${heroSt || '&nbsp;'}</span></div></div>
+      </div>
+      <div class="tags" style="justify-content:center;margin-top:6px">${modTags(m.mods)}${m.special ? `<span class="tag">💥 ${esc(m.special.name)}</span>` : ''}</div>
       <div class="warn" id="warn" ${f.warn ? '' : 'hidden'}>⚠️ ${esc(m.name)} vai usar ${esc(m.special ? m.special.name : '')}! Proteja-se!</div>
       <div class="log" id="log">${logLines.join('')}</div>
-      <div class="herorow"><div class="herochip">${Avatar.svg(st.avatar, st.equipped)}</div><div class="grow"><div style="font-size:13px;margin-bottom:4px">${esc(st.name)} ${heroSt}</div>${hpBar(h.hp, h.max)}</div></div>
       <div class="acts" style="margin-top:8px"><button class="btn red wide" data-fa="attack">${atkLabel}</button></div>
       ${skillBtns ? `<div class="skgrid">${skillBtns}</div>` : ''}
       <div class="acts" style="margin-top:6px">${potBtn('small', 'Poção P')}${potBtn('large', 'Poção G')}
@@ -531,7 +600,7 @@
   function floatDmg(txt, cls, onMon) {
     const arena = $('#arena'); if (!arena) return;
     const d = document.createElement('div'); d.className = 'floatdmg ' + cls; d.textContent = txt;
-    d.style.left = onMon ? '55%' : '20%'; d.style.top = onMon ? '45%' : '85%';
+    d.style.left = onMon ? '64%' : '26%'; d.style.top = onMon ? '22%' : '52%';
     arena.appendChild(d); setTimeout(() => d.remove(), 900);
   }
   async function doAction(action) {
@@ -542,11 +611,12 @@
     for (const e of events) {
       lines.push(lineHtml(e));
       const logEl = $('#log'); if (logEl) logEl.innerHTML = lines.slice(-6).join('');
-      const mon = $('#mon');
-      if (mon && e.kind === 'hit' && e.who === 'hero') { mon.classList.remove('shake'); void mon.offsetWidth; mon.classList.add('shake'); floatDmg('-' + e.dmg, e.crit ? 'crit' : '', true); buzz(e.crit ? 40 : 15); }
-      if (mon && e.kind === 'hit' && e.who === 'mon') { mon.classList.remove('lunge'); void mon.offsetWidth; mon.classList.add('lunge'); floatDmg('-' + e.dmg, e.special ? 'crit' : '', false); buzz(e.special ? 60 : 25); }
+      const mon = $('#mon .inner'), hero = $('#hero .inner');
+      const play = (el, cls) => { if (!el) return; el.classList.remove('hatk', 'matk', 'hurt', 'smash'); void el.offsetWidth; el.classList.add(cls); };
+      if (mon && e.kind === 'hit' && e.who === 'hero') { play(hero, 'hatk'); setTimeout(() => play(mon, e.crit ? 'smash' : 'hurt'), 170); floatDmg('-' + e.dmg, e.crit ? 'crit' : '', true); buzz(e.crit ? 40 : 15); }
+      if (mon && e.kind === 'hit' && e.who === 'mon') { play(mon, 'matk'); setTimeout(() => play(hero, 'hurt'), 170); floatDmg('-' + e.dmg, e.special ? 'crit' : '', false); buzz(e.special ? 60 : 25); }
       if (e.kind === 'heal') floatDmg('+', 'heal', e.who !== 'hero');
-      const bars = document.querySelectorAll('#overlay .bar');
+      const bars = document.querySelectorAll('#overlay .hpbox .bar');
       if (bars[0]) { bars[0].firstElementChild.style.width = (e.m / f.mon.maxHp) * 100 + '%'; bars[0].querySelector('.t').textContent = fmt(e.m) + ' / ' + fmt(f.mon.maxHp); }
       if (bars[1]) { bars[1].firstElementChild.style.width = (e.h / f.hero.max) * 100 + '%'; bars[1].querySelector('.t').textContent = fmt(e.h) + ' / ' + fmt(f.hero.max); }
       await sleep(e.kind === 'info' || e.kind === 'warn' ? 380 : 520);
@@ -565,7 +635,7 @@
       const big = rep.dragonTrophy ? rep.dragonTrophy.tIcon : rep.trophy ? rep.trophy.tIcon : rep.evTrophy ? rep.evTrophy.icon : rep.kind === 'semi' ? '🐾' : rep.kind === 'dragon' ? '🐉' : '🏆';
       const title = rep.kind === 'dragon' ? 'Dragão derrotado!' : rep.trophy ? 'Chefe derrotado!' : rep.kind === 'semi' ? 'Semi-chefe derrotado!' : rep.kind === 'event' ? 'Chefe de evento derrotado!' : 'Vitória!';
       h = `<div class="big">${big}</div><h2 class="banner">${title}</h2>
-        <div class="center">✨ +${fmt(rep.xp)} XP · 🪙 +${fmt(rep.gold)} · 🦴 +${rep.ossos}${rep.fossils ? ' · 🦕 +' + rep.fossils : ''}</div>${rep.replay ? '<div class="sub center">Local já vencido: 60% de XP e ouro.</div>' : ''}`;
+        <div class="center">✨ +${fmt(rep.xp)} XP · 🪙 +${fmt(rep.gold)}${rep.prize ? ' (prêmio ' + fmt(rep.prize) + ')' : ''}${rep.diamonds ? ' · 💎 +' + rep.diamonds : ''}</div>${rep.replay ? '<div class="sub center">Local já vencido: 60% de XP e ouro.</div>' : ''}`;
       if (rep.boxes.length) h += `<div class="sub center" style="margin:10px 0 4px">Você ganhou:</div><div class="boxes" style="justify-content:center">${rep.boxes.map((b) => boxChip(b)).join('')}</div><div class="sub center">Abra as caixas no Baú 🧳</div>`;
       else h += '<div class="sub center" style="margin-top:8px">Nenhuma caixa desta vez.</div>';
       if (rep.trophy) h += `<div class="card center" style="margin-top:10px"><b>Troféu conquistado</b><div>${rep.trophy.tIcon} ${rep.trophy.trophy}</div><div class="up" style="margin-top:4px">Bônus vitalício: ${G.bonusText(rep.trophyBonus)}</div></div>`;
@@ -610,7 +680,7 @@
   }
 
   /* ---------- Eventos de clique ---------- */
-  const SEL = '[data-act],[data-nav],[data-item],[data-shopitem],[data-buy],[data-buyq],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ss],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-dis],[data-disq],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-evbuy],[data-go-forge]';
+  const SEL = '[data-act],[data-nav],[data-item],[data-set],[data-buyset],[data-buyrune],[data-evolve],[data-do-evolve],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-go-forge]';
   const after = (msg, ok = true) => { if (msg) toast(msg); if (ok) { save(); closeModal(); } render(); };
   document.addEventListener('click', (ev) => {
     const t = ev.target.closest(SEL);
@@ -621,20 +691,21 @@
     if (d.nav) { screen = d.nav; render(); view.scrollTop = 0; return; }
     if (d.bf) { bagFilter = d.bf; return render(); }
     if (d.st) { shopTab = d.st; return render(); }
-    if (d.ss) { shopSlot = d.ss; return render(); }
     if (d.ft) { forgeTab = d.ft; return render(); }
     if (d.avG) return setAvatar('g', d.avG);
     if (d.avSkin !== undefined) return setAvatar('skin', d.avSkin);
     if (d.avHair !== undefined) return setAvatar('hair', d.avHair);
     if (d.empty) return showEmptySlot(d.empty, d.ri === '' ? null : +d.ri);
     if (d.item) return showItem(d.item);
-    if (d.shopitem) return showItem(d.shopitem, true);
-    if (d.buy || d.buyq) { const r = G.buyItem(st, d.buy || d.buyq); if (r.ok) buzz(20); return after(r.msg, r.ok); }
+    if (d.set !== undefined) { shopSet = d.set === '' ? null : +d.set; return render(); }
+    if (d.buyset) { const [sid, sl] = d.buyset.split(':'); const r = G.buySetPiece(st, +sid, sl); if (r.ok) buzz(20); return after(r.msg, false); }
+    if (d.buyrune) { const [t, rr] = d.buyrune.split(':'); const r = G.buyRune(st, t, +rr); if (r.ok) buzz(20); return after(r.msg, false); }
+    if (d.evolve !== undefined) return showEvolve(+d.evolve);
+    if (d.doEvolve !== undefined) { const r = G.evolve(st, +d.doEvolve); if (r.ok) { buzz(60); save(); closeModal(); render(); toast(r.msg); } else toast(r.msg); return; }
     if (d.eq) { G.equip(st, d.eq, d.ri === undefined || d.ri === '' ? undefined : +d.ri); return after('Equipado!'); }
     if (d.uneq) { const ok = G.unequip(st, d.uneq, +d.ri); return after(ok ? 'Desequipado.' : 'Baú cheio!', ok); }
     if (d.lock) { const l = G.toggleLock(st, d.lock); return after(l ? 'Item travado 🔒' : 'Item destravado'); }
     if (d.sell || d.sellq) { const p = G.sell(st, d.sell || d.sellq); return after(p ? `Vendido por ${p} 🪙` : 'Item travado.'); }
-    if (d.dis || d.disq) { const p = G.dismantle(st, d.dis || d.disq); return after(p ? `Desmontado: 🦴 +${p}` : 'Item travado.'); }
     if (d.upq) { const r = G.upgrade(st, d.upq); if (r.ok) buzz(r.success ? 30 : 10); return after(r.msg, r.ok); }
     if (d.goForge !== undefined) { closeModal(); screen = 'loja'; shopTab = 'forja'; forgeTab = 'melhorar'; return render(); }
     if (d.bulk) { const [m, x] = d.bulk.split(':'); return doBulk(m, +x); }
@@ -653,7 +724,6 @@
     if (d.skipdr) { const r = G.skipDragon(st, d.skipdr); if (r.ok) buzz(20); return after(r.msg, false); }
     if (d.box) return openOneBox(d.box);
     if (d.ev) return startEvent(d.ev);
-    if (d.evbuy) { const r = G.buyEventOffer(st, d.evbuy); return after(r.msg, r.ok); }
     switch (d.act) {
       case 'openall': return openAllBoxes();
       case 'codex': return showCodex();
@@ -663,9 +733,9 @@
       case 'rename': return askName(false);
       case 'savename': { const v = ($('#nm').value || '').trim(); if (v) st.name = v; if (draft) st.avatar = Object.assign({}, draft); closeModal(); save(); render(); if (!st.cls) showClassPick(true); return; }
       case 'reset': if (confirm('Apagar todo o progresso?')) { G.wipe(); st = G.newState(''); fight = null; closeModal(); save(); render(); askName(true); } return;
-      case 'refreshshop': { const c = G.shopRefreshCost(st); if (st.gold < c) return toast('Ouro insuficiente.'); st.gold -= c; G.refreshShop(st); return after('Estoque renovado.', false); }
       case 'rest': { const r = G.rest(st); return after(r.msg, false); }
-      case 'skipcd': { const r = G.skipCooldown(st); if (r.ok) buzz(20); return after(r.msg, false); }
+      case 'resetEn': { const c = G.energyResetCost(st); if (st.energy > 0) return toast('Ainda há encontros.'); if (!confirm(`Restaurar todos os encontros por ${fmt(c)} de ouro?`)) return; const r = G.resetEnergy(st); if (r.ok) buzz(30); return after(r.msg, false); }
+      case 'buyvip': { if (!confirm(`Comprar VIP por ${G.VIP.price} diamantes (${G.VIP.days} dias)?`)) return; const r = G.buyVip(st); if (r.ok) buzz(40); return after(r.msg, false); }
       case 'buyen': { const r = G.buyEnergy(st); if (r.ok) buzz(20); return after(r.msg, false); }
       case 'bagup': { const r = G.buyBagSlots(st); return after(r.msg, false); }
       case 'sort': bagSort = bagSort === 'poder' ? 'raridade' : bagSort === 'raridade' ? 'nivel' : 'poder'; return render();
@@ -676,23 +746,21 @@
 
   /* ---------- Relógio: atualiza contadores sem recriar a tela ---------- */
   function snapshot() {
-    return [G.cooldownLeft(st) > 0, st.energy, G.dragonLeft(st, 'verde') > 0, G.dragonLeft(st, 'azul') > 0, !!st.training, st.hp >= G.heroStats(st).hp, st.shop && st.shop.at].join('|');
+    return [st.energy, G.isVip(st), st.diamonds, G.dragonLeft(st, 'verde') > 0, G.dragonLeft(st, 'azul') > 0, !!st.training, st.hp >= G.heroStats(st).hp].join('|');
   }
   function tick() {
     if (fight || !modal.hidden) return;
     const trainDone = G.syncTime(st);
     if (trainDone) { toast(`🎓 ${G.SKILLS[trainDone].name} subiu para o nível ${G.skillRank(st, trainDone)}!`); buzz(40); save(); render(); return; }
     if (snapshot() !== lastSnap) { render(); return; }
-    const cd = G.cooldownLeft(st);
     const set = (k, v) => { const el = view.querySelector(`[data-live="${k}"]`); if (el) el.textContent = v; };
-    set('cd', cd > 0 ? cd + 's' : 'pronto'); set('cdcost', G.cooldownSkipCost(st));
-    if (st.energy < G.MAX_ENERGY) set('ent', mmss(G.ENERGY_SECS - (Date.now() - st.energyAt) / 1000));
+    if (st.energy < G.maxEnergy(st)) set('ent', mmss(G.energySecs(st) - (Date.now() - st.energyAt) / 1000));
     if (st.training) {
       const left = Math.max(0, (st.training.endsAt - Date.now()) / 1000), total = G.skillTime({ skills: { [st.training.id]: st.training.from } }, st.training.id);
       set('tr', mmss(left)); const b = view.querySelector('[data-live="trbar"]'); if (b) b.style.width = Math.min(100, 100 - (left / total) * 100) + '%';
     }
     for (const id of ['verde', 'azul']) { set('dr-' + id, mmss(G.dragonLeft(st, id))); set('drcost-' + id, G.dragonSkipCost(st, id)); }
-    if (st.shop) set('shop', mmss(G.SHOP_SECS - (Date.now() - st.shop.at) / 1000));
+    if (screen === 'loja' && shopTab === 'vip') set('vip', mmss(G.vipLeft(st) / 1000));
     if (screen === 'mapa' && st.hp < G.heroStats(st).hp) { const bar = view.querySelector('.bar.hp'); if (bar) { const mx = G.heroStats(st).hp; bar.firstElementChild.style.width = (st.hp / mx) * 100 + '%'; bar.querySelector('.t').textContent = fmt(st.hp) + ' / ' + fmt(mx); } }
   }
 

@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..', 'art'), EXT = ['png', 'webp', 'jpg', 'jp
 const find = (dir, slug) => { for (const e of EXT) if (fs.existsSync(path.join(root, dir, `${slug}.${e}`))) return `art/${dir}/${slug}.${e}`; return null; };
 const names = new Set();
 G.ZONES.forEach((z) => { z.m.forEach((m) => names.add(m[0])); names.add(z.semi[0]); names.add(z.boss.name); });
-[...G.WEEKLY, ...G.MONTHLY].forEach((e) => names.add(e.name)); Object.values(G.DRAGONS).forEach((d) => names.add(d.name));
+[...G.WEEKLY, ...G.DAILY].forEach((e) => names.add(e.name)); Object.values(G.DRAGONS).forEach((d) => names.add(d.name));
 const manifest = { monsters: {}, scenes: {}, items: {} };
 for (const n of names) { const f = find('monsters', Art.slug(n)); if (f) manifest.monsters[n] = f; }
 for (const b of Art.BIOMES) { const f = find('scenes', b); if (f) manifest.scenes[b] = f; }

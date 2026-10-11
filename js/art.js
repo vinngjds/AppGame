@@ -481,6 +481,9 @@
     // zona 15
     'Tiranete': ['reptile', '#6a7a3a', { snout: 0.9, teeth: 14, rex: true, wide: 52 }], 'Fera Primordial': ['mammal', '#4a3a52', { snout: 0.7, ear: 'point', horns: 'bull', hornColor: '#d8ccb0', tusks: 'saber', snarl: true, glow: '#ff5a3a' }], 'Alfa do Tirano': ['reptile', '#7a3a2a', { snout: 0.9, teeth: 16, spikes: true, rex: true, wide: 56 }], 'Tiranossauro Rei': ['reptile', '#5a1f1a', { snout: 1, teeth: 20, spikes: true, horns: 'devil', glow: '#ff3a1a', wide: 60, rex: true }],
     // eventos
+    'Javali Gigante': ['mammal', '#5a3a28', { snout: 0.8, ear: 'point', tusks: 'boar', wide: 58, glow: '#ffcf3a' }], 'Lobo Alfa': ['mammal', '#4a4f58', { snarl: true, snout: 0.9, ear: 'point', fangs: true, glow: '#ffcf3a' }],
+    'Crocodilo Ancestral': ['reptile', '#3a5a2e', { snout: 1, teeth: 16, croc: true, wide: 56, glow: '#ffcf3a' }], 'Águia Rapina': ['bird', '#5a3a28', { beak: '#e6b030', glow: '#ffcf3a' }],
+    'Naja Gigante': ['snake', '#6a7a2a', { accent: '#d8c23a', glow: '#ffcf3a' }], 'Urso Pardo Gigante': ['mammal', '#4a3020', { snout: 0.7, ear: 'round', wide: 56, claws: true, glow: '#ffcf3a' }],
     'Mamute Alfa': ['mammal', '#4a3a4a', { trunk: true, tusks: 'mammoth', ear: 'big', wide: 56, glow: '#ffcf3a' }], 'Rei Dentes-de-Sabre': ['mammal', '#e0a23a', { snarl: true, snout: 0.5, ear: 'round', stripes: true, tusks: 'saber', glow: '#ffcf3a' }], 'Matriarca dos Raptores': ['reptile', '#3a6a8a', { snout: 0.9, teeth: 15, frill: true, frillColor: '#e8a22a' }], 'Urso Fantasma': ['mammal', '#d9e8f2', { snout: 0.55, ear: 'round', wide: 58, snarl: true, iris: '#7ad0ff', glow: '#7ad0ff' }],
     'Dragão de Fogo': ['dragon', '#b0301a', { aura: '#ff7a1a', breath: '#ff9a2a', accent: '#ffb02a' }], 'Tiranossauro Ancestral': ['reptile', '#3a4a2a', { snout: 1, teeth: 20, spikes: true, wide: 60, glow: '#ffb02a', rex: true }], 'Titã de Pedra': ['golem', '#5a5a64', { horns: true, glow: '#6ad8ff' }], 'Hidra do Pântano': ['snake', '#2a5a3a', { accent: '#8aff4a', hood: true, glow: '#7aff4a' }],
     // dragões especiais
@@ -555,6 +558,7 @@
       <rect width="360" height="220" fill="url(#${id})"/>${far}${mid}${fx}<path d="M0 200 Q90 190 180 200 T360 198 L360 220 L0 220 Z" fill="${gnd}"/>${fg}<rect width="360" height="220" fill="url(#${id}v)"/></svg>`;
   };
   Art.biomeOf = (z) => BIOME[z] || 'neutral';
+  Art.ground = (b) => GROUND[b] || GROUND.neutral;
   Art.BIOMES = Object.values(BIOME).concat(['glade', 'ice']);
 
   // pacote de imagens opcional (art/manifest.json): { "monsters": { "Lobo Jovem": "art/monsters/lobo-jovem.png" }, "scenes": { "forest": "art/scenes/forest.jpg" } }
