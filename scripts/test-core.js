@@ -368,4 +368,16 @@ t('eventos: diário (2 tentativas) e semanal (3), ambos sem troféu; mensal remo
   const st2 = G.newState('x'); st2.level = 40; assert.equal(G.setPrice(st2, G.SETS[4], 'arma').n, 24);
 });
 
+t('caixas: itens com material e raridade do conjunto viram peças dele; peça de caixa fraca não bloqueia a compra', () => {
+  const st = G.newState('x'); st.level = 22; st.gold = 1e6; st.bagSize = 60; let tagged = 0, plain = 0;
+  for (let i = 0; i < 300; i++) { st.bag = []; const bx = G.makeBox(3, 20); st.boxes.push(bx); for (const it of G.openBox(st, bx.id).items) if (!it.rune) { const s = G.SETS[G.tierOf(it.ilvl)]; if (s.rarity === it.rarity) { assert.equal(it.set, s.id); tagged++; } else { assert(it.set == null); plain++; } } }
+  assert(tagged > 0 && plain > 0);
+  const set = G.SETS[2], il = G.setIlvl(st, set); st.bag = [];
+  const weak = G.makeItem('arma', 16, 2); weak.set = 2; st.bag.push(weak);
+  assert(il > 16 && !G.setOwned(st, set, 'arma'), 'peça de caixa mais fraca não conta como comprada'); assert(G.buySetPiece(st, 2, 'arma').ok);
+  const strong = G.makeItem('elmo', il, 2); strong.set = 2; st.bag.push(strong); assert(G.setOwned(st, set, 'elmo') && !G.buySetPiece(st, 2, 'elmo').ok, 'peça de caixa igual/melhor conta');
+  assert.equal(G.setProgress(st, set), 2);
+  st.level = 23; assert(G.setOwned(st, set, 'arma'), 'peça comprada na loja continua comprada ao subir de nível'); assert(!G.setOwned(st, set, 'elmo'), 'peça de caixa fica defasada quando a loja passa a vender nível maior');
+});
+
 console.log(`\n${n} testes passaram`);

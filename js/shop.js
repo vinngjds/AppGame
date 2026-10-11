@@ -28,7 +28,9 @@
     return { cur: 'gold', n: Math.round(G.itemPrice(it) * G.SET_MARKUP) };
   };
   const allItems = (st) => st.bag.concat(G.SLOT_ORDER.map((s) => st.equipped[s]).filter(Boolean));
-  G.setOwned = (st, set, slot) => allItems(st).some((x) => x.set === set.id && x.slot === slot);
+  // "Comprado": peça comprada na loja, ou peça de caixa do mesmo conjunto que seja igual ou melhor que a vendida agora
+  // (uma peça de caixa mais fraca não bloqueia a compra da melhor)
+  G.setOwned = (st, set, slot) => { const il = G.setIlvl(st, set); return allItems(st).some((x) => x.set === set.id && x.slot === slot && (x.shop || x.ilvl >= il)); };
   G.setProgress = (st, set) => G.SLOT_ORDER.filter((s) => G.setOwned(st, set, s)).length;
   G.buySetPiece = function (st, setId, slot) {
     const set = G.SETS[setId];
@@ -39,7 +41,7 @@
     const p = G.setPrice(st, set, slot), it = G.setPiece(st, set, slot);
     if (p.cur === 'diamonds') { if (st.diamonds < p.n) return { ok: false, msg: 'Diamantes insuficientes.' }; st.diamonds -= p.n; }
     else { if (st.gold < p.n) return { ok: false, msg: 'Ouro insuficiente.' }; st.gold -= p.n; }
-    st.bag.push(it); G.discover(st, it);
+    it.shop = true; st.bag.push(it); G.discover(st, it);
     return { ok: true, msg: `Comprou ${G.itemName(it)}.`, item: it };
   };
   // bônus por peças equipadas do mesmo conjunto (3 / 5 / 7 peças)

@@ -856,8 +856,8 @@
       let x = R() * tot, rar = 0;
       for (let r = 0; r < odds.length; r++) { x -= odds[r]; if (x <= 0) { rar = r; break; } }
       const it = R() < G.BOX_RUNE[box.tier - 1] ? G.makeRune(box.ilvl, rar) : G.makeItem(pick(G.SLOT_ORDER), box.ilvl, rar);
-      // épico/lendário do material certo entra no conjunto da loja (conta para o bônus de conjunto)
-      if (!it.rune && it.rarity >= 3) { const set = G.SETS[tierOf(it.ilvl)]; if (set && set.rarity === it.rarity) it.set = set.id; }
+      // item cujo material e raridade combinam com um conjunto da loja passa a ser peça dele (conta para o bônus de conjunto)
+      if (!it.rune) { const set = G.SETS[tierOf(it.ilvl)]; if (set && set.rarity === it.rarity) it.set = set.id; }
       st.bag.push(it); items.push(it); G.discover(st, it);
     }
     st.boxes.splice(i, 1);
