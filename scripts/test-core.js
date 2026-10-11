@@ -72,8 +72,8 @@ t('arte: todo monstro, dragão e cenário tem ilustração válida', () => {
   const Art = require(path.join(__dirname, '..', 'js', 'art.js'));
   const names = [];
   G.ZONES.forEach((z) => { z.m.forEach((m) => names.push(m[0])); names.push(z.semi[0], z.boss.name); });
-  [...G.WEEKLY, ...G.MONTHLY].forEach((e) => names.push(e.name)); Object.values(G.DRAGONS).forEach((d) => names.push(d.name));
-  assert.equal(names.length, 70);
+  [...G.WEEKLY, ...G.DAILY].forEach((e) => names.push(e.name)); Object.values(G.DRAGONS).forEach((d) => names.push(d.name));
+  assert.equal(names.length, 76);
   for (const n of names) { assert(Art.hasSpec(n), 'sem arte: ' + n); const svg = Art.monster({ name: n, emoji: '🐺', kind: 'normal' }); assert(svg.startsWith('<svg') && svg.endsWith('</svg>') && svg.includes('viewBox="0 0 240 200"'), 'svg inválido: ' + n); }
   assert(Art.monster({ name: 'Lobo Jovem Veterano', emoji: '🐺', kind: 'elite' }).includes('<svg'), 'veterano usa a arte da fera');
   for (const b of Art.BIOMES) assert(Art.scene(b).includes('<svg'), 'cenário ' + b);
@@ -214,8 +214,8 @@ t('dificuldade: feras e chefes duros, dragões e eventos mais ainda', () => {
   const f1 = G.stepMonster(10, 0, true), f2 = G.stepMonster(10, 1, true), sm = G.stepMonster(10, 2, true), bs = G.stepMonster(10, 3, true);
   assert(f2.atk > f1.atk && sm.hp > f2.hp * 1.5 && bs.hp > sm.hp, 'escalada na jornada (o chefe ainda tem golpe especial e fúria)');
   assert(G.dragonMonster('azul').atk > G.dragonMonster('verde').atk * 1.5 && G.dragonMonster('azul').hp > G.dragonMonster('verde').hp);
-  st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'monthly').mon;
-  assert(m.hp > w.hp, 'chefe mensal é mais forte que o semanal');
+  st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'daily').mon;
+  assert(m.hp < w.hp, 'o desafio diário é mais fraco que o chefe da semana');
 });
 
 const setup = (cls, level, tree) => { const st = G.newState('x'); st.level = level; G.setClass(st, cls); st.tree = tree || {}; G.setHp(st, G.heroStats(st).hp); return st; };
@@ -347,6 +347,19 @@ t('caixas +4/+5: épico/lendário do material certo viram peças de conjunto; di
   assert(sets > 0, 'peças de conjunto saem da caixa'); assert(dia / n > 0.2 && dia / n < 0.4, 'diamantes na +5 (' + dia / n + ')');
   const b = G.makeBox(1, 5); st.boxes.push(b); assert.equal(G.openBox(st, b.id).diamonds, 0);
   assert(G.BOX_ODDS[4][4] / 100 <= 0.2 && G.BOX_ODDS[3][4] / 100 <= 0.04, 'lendário raro nas caixas');
+});
+
+t('eventos: diário (2 tentativas, sem troféu) e semanal (troféu + 3 diamantes); mensal foi removido', () => {
+  assert(!G.MONTHLY && G.DAILY.length >= 6 && !('monthly' in G.EVENT_UNLOCK));
+  const st = G.newState('x'); st.level = 10; st.trophies = [1, 2, 3]; G.evSync(st, new Date());
+  assert.equal(st.ev.daily, 2); assert.equal(st.ev.weekly, 3); assert(G.canFight(st, 'event-daily').ok && !G.canFight(st, 'event-monthly').ok === false);
+  const day = G.eventMonster(st, 'daily'), wk = G.eventMonster(st, 'weekly');
+  const win = (e, type) => { const f = G.startFight(st, e.mon, { mode: 'event-' + type, event: { key: e.key, def: e.def } }); f.over = f.won = true; f.hero.hp = f.hero.max; return G.finishFight(st, f); };
+  const r1 = win(day, 'daily'); assert(r1.boxes.length === 1 && !r1.evTrophy && st.ev.claimD === day.key);
+  const r2 = win(day, 'daily'); assert(r2.boxes.length === 0, 'prêmio do dia só na 1ª vitória'); assert.equal(st.ev.daily, 0); assert(!G.canFight(st, 'event-daily').ok);
+  const w1 = win(wk, 'weekly'); assert(w1.evTrophy && w1.diamonds === 3 && w1.boxes.length === 2); assert(win(wk, 'weekly').diamonds === 0);
+  assert.equal(G.VIP.price, 200);
+  const st2 = G.newState('x'); st2.level = 40; assert.equal(G.setPrice(st2, G.SETS[4], 'arma').n, 24);
 });
 
 console.log(`\n${n} testes passaram`);

@@ -194,7 +194,7 @@
     const dt = Object.values(G.DRAGONS).map((d) => { const got = st.dragonTrophies.includes(d.id); return `<div class="t ${got ? '' : 'lock'}"><div class="e">${got ? d.tIcon : '❔'}</div><b>${got ? d.trophy : d.name}</b><div class="muted">${got ? d.name : 'Bloqueado'}</div><div class="bonus">${G.bonusText(d.bonus)}</div></div>`; }).join('');
     const tt = G.trophyTotals(st);
     const ttLine = ['atk', 'hp', 'arm', 'crit'].map((k) => `<span>${G.TB_ICON[k]} +${Math.round(tt[k] * 10) / 10}${k === 'crit' ? '' : '%'}</span>`).join(' · ');
-    const et = st.evTrophies.length ? st.evTrophies.slice().reverse().map((t) => `<div class="t"><div class="e">${t.icon}</div><b>${esc(t.name)}</b><div class="muted">${t.type === 'weekly' ? 'Semanal' : 'Mensal'}</div>${t.bonus ? `<div class="bonus">${G.bonusText(t.bonus)}</div>` : ''}</div>`).join('') : '<div class="sub">Vença os chefes de evento para ganhar troféus especiais.</div>';
+    const et = st.evTrophies.length ? st.evTrophies.slice().reverse().map((t) => `<div class="t"><div class="e">${t.icon}</div><b>${esc(t.name)}</b><div class="muted">${t.type === 'monthly' ? 'Mensal' : 'Semanal'}</div>${t.bonus ? `<div class="bonus">${G.bonusText(t.bonus)}</div>` : ''}</div>`).join('') : '<div class="sub">Vença os chefes de evento para ganhar troféus especiais.</div>';
     view.innerHTML = `<div class="card center"><div class="name">${esc(st.name)} · Nível ${st.level}${st.cls ? ` · ${G.classIcon(st)} ${G.classTitle(st)}` : ''}${G.isVip(st) ? ' · 👑' : ''}</div>
       <div class="sub">Chefes: ${st.trophies.length}/15 · Feras abatidas: ${st.totalKills}</div>${doll()}<div class="sub" style="margin-top:6px">Toque num espaço para equipar ou ver detalhes.</div></div>
       <div class="card"><div class="name">Atributos</div><div class="hr"></div>
@@ -514,22 +514,23 @@
 
   /* ---------- Eventos ---------- */
   function vEventos() {
-    const now = new Date(), wk = G.eventMonster(st, 'weekly', now), mo = G.eventMonster(st, 'monthly', now);
+    const now = new Date(), wk = G.eventMonster(st, 'weekly', now), dy = G.eventMonster(st, 'daily', now);
     const card = (type, e, label, tryTxt) => {
       const unlocked = G.eventUnlocked(st, type), chk = G.canFight(st, 'event-' + type);
-      const claimed = st.ev[type === 'weekly' ? 'claimW' : 'claimM'] === e.key;
+      const claimed = st.ev[type === 'weekly' ? 'claimW' : 'claimD'] === e.key;
       return `<div class="card boss"><div class="row"><div class="pic art big">${Art.monster({ name: e.def.name, emoji: e.def.emoji, kind: 'event' })}</div><div class="grow"><div class="tag">${label}</div><div class="name">${e.def.name}</div>
         <div class="sub">Nível ${e.mon.level} · golpe especial: ${e.def.sp}</div><div class="tags">${modTags(e.def.mods)}</div></div></div>
         <div class="sub" style="margin-top:6px">Tentativas hoje: <b>${st.ev[type]}</b> · ${tryTxt}</div>
-        <div class="sub">Recompensa: 🦕 Fósseis ${claimed ? '' : '+ item e runa ' + (type === 'monthly' ? 'épicos/lendários' : 'raros/épicos') + ' + troféu ' + e.def.tIcon + ' (1ª vitória)'}</div>
+        <div class="sub">Recompensa: 🦕 Fósseis${claimed ? ' (prêmio de hoje já resgatado)' : type === 'weekly' ? ' + 📦 2 caixas + 💎 3 + troféu ' + e.def.tIcon + ' (1ª vitória da semana)' : ' + 📦 caixa + 40% de chance de 💎 (1ª vitória do dia)'}</div>
         <button class="btn red" data-ev="${type}" ${chk.ok ? '' : 'disabled'}>${unlocked ? '⚔️ Enfrentar' : '🔒 Derrote ' + G.EVENT_UNLOCK[type] + ' chefes'}</button>${unlocked && !chk.ok ? `<div class="sub center" style="margin-top:6px">${chk.msg}</div>` : ''}</div>`;
     };
     const bonus = G.bonusEvents(now);
     let h = `<h2 class="banner">Eventos</h2>`;
     h += bonus.length ? bonusBanner(now) : '<div class="card"><div class="sub">Sem bônus hoje. Fins de semana: +50% XP · dias 1–3: +50% ouro · quartas: ferreiro -25%.</div></div>';
     h += `<div class="card">${waitRow()}</div>`;
+    h += `<h2 class="banner">Desafio do Dia</h2>${card('daily', dy, 'DIÁRIO · ' + dy.key, 'renova todo dia')}`;
     h += `<h2 class="banner">Chefe da Semana</h2>${card('weekly', wk, 'SEMANAL · ' + wk.key, 'renova toda segunda')}`;
-    h += `<h2 class="banner">Chefe do Mês</h2>${card('monthly', mo, 'MENSAL · ' + mo.key, 'só 1 por dia, forte!')}`;
+
     h += `<h2 class="banner">Troca de Fósseis (🦕 ${st.fossils})</h2>` + G.EVENT_SHOP.map((o) =>
       `<div class="card"><div class="row"><div class="pic">${o.icon}</div><div class="grow"><div class="name">${o.name}</div></div><button class="btn sm go" data-evbuy="${o.id}" ${st.fossils < o.cost ? 'disabled' : ''}>🦕 ${o.cost}</button></div></div>`).join('');
     view.innerHTML = h;
@@ -562,7 +563,7 @@
   function sceneFor(f) {
     if (f.zone) return f.zone.z;
     if (f.mode === 'dragon') return f.mon.dragon === 'azul' ? 'ice' : 'glade';
-    return f.mode === 'event-monthly' ? 'volcano' : 'cursed';
+    return f.mode === 'event-daily' ? 'plain' : 'cursed';
   }
   function drawFight(logLines) {
     const f = fight, m = f.mon, h = f.hero;

@@ -148,8 +148,8 @@ function play(opts = {}) {
       for (const id of ['verde', 'azul']) if (G.dragonUnlocked(st, id)) S.dragon[`${id}@zona${z}(nv${st.level})`] = probe(id, () => fight(G.dragonMonster(id), 'dragon'));
     }
     if ([5, 9, 13].includes(z)) {
-      for (const type of ['weekly', 'monthly']) {
-        S.ev[`${type}@zona${z}`] = probe(type, () => { G.evSync(st); st.ev.weekly = st.ev.monthly = 9; const e = G.eventMonster(st, type); return fight(e.mon, 'event-' + type, { event: { key: 'k' + Math.random(), def: e.def } }); });
+      for (const type of ['daily', 'weekly']) {
+        S.ev[`${type}@zona${z}`] = probe(type, () => { G.evSync(st); st.ev.weekly = st.ev.daily = 9; const e = G.eventMonster(st, type); return fight(e.mon, 'event-' + type, { event: { key: 'k' + Math.random(), def: e.def } }); });
       }
     }
   }

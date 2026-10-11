@@ -216,7 +216,7 @@
     return { stat, v: stat === 'crit' ? 1.5 : stat === 'atk' ? 3 : 4 };
   };
   G.evTrophyBonus = function (type, idx) {
-    const stat = TB[idx % 4], big = type === 'monthly';
+    const stat = TB[idx % 4], big = type === 'monthly';   // 'monthly': troféus de saves antigos
     return { stat, v: stat === 'crit' ? (big ? 1 : 0.5) : (big ? 2 : 1) };
   };
   G.bonusText = (b) => `${G.TB_ICON[b.stat]} +${b.v}${b.stat === 'crit' ? ' pts de' : '% de'} ${G.TB_NAMES[b.stat]}`;
@@ -704,17 +704,24 @@
     { id: 'sabre',  name: 'Rei Dentes-de-Sabre',    emoji: '🐯', mods: ['feroz', 'veloz'],           sp: 'Salto Fatal',     tIcon: '🗡️' },
     { id: 'raptor', name: 'Matriarca dos Raptores', emoji: '🦖', mods: ['veloz', 'venenoso'],        sp: 'Chuva de Garras', tIcon: '🥇' },
     { id: 'urso',   name: 'Urso Fantasma',          emoji: '🐻‍❄️', mods: ['esmagador', 'couracado'],   sp: 'Abraço Gélido',   tIcon: '❄️' },
+    { id: 'dragao', name: 'Dragão de Fogo',         emoji: '🐉', mods: ['feroz', 'regenerador'],     sp: 'Sopro Infernal',  tIcon: '🔥' },
+    { id: 'trex',   name: 'Tiranossauro Ancestral', emoji: '🦖', mods: ['feroz', 'esmagador'],       sp: 'Rugido Ancestral', tIcon: '👑' },
+    { id: 'tita',   name: 'Titã de Pedra',          emoji: '🗿', mods: ['couracado', 'esmagador'],   sp: 'Avalanche',       tIcon: '⛰️' },
+    { id: 'hidra',  name: 'Hidra do Pântano',       emoji: '🐍', mods: ['venenoso', 'regenerador'],  sp: 'Mordida Tripla',  tIcon: '🧪' },
   ];
-  G.MONTHLY = [
-    { id: 'dragao',  name: 'Dragão de Fogo',        emoji: '🐉', mods: ['feroz', 'regenerador'],     sp: 'Sopro Infernal',  tIcon: '🔥' },
-    { id: 'trex',    name: 'Tiranossauro Ancestral', emoji: '🦖', mods: ['feroz', 'esmagador'],       sp: 'Rugido Ancestral', tIcon: '👑' },
-    { id: 'tita',    name: 'Titã de Pedra',         emoji: '🗿', mods: ['couracado', 'esmagador'],   sp: 'Avalanche',       tIcon: '⛰️' },
-    { id: 'hidra',   name: 'Hidra do Pântano',      emoji: '🐍', mods: ['venenoso', 'regenerador'],  sp: 'Mordida Tripla',  tIcon: '🧪' },
+  // Desafio do Dia: um bicho diferente por dia, mais fraco que o chefe da semana e sem troféu
+  G.DAILY = [
+    { id: 'javali', name: 'Javali Gigante',     emoji: '🐗', mods: ['feroz'],            sp: 'Investida Brutal', tIcon: '🐗' },
+    { id: 'lobo',   name: 'Lobo Alfa',          emoji: '🐺', mods: ['veloz', 'feroz'],   sp: 'Uivo Selvagem',    tIcon: '🐺' },
+    { id: 'croc',   name: 'Crocodilo Ancestral', emoji: '🐊', mods: ['couracado'],       sp: 'Mordida Mortal',   tIcon: '🐊' },
+    { id: 'aguia',  name: 'Águia Rapina',       emoji: '🦅', mods: ['veloz'],            sp: 'Mergulho Mortal',  tIcon: '🦅' },
+    { id: 'naja',   name: 'Naja Gigante',       emoji: '🐍', mods: ['venenoso'],         sp: 'Bote Venenoso',    tIcon: '🐍' },
+    { id: 'urso',   name: 'Urso Pardo Gigante',  emoji: '🐻', mods: ['esmagador'],        sp: 'Abraço Esmagador', tIcon: '🐻' },
   ];
-  G.EVENT_UNLOCK = { weekly: 3, monthly: 6 };      // chefes derrotados necessários
-  G.EVENT_ATTEMPTS = { weekly: 3, monthly: 1 };    // por dia
+  G.EVENT_UNLOCK = { daily: 1, weekly: 3 };        // chefes derrotados necessários
+  G.EVENT_ATTEMPTS = { daily: 2, weekly: 3 };      // tentativas por dia
   G.weeklyEvent = function (d) { const w = G.isoWeek(d); return { key: `${w.y}-W${pad(w.w)}`, def: G.WEEKLY[(w.y * 53 + w.w) % G.WEEKLY.length] }; };
-  G.monthlyEvent = function (d) { return { key: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`, def: G.MONTHLY[(d.getFullYear() * 12 + d.getMonth()) % G.MONTHLY.length] }; };
+  G.dailyEvent = function (d) { const day = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); return { key: G.dayKey(d), def: G.DAILY[day % G.DAILY.length] }; };
   G.bonusEvents = function (d) {
     const out = [], wd = d.getDay(), dm = d.getDate();
     if (wd === 0 || wd === 6) out.push({ id: 'fds', name: 'Fim de Semana do Caçador', icon: '🏕️', desc: '+50% de XP em todas as batalhas', xp: 1.5, gold: 1 });
@@ -727,16 +734,18 @@
   };
   G.evSync = function (st, d = new Date()) {
     const day = G.dayKey(d);
-    if (!st.ev) st.ev = { day: '', weekly: 0, monthly: 0, claimW: '', claimM: '' };
-    if (st.ev.day !== day) { st.ev.day = day; st.ev.buys = 0; st.ev.weekly = G.EVENT_ATTEMPTS.weekly; st.ev.monthly = G.EVENT_ATTEMPTS.monthly; }
+    if (!st.ev) st.ev = { day: '', daily: 0, weekly: 0, claimD: '', claimW: '' };
+    if (st.ev.claimD == null) { st.ev.claimD = ''; st.ev.daily = 0; }
+    if (st.ev.day !== day) { st.ev.day = day; st.ev.buys = 0; st.ev.daily = G.EVENT_ATTEMPTS.daily; st.ev.weekly = G.EVENT_ATTEMPTS.weekly; }
   };
+  G.DAILY_MUL = { hp: 0.9, atk: 1.0 };
   G.eventUnlocked = (st, type) => st.trophies.length >= G.EVENT_UNLOCK[type];
   G.eventMonster = function (st, type, d = new Date()) {
-    const e = type === 'weekly' ? G.weeklyEvent(d) : G.monthlyEvent(d);
-    const mon = G.makeMonster(st.level + (type === 'monthly' ? 2 : 1), 'event', Object.assign({}, e.def, type === 'monthly' ? { sp: e.def.sp } : {}));
+    const e = type === 'weekly' ? G.weeklyEvent(d) : G.dailyEvent(d);
+    const mon = G.makeMonster(st.level + (type === 'weekly' ? 1 : 0), 'event', e.def);
     const sc = 0.3 + 0.17 * Math.min(15, st.trophies.length);   // cresce com o progresso na campanha
     mon.hp = mon.maxHp = Math.round(mon.maxHp * sc); mon.atk = Math.round(mon.atk * (1 + (sc - 1) * 0.8));
-    if (type === 'monthly') { mon.hp = mon.maxHp = Math.round(mon.maxHp * 1.6); mon.atk = Math.round(mon.atk * 1.2); }
+    if (type === 'daily') { mon.hp = mon.maxHp = Math.round(mon.maxHp * G.DAILY_MUL.hp); mon.atk = Math.round(mon.atk * G.DAILY_MUL.atk); }
     return { mon, key: e.key, def: e.def };
   };
   G.EVENT_SHOP = [
@@ -820,7 +829,7 @@
   G.canFight = function (st, type, now = Date.now()) {
     G.syncTime(st, now);
     if (G.cooldownLeft(st, now) > 0) return { ok: false, msg: `Recuperando o fôlego (${G.cooldownLeft(st, now)}s).` };
-    if (type === 'event-weekly' || type === 'event-monthly') {
+    if (type === 'event-weekly' || type === 'event-daily') {
       const t = type.split('-')[1];
       if (!G.eventUnlocked(st, t)) return { ok: false, msg: `Derrote ${G.EVENT_UNLOCK[t]} chefes para liberar.` };
       if (st.ev[t] <= 0) return { ok: false, msg: 'Sem tentativas hoje.' };
@@ -878,7 +887,7 @@
       zoneCleared: null, nextZone: null, finishedGame: false, replay: false, kind: f.mon.kind, mode: f.mode };
     G.setHp(st, f.won ? f.hero.hp : Math.max(1, Math.round(f.hero.max * 0.1)));
     st.cdUntil = now.getTime() + G.BATTLE_CD * 1000;
-    const isDragon = f.mode === 'dragon', isEvent = f.mode === 'event-weekly' || f.mode === 'event-monthly';
+    const isDragon = f.mode === 'dragon', isEvent = f.mode === 'event-weekly' || f.mode === 'event-daily';
     if (isDragon && !f.fled) st.dragons[f.mon.dragon].readyAt = now.getTime() + G.DRAGONS[f.mon.dragon].respawn * 1000;
     if (f.fled) return rep;
     if (!f.won) {
@@ -919,23 +928,24 @@
       rep.ossos = m.dragon === 'azul' ? 40 : 25; rep.fossils = m.dragon === 'azul' ? 20 : 10; st.fossils += rep.fossils;
       st.potions.large += m.dragon === 'azul' ? 2 : 1;
       if (!st.dragonTrophies.includes(m.dragon)) { st.dragonTrophies.push(m.dragon); rep.dragonTrophy = d; rep.diamonds += m.dragon === 'azul' ? 10 : 5; }
-      rep.diamonds += G.rollDiamonds(m.dragon === 'azul' ? 0.4 : 0.2, m.dragon === 'azul' ? 2 : 1);
+      rep.diamonds += G.rollDiamonds(m.dragon === 'azul' ? 0.6 : 0.35, m.dragon === 'azul' ? 2 : 1);
     } else {
       const t = f.mode.split('-')[1];
       st.ev[t]--;
-      rep.fossils = t === 'weekly' ? 6 + Math.floor(m.level / 4) : 25 + Math.floor(m.level / 2); st.fossils += rep.fossils;
-      const claimKey = t === 'weekly' ? 'claimW' : 'claimM';
-      if (st.ev[claimKey] !== f.event.key) {
+      rep.fossils = t === 'weekly' ? 6 + Math.floor(m.level / 4) : 3 + Math.floor(m.level / 6); st.fossils += rep.fossils;
+      const claimKey = t === 'weekly' ? 'claimW' : 'claimD';
+      if (st.ev[claimKey] !== f.event.key) {      // 1ª vitória do dia / da semana
         st.ev[claimKey] = f.event.key;
-        if (t === 'weekly') { mk(3.2); mk(2.4); } else { mk(4.8); mk(3.4); }
-        rep.diamonds += t === 'weekly' ? 2 : 6;
-        const tid = `${t[0]}-${f.event.key}-${f.event.def.id}`;
-        if (!st.evTrophies.find((x) => x.id === tid)) {
-          rep.evTrophy = { id: tid, name: `${f.event.def.name} (${f.event.key})`, icon: f.event.def.tIcon, type: t, bonus: G.evTrophyBonus(t, st.evTrophies.length) };
-          st.evTrophies.push(rep.evTrophy);
-        }
+        if (t === 'weekly') {
+          mk(3.2); mk(2.4); rep.diamonds += 3;
+          const tid = `w-${f.event.key}-${f.event.def.id}`;
+          if (!st.evTrophies.find((x) => x.id === tid)) {
+            rep.evTrophy = { id: tid, name: `${f.event.def.name} (${f.event.key})`, icon: f.event.def.tIcon, type: t, bonus: G.evTrophyBonus(t, st.evTrophies.length) };
+            st.evTrophies.push(rep.evTrophy);
+          }
+        } else { mk(2.6); rep.diamonds += G.rollDiamonds(0.4, 1); }
       }
-      rep.ossos = t === 'weekly' ? 15 : 30;
+      rep.ossos = t === 'weekly' ? 15 : 6;
     }
     st.ossos += rep.ossos;
     if (R() < 0.18) st.potions.small++;
@@ -1073,7 +1083,7 @@
       s.equipped.runas = s.equipped.runas || [null, null, null];
       s.bagSize = s.bagSize || G.BAG_START; s.ossos = s.ossos || 0; s.fossils = s.fossils || 0;
       s.skills = s.skills || {}; s.training = s.training || null; s.cdUntil = s.cdUntil || 0;
-      s.evTrophies = s.evTrophies || []; s.ev = s.ev || { day: '', weekly: 0, monthly: 0, claimW: '', claimM: '' };
+      s.evTrophies = s.evTrophies || []; s.ev = s.ev || { day: '', daily: 0, weekly: 0, claimD: '', claimW: '' };
       s.level = Math.min(s.level, G.MAX_LEVEL); s.energy = Math.min(s.energy == null ? G.MAX_ENERGY : s.energy, G.MAX_ENERGY * 2);
       s.v = 2;
     }

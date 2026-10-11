@@ -24,7 +24,7 @@
   };
   G.setPrice = function (st, set, slot) {
     const it = G.setPiece(st, set, slot);
-    if (set.cur === 'gem') return { cur: 'diamonds', n: Math.round(6 + it.ilvl * 0.7) };
+    if (set.cur === 'gem') return { cur: 'diamonds', n: Math.round(12 + it.ilvl * 0.3) };
     return { cur: 'gold', n: Math.round(G.itemPrice(it) * G.SET_MARKUP) };
   };
   const allItems = (st) => st.bag.concat(G.SLOT_ORDER.map((s) => st.equipped[s]).filter(Boolean));
@@ -78,7 +78,7 @@
   G.upgradeDiamonds = (it) => (it.rune || it.rarity >= 4 ? 1 + Math.floor((it.plus || 0) / 2) : 0);
 
   /* ---------- VIP e slots ---------- */
-  G.VIP = { price: 300, days: 30, slots: 24, xp: 1.1, gold: 1.2, regen: 0.75, resetDiscount: 0.7 };
+  G.VIP = { price: 200, days: 30, slots: 24, xp: 1.1, gold: 1.2, regen: 0.75, resetDiscount: 0.7 };
   G.isVip = (st, now = Date.now()) => (st.vipUntil || 0) > now;
   G.vipLeft = (st, now = Date.now()) => Math.max(0, (st.vipUntil || 0) - now);
   G.buyVip = function (st, now = Date.now()) {
