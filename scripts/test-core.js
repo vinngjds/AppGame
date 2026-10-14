@@ -1,7 +1,8 @@
 // Testes das regras do jogo. Uso: node scripts/test-core.js
 const path = require('path'), assert = require('assert');
 const G = require(path.join(__dirname, '..', 'js', 'core.js'));
-let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok -', name); };
+let n = 0; const pend = [];
+const t = (name, fn) => { const r = fn(); if (r && r.then) pend.push(r.then(() => { n++; console.log('ok -', name); })); else { n++; console.log('ok -', name); } };
 
 t('novo jogo tem estado válido', () => {
   const st = G.newState('x');
@@ -220,8 +221,7 @@ t('dificuldade: feras e chefes duros, dragões e eventos mais ainda', () => {
   const f1 = G.stepMonster(10, 0, true), f2 = G.stepMonster(10, 1, true), sm = G.stepMonster(10, 2, true), bs = G.stepMonster(10, 3, true);
   assert(f2.atk > f1.atk && sm.hp > f2.hp * 1.5 && bs.hp > sm.hp, 'escalada na jornada (o chefe ainda tem golpe especial e fúria)');
   assert(G.dragonMonster('azul').atk > G.dragonMonster('verde').atk * 1.5 && G.dragonMonster('azul').hp > G.dragonMonster('verde').hp);
-  st.trophies = [1, 2, 3, 4, 5, 6]; const w = G.eventMonster(st, 'weekly').mon, m = G.eventMonster(st, 'daily').mon;
-  assert(m.hp < w.hp, 'o desafio diário é mais fraco que o chefe da semana');
+  st.trophies = [1, 2, 3, 4, 5, 6]; assert(G.DAILY_MUL.hp < 1 && G.DAILY_MUL.atk <= 1 && G.EVENT_PRIZE.daily < G.EVENT_PRIZE.weekly, 'o desafio diário é mais fraco e paga menos que o semanal');
 });
 
 const setup = (cls, level, tree) => { const st = G.newState('x'); st.level = level; G.setClass(st, cls); st.tree = tree || {}; G.setHp(st, G.heroStats(st).hp); return st; };
@@ -380,4 +380,57 @@ t('caixas: itens com material e raridade do conjunto viram peças dele; peça de
   st.level = 23; assert(G.setOwned(st, set, 'arma'), 'peça comprada na loja continua comprada ao subir de nível'); assert(!G.setOwned(st, set, 'elmo'), 'peça de caixa fica defasada quando a loja passa a vender nível maior');
 });
 
-console.log(`\n${n} testes passaram`);
+t('compras: crédito idempotente por transação, produtos e migração v7', () => {
+  const st = G.newState('x'); assert(st.iap && st.ads && G.PRODUCTS.length >= 4);
+  assert(G.PRODUCTS.every((p, k) => k === 0 || p.diamonds / parseFloat(p.hint.replace(/[^\d,]/g, '').replace(',', '.')) > G.PRODUCTS[k - 1].diamonds / parseFloat(G.PRODUCTS[k - 1].hint.replace(/[^\d,]/g, '').replace(',', '.')) * 0.99), 'pacotes maiores rendem mais por real');
+  const r = G.grantProduct(st, 'diamantes_85', 'tx1'); assert(r.ok && !r.dup && st.diamonds === 85);
+  const r2 = G.grantProduct(st, 'diamantes_85', 'tx1'); assert(r2.ok && r2.dup && st.diamonds === 85, 'mesma transação não credita duas vezes');
+  assert(!G.grantProduct(st, 'xyz', 'tx2').ok && st.diamonds === 85);
+  for (let i = 0; i < 250; i++) G.grantProduct(st, 'diamantes_30', 'k' + i); assert(Object.keys(st.iap.tx).length <= 200, 'histórico de recibos limitado');
+  const old = G.migrate({ v: 6, name: 'A', level: 5, trophies: [], evTrophies: [], bag: [], equipped: { runas: [null, null, null] }, potions: { small: 1, large: 0 }, energy: 5, zones: {}, boxes: [], dragons: { verde: { readyAt: 0 }, azul: { readyAt: 0 } }, dragonTrophies: [], codex: {} });
+  assert.equal(old.v, G.STATE_V); assert(old.iap && old.ads);
+});
+t('anúncios com recompensa: limite diário, encontros cheios bloqueiam, ouro escala com o nível', () => {
+  const st = G.newState('x'); st.level = 20; st.energy = 3; const now = new Date(2026, 5, 10, 12);
+  assert.equal(G.adsLeft(st, 'energy', now), 3);
+  for (let i = 0; i < 3; i++) { st.energy = 3; assert(G.adReward(st, 'energy', now).ok); assert.equal(st.energy, 5); }
+  st.energy = 3; assert(!G.adReward(st, 'energy', now).ok && st.energy === 3, 'acabou o limite do dia');
+  assert.equal(G.adsLeft(st, 'energy', new Date(2026, 5, 11, 9)), 3, 'volta no dia seguinte');
+  st.energy = G.maxEnergy(st); assert(!G.canAdReward(st, 'energy', new Date(2026, 5, 12)).ok, 'encontros cheios');
+  const g0 = st.gold; assert(G.adReward(st, 'gold', now).ok && st.gold === g0 + G.adGold(st));
+  const lo = G.newState('x'); lo.level = 5; assert(G.adGold(st) > G.adGold(lo) * 2);
+  assert(G.adGold(st) < G.eventPrize(st, 'daily', 20) * 2, 'o anúncio paga pouco perto de um evento');
+});
+t('adaptador de compras/anúncios (plugins simulados): registra, credita uma vez, consome e mostra o anúncio', async () => {
+  globalThis.G = G; delete require.cache[require.resolve('../js/monet.js')];
+  const calls = { finish: 0, order: [], reg: null, show: 0, mode: 'ok' }; const h = {};
+  const store = { register(l) { calls.reg = l; }, when() { const w = { approved(cb) { h.approved = cb; return w; }, productUpdated(cb) { h.pu = cb; return w; } }; return w; },
+    initialize() { return Promise.resolve([]); }, get(id) { return { getOffer: () => ({ id, pricingPhases: [{ price: 'R$ 12,99' }] }) }; }, order(o) { calls.order.push(o.id); return Promise.resolve(undefined); } };
+  globalThis.CdvPurchase = { store, ProductType: { CONSUMABLE: 'c' }, Platform: { GOOGLE_PLAY: 'gp' }, ErrorCode: { PAYMENT_CANCELLED: 6 } };
+  const admob = { requestConsentInfo: async () => ({ status: 'NOT_REQUIRED' }), initialize: async () => {}, prepareRewardVideoAd: async () => ({}), showRewardVideoAd: async () => { calls.show++; if (calls.mode === 'fail') throw new Error('x'); return { type: 'c', amount: 1 }; } };
+  globalThis.Capacitor = { isNativePlatform: () => true, Plugins: { AdMob: admob } };
+  const M = require('../js/monet.js'); const st = G.newState('x'); let changes = 0;
+  await M.init({ getState: () => st, onChange: () => { changes++; } });
+  assert(M.native() && M.canBuy() && M.canAds() && M.mode() === 'native'); assert.equal(calls.reg.length, G.PRODUCTS.length);
+  assert(calls.reg.every((p) => p.type === 'c' && p.platform === 'gp'), 'todos consumíveis do Google Play');
+  assert.equal(M.priceOf('diamantes_85'), 'R$ 12,99');
+  const tx = { transactionId: 'GPA.1', products: [{ id: 'diamantes_85' }], finish() { calls.finish++; return Promise.resolve(); } };
+  await h.approved(tx); assert.equal(st.diamonds, 85); assert.equal(calls.finish, 1); assert(changes > 0);
+  await h.approved(tx); assert.equal(st.diamonds, 85, 'recibo repetido não credita de novo'); assert.equal(calls.finish, 2, 'mas é consumido');
+  const b = await M.buy('diamantes_240'); assert(b.ok && b.pending && calls.order[0] === 'diamantes_240'); assert(!(await M.buy('nada')).ok);
+  assert.equal(await M.showRewarded(), true); calls.mode = 'fail'; assert.equal(await M.showRewarded(), false, 'falha no anúncio não dá recompensa');
+  // fora do app da loja: nada disponível (a menos do modo de teste)
+  globalThis.Capacitor = undefined; globalThis.CdvPurchase = undefined; delete require.cache[require.resolve('../js/monet.js')]; const W = require('../js/monet.js');
+  assert(!W.native() && !W.canBuy() && !W.canAds() && W.mode() === 'web'); assert.equal(await W.showRewarded(), false);
+  assert.equal((await W.buy('diamantes_30')).ok, false); assert.equal(W.priceOf('diamantes_30'), 'R$ 4,99');
+  delete globalThis.Capacitor; delete globalThis.CdvPurchase; delete globalThis.G; delete globalThis.Monet;
+});
+
+t('android-setup: acrescenta o ID do AdMob e a permissão de compras, sem duplicar', () => {
+  const { patchManifest, TEST_APP_ID } = require('./android-setup.js');
+  const xml = '<manifest xmlns:android="x">\n    <application android:label="a">\n        <activity/>\n    </application>\n</manifest>';
+  const r = patchManifest(xml, 'ca-app-pub-1~2'); assert(r.xml.includes('APPLICATION_ID" android:value="ca-app-pub-1~2"') && r.xml.includes('com.android.vending.BILLING') && r.changed.length === 2);
+  const r2 = patchManifest(r.xml, TEST_APP_ID); assert.equal((r2.xml.match(/APPLICATION_ID/g) || []).length, 1); assert(r2.xml.includes(TEST_APP_ID) && (r2.xml.match(/BILLING/g) || []).length === 1, 'idempotente; atualiza o ID');
+});
+
+Promise.all(pend).then(() => console.log(`\n${n} testes passaram`)).catch((e) => { console.error(e); process.exit(1); });

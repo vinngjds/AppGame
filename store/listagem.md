@@ -29,3 +29,8 @@ Violência fantasiosa leve contra criaturas. Sem compras, sem anúncios, sem con
 
 ## URL da política de privacidade
 https://vinngjds.github.io/AppGame/privacidade.html
+
+
+## Avisos obrigatórios
+- **Contém anúncios** (opcionais, com recompensa) e **compras no app** (diamantes).
+- Descrição curta sugerida (complemento): "Diamantes e anúncios opcionais aceleram o progresso; as caixas de itens nunca são vendidas."

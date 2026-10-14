@@ -79,6 +79,47 @@
   // evoluir lendários e runas também gasta diamantes
   G.upgradeDiamonds = (it) => (it.rune || it.rarity >= 4 ? 1 + Math.floor((it.plus || 0) / 2) : 0);
 
+
+  /* ---------- Compras no app (diamantes) e anúncios com recompensa ---------- */
+  // Os preços reais são definidos no Google Play Console (o app mostra o preço da loja); "hint" é só um valor de referência.
+  G.PRODUCTS = [
+    { id: 'diamantes_30',  diamonds: 30,  hint: 'R$ 4,99' },
+    { id: 'diamantes_85',  diamonds: 85,  hint: 'R$ 12,99' },
+    { id: 'diamantes_240', diamonds: 240, hint: 'R$ 34,99' },
+    { id: 'diamantes_650', diamonds: 650, hint: 'R$ 89,99' },
+  ];
+  // Libera a compra uma única vez por transação (a loja pode reenviar o mesmo recibo)
+  G.grantProduct = function (st, productId, txId) {
+    const p = G.PRODUCTS.find((x) => x.id === productId);
+    if (!p) return { ok: false, msg: 'Produto desconhecido.' };
+    if (!st.iap) st.iap = { tx: {} };
+    if (txId && st.iap.tx[txId]) return { ok: true, dup: true, diamonds: 0, msg: 'Compra já creditada.' };
+    st.diamonds += p.diamonds;
+    if (txId) { st.iap.tx[txId] = Date.now(); const k = Object.keys(st.iap.tx); if (k.length > 200) delete st.iap.tx[k[0]]; }
+    return { ok: true, dup: false, diamonds: p.diamonds, msg: `+${p.diamonds} 💎 creditados!` };
+  };
+  // Anúncios com recompensa: poucos por dia, e a recompensa é pequena para não quebrar a economia
+  G.AD_REWARDS = {
+    energy: { perDay: 3, label: '+2 encontros', icon: '⚡' },
+    gold:   { perDay: 3, label: 'ouro extra',   icon: '🪙' },
+  };
+  G.adGold = (st) => Math.round((6 + 3 * st.level) * G.GOLD_RATE * 8);   // ≈ 8 lutas comuns do seu nível
+  const adDay = (st, now) => { const d = G.dayKey(now || new Date()); if (!st.ads || st.ads.day !== d) st.ads = { day: d, energy: 0, gold: 0 }; return st.ads; };
+  G.adsLeft = (st, kind, now) => Math.max(0, G.AD_REWARDS[kind].perDay - adDay(st, now)[kind]);
+  G.canAdReward = function (st, kind, now) {
+    if (!G.AD_REWARDS[kind]) return { ok: false, msg: 'Anúncio inválido.' };
+    if (G.adsLeft(st, kind, now) <= 0) return { ok: false, msg: 'Você já viu todos os anúncios de hoje desta recompensa.' };
+    if (kind === 'energy' && st.energy >= G.maxEnergy(st)) return { ok: false, msg: 'Seus encontros já estão cheios.' };
+    return { ok: true };
+  };
+  G.adReward = function (st, kind, now) {
+    const c = G.canAdReward(st, kind, now);
+    if (!c.ok) return c;
+    adDay(st, now)[kind]++;
+    if (kind === 'energy') { st.energy = Math.min(G.maxEnergy(st), st.energy + 2); return { ok: true, msg: '+2 encontros!' }; }
+    const g = G.adGold(st); st.gold += g; return { ok: true, msg: `+${g} 🪙!`, gold: g };
+  };
+
   /* ---------- VIP e slots ---------- */
   G.VIP = { price: 200, days: 30, slots: 24, xp: 1.1, gold: 1.2, regen: 0.75, resetDiscount: 0.7 };
   G.isVip = (st, now = Date.now()) => (st.vipUntil || 0) > now;

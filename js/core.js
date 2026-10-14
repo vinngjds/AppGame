@@ -8,7 +8,7 @@
   const pick = (arr) => arr[Math.floor(R() * arr.length)];
   const r1 = (n) => Math.round(n * 10) / 10;
 
-  G.STATE_V = 6;
+  G.STATE_V = 7;
   G.MAX_LEVEL = 40;
   G.MAX_ENERGY = 12;
   G.ENERGY_SECS = 240;            // 1 encontro a cada 4 min
@@ -247,7 +247,7 @@
       bag: [], bagSize: G.BAG_START,
       equipped: { arma: null, escudo: null, elmo: null, armadura: null, luvas: null, botas: null, amuleto: null, runas: [null, null, null] },
       potions: { small: 5, large: 0 }, energy: G.MAX_ENERGY, energyAt: now, cdUntil: 0,
-      skills: {}, training: null, diamonds: 0, vipUntil: 0, finished: false, createdAt: now, codex: {}, cls: null, evo: null, tree: {},
+      skills: {}, training: null, diamonds: 0, vipUntil: 0, iap: { tx: {} }, ads: { day: '', energy: 0, gold: 0 }, finished: false, createdAt: now, codex: {}, cls: null, evo: null, tree: {},
       ev: { day: '', weekly: 0, monthly: 0, claimW: '', claimM: '' },
     };
     st.equipped.arma = G.makeItem('arma', 1, 0); G.discover(st, st.equipped.arma);
@@ -1083,6 +1083,10 @@
     if (s.v < 6) {   // v5 -> v6: sem ossos e fósseis (viram ouro)
       s.gold = (s.gold || 0) + 3 * (s.ossos || 0) + 15 * (s.fossils || 0); delete s.ossos; delete s.fossils; s.v = 6;
     }
+    if (s.v < 7) {   // v6 -> v7: compras no app e anúncios com recompensa
+      s.iap = s.iap || { tx: {} }; s.ads = s.ads || { day: '', energy: 0, gold: 0 }; s.v = 7;
+    }
+    if (!s.iap) s.iap = { tx: {} }; if (!s.ads) s.ads = { day: '', energy: 0, gold: 0 };
     if (!s.tree) s.tree = {}; if (s.cls === undefined) s.cls = null; if (s.evo === undefined) s.evo = null;
     if (!s.avatar) s.avatar = Object.assign({}, G.DEFAULT_AVATAR);
     (s.evTrophies || []).forEach((e, i) => { if (!e.bonus) e.bonus = G.evTrophyBonus(e.type, i); });

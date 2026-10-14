@@ -15,7 +15,8 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:android": "npm run cap:sync && npx cap open android",
     "cap:ios": "npm run cap:sync && npx cap open ios",
-    "assets": "npx capacitor-assets generate --iconBackgroundColor #1a110b --splashBackgroundColor #1a110b"
+    "assets": "npx capacitor-assets generate --iconBackgroundColor #1a110b --splashBackgroundColor #1a110b",
+    "android:setup": "node scripts/android-setup.js"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -23,7 +24,9 @@
     "@capacitor/haptics": "^6.0.0",
     "@capacitor/ios": "^6.0.0",
     "@capacitor/splash-screen": "^6.0.0",
-    "@capacitor/status-bar": "^6.0.0"
+    "@capacitor/status-bar": "^6.0.0",
+    "@capacitor-community/admob": "^6.2.0",
+    "cordova-plugin-purchase": "^13.18.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

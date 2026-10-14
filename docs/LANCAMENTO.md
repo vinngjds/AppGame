@@ -24,6 +24,8 @@ Depois de qualquer mudança no jogo: `npm run cap:sync`.
 4. No Play Console: criar app → enviar o `.aab` para **Teste interno** → preencher ficha da loja com `store/listagem.md`, ícone 512×512 (`icons/icon-512.png`), imagem de destaque 1024×500 (`store/feature-graphic.png`), pelo menos 2 capturas de tela de celular, classificação etária e segurança de dados ("não coleta dados").
 5. Contas pessoais novas precisam de **teste fechado com 12 testadores por 14 dias** antes da produção (regra atual do Google; confira no console).
 
+> **Monetização (compras e anúncios):** configure depois de gerar o projeto Android, seguindo [`MONETIZACAO.md`](MONETIZACAO.md).
+
 ## 3. Apple App Store (iOS)
 1. Precisa de um **Mac com Xcode**. Sem Mac, use um serviço de build na nuvem (Codemagic, Ionic Appflow).
 2. Conta: https://developer.apple.com/programs (US$ 99/ano).

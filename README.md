@@ -31,9 +31,12 @@ No iPhone: abra o link no Safari → Compartilhar → *Adicionar à Tela de Iní
 Um workflow (`.github/workflows/pages.yml`) publica no GitHub Pages ao fazer merge na `main` (ative Pages → Source: GitHub Actions).
 
 ## Estrutura
-- `js/skilltree.js` classes, árvore de habilidades, evoluções e regras de aprendizado · `js/shop.js` conjuntos, diamantes, VIP e slots · `js/art.js` ilustração dos monstros e cenários · `js/itemart.js` ilustração dos itens · `js/avatar.js` avatar em camadas
+- `js/monet.js` compras no app (Google Play Billing) e anúncios com recompensa (AdMob) · `js/skilltree.js` classes, árvore de habilidades, evoluções e regras de aprendizado · `js/shop.js` conjuntos, diamantes, VIP e slots · `js/art.js` ilustração dos monstros e cenários · `js/itemart.js` ilustração dos itens · `js/avatar.js` avatar em camadas
 - `js/core.js` regras puras (itens, combate, recompensas, loja) — testável em Node.
 - `js/ui.js` telas e animações · `css/style.css` tema pedra/couro · `sw.js` offline.
 
 ## Balanceamento
 Fórmulas em `js/core.js` (`makeMonster`, `heroStats`, `makeItem`, `monsterXp`). A simulação (`node scripts/sim.js 30`) mostra a escalada de dificuldade (fera ≈ 10%, fera 2 ≈ 19%, semi-chefe ≈ 38%, chefe ≈ 80% da vida — um jogo difícil, mas não impossível), a vitória nos dragões e eventos. `node scripts/autotune.js` reajusta a força de cada chefe (`G.BOSS_TUNE`). A simulação joga as 3 classes (`CLS=mago node scripts/sim.js`) e também sem árvore (`NOTREE=1`) para medir o impacto das habilidades.
+
+## Monetização
+Compras de diamantes e anúncios com recompensa estão prontos no código; falta configurar as contas (Play Console e AdMob) e testar em aparelho. Passo a passo e limitações em [`docs/MONETIZACAO.md`](docs/MONETIZACAO.md). Para testar as telas no navegador: `?debugpay=1`.

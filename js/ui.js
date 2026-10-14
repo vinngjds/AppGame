@@ -30,7 +30,7 @@
     const s = G.heroStats(st), need = G.xpToNext(st.level);
     const pct = st.level >= G.MAX_LEVEL ? 100 : Math.floor((st.xp / need) * 100);
     top.innerHTML = `
-      <div class="toprow"><div class="title">🦴 ERA DA PEDRA${G.isVip(st) ? ' <span class="vipbadge">👑 VIP</span>' : ''}</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold gem" style="margin-left:6px" title="Diamantes">💎 ${fmt(st.diamonds || 0)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
+      <div class="toprow"><div class="title">🦴 ERA DA PEDRA${G.isVip(st) ? ' <span class="vipbadge">👑 VIP</span>' : ''}</div><div><span class="gold">🪙 ${fmt(st.gold)}</span> <span class="gold gem" style="margin-left:6px" title="Diamantes — toque para comprar" data-act="godia">💎 ${fmt(st.diamonds || 0)}</span> <button class="btn sm" data-act="menu" style="margin-left:6px">⚙️</button></div></div>
       <div class="stats"><span>⚔️ ${fmt(s.atk)}</span><span>❤️ ${fmt(s.hp)}</span><span>🛡️ ${fmt(s.arm)}</span><span>🎯 ${s.crit.toFixed(0)}%</span></div>
       <div class="xpbar"><b>⬆ ${st.level}</b><div class="bar"><i style="width:${pct}%"></i></div><b>${st.level >= G.MAX_LEVEL ? 'MÁX' : pct + '%'}</b></div>`;
     const free = G.skillPoints(st).free;
@@ -82,7 +82,21 @@
   function waitRow() {
     const zero = st.energy <= 0, mx = G.maxEnergy(st);
     return `<div class="row waitrow"><button class="btn sm" data-act="buyen" ${st.energy < mx ? '' : 'disabled'}>⚡ +1 encontro · 🪙 ${fmt(G.energyBuyCost(st))}</button>
-      <button class="btn sm ${zero ? 'go' : ''}" data-act="resetEn" ${zero ? '' : 'disabled'}>♻️ Restaurar tudo · 🪙 ${fmt(G.energyResetCost(st))}</button></div>`;
+      <button class="btn sm ${zero ? 'go' : ''}" data-act="resetEn" ${zero ? '' : 'disabled'}>♻️ Restaurar tudo · 🪙 ${fmt(G.energyResetCost(st))}</button></div>${adRow()}`;
+  }
+  // anúncios com recompensa (só aparecem onde existem: app da loja ou modo de teste)
+  function adRow() {
+    if (!Monet.canAds()) return '';
+    const b = (kind, txt) => { const left = G.adsLeft(st, kind), ok = G.canAdReward(st, kind).ok;
+      return `<button class="btn sm" data-act="ad-${kind}" ${ok ? '' : 'disabled'}>📺 ${txt} <small>(${left}/${G.AD_REWARDS[kind].perDay} hoje)</small></button>`; };
+    return `<div class="row waitrow">${b('energy', '+2 encontros')}${b('gold', '+' + fmt(G.adGold(st)) + ' 🪙')}</div>`;
+  }
+  function watchAd(kind) {
+    const c = G.canAdReward(st, kind); if (!c.ok) return toast(c.msg);
+    Monet.showRewarded().then((ok) => {
+      if (!ok) return toast('Anúncio indisponível agora. Tente de novo em instantes.');
+      const r = G.adReward(st, kind); buzz(30); save(); toast(r.msg); render();
+    });
   }
 
   /* ---------- Caçar ---------- */
@@ -432,7 +446,7 @@
     return h;
   }
   function vLoja() {
-    const tabs = [['equip', '🛡️ Conjuntos'], ['runas', '🔶 Runas'], ['pocao', '🧪 Poções'], ['vender', '💰 Vender'], ['forja', '🔨 Ferreiro'], ['mochila', '🎒 Baú'], ['vip', '👑 VIP']];
+    const tabs = [['equip', '🛡️ Conjuntos'], ['runas', '🔶 Runas'], ['pocao', '🧪 Poções'], ['vender', '💰 Vender'], ['forja', '🔨 Ferreiro'], ['mochila', '🎒 Baú'], ['dia', '💎 Diamantes'], ['vip', '👑 VIP']];
     let h = `<h2 class="banner">Mercador</h2><div class="chips wrap">${tabs.map(([id, n]) => `<button data-st="${id}" class="${id === shopTab ? 'on' : ''}">${n}</button>`).join('')}</div>`;
     if (shopTab === 'equip') {
       h += shopSet == null ? vSetList() : vSetDetail(G.SETS[shopSet]);
@@ -450,6 +464,14 @@
     } else if (shopTab === 'vender') {
       const list = st.bag.filter((i) => !i.lock).sort(SORTS.raridade);
       h += list.length ? list.map((i) => itemRow(i, `<button class="btn sm red" data-sellq="${i.id}">🪙 ${fmt(G.sellPrice(i))}</button>`, `data-item="${i.id}"`, true)).join('') : '<div class="card center muted">Nada para vender (itens travados não aparecem).</div>';
+    } else if (shopTab === 'dia') {
+      const canBuy = Monet.canBuy();
+      h += `<div class="card"><div class="name">💎 Diamantes</div><div class="sub">Servem para o conjunto lendário, runas, evoluir lendários e o VIP. Você também ganha diamantes jogando: dragões, eventos e caixas +4/+5.</div></div>`;
+      h += G.PRODUCTS.map((p) => `<div class="card"><div class="row"><div class="pic">💎</div><div class="grow"><div class="name">${p.diamonds} diamantes</div><div class="sub">${canBuy ? 'Compra segura pela loja do seu aparelho.' : 'Disponível no app da loja.'}</div></div>
+        <button class="btn sm go" data-buyprod="${p.id}" ${canBuy ? '' : 'disabled'}>${esc(Monet.priceOf(p.id))}</button></div></div>`).join('');
+      if (Monet.canAds()) h += `<div class="card"><div class="name">📺 Recompensas por anúncio</div><div class="sub">Assista a um anúncio curto e ganhe uma ajuda. Limite diário.</div></div>${adRow()}`;
+      if (Monet.mode() === 'debug') h += '<div class="sub center" style="margin-top:6px">⚠️ Modo de teste: as compras e os anúncios são simulados.</div>';
+      h += '<div class="sub center" style="margin-top:8px">As caixas de itens <b>não</b> são vendidas: só se ganham jogando. As chances estão em Baú → Chances das Caixas.</div>';
     } else if (shopTab === 'vip') {
       const vip = G.isVip(st), V = G.VIP;
       h += `<div class="card vip"><div class="big">👑</div><div class="name center">Passe VIP · ${V.days} dias</div>
@@ -680,7 +702,7 @@
   }
 
   /* ---------- Eventos de clique ---------- */
-  const SEL = '[data-act],[data-nav],[data-item],[data-set],[data-buyset],[data-buyrune],[data-evolve],[data-do-evolve],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-go-forge]';
+  const SEL = '[data-act],[data-nav],[data-item],[data-set],[data-buyset],[data-buyrune],[data-evolve],[data-buyprod],[data-do-evolve],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-go-forge]';
   const after = (msg, ok = true) => { if (msg) toast(msg); if (ok) { save(); closeModal(); } render(); };
   document.addEventListener('click', (ev) => {
     const t = ev.target.closest(SEL);
@@ -700,6 +722,7 @@
     if (d.set !== undefined) { shopSet = d.set === '' ? null : +d.set; return render(); }
     if (d.buyset) { const [sid, sl] = d.buyset.split(':'); const r = G.buySetPiece(st, +sid, sl); if (r.ok) buzz(20); return after(r.msg, false); }
     if (d.buyrune) { const [t, rr] = d.buyrune.split(':'); const r = G.buyRune(st, t, +rr); if (r.ok) buzz(20); return after(r.msg, false); }
+    if (d.buyprod) { Monet.buy(d.buyprod).then((r) => { if (r.ok && !r.pending) buzz(40); toast(r.msg); render(); }); return; }
     if (d.evolve !== undefined) return showEvolve(+d.evolve);
     if (d.doEvolve !== undefined) { const r = G.evolve(st, +d.doEvolve); if (r.ok) { buzz(60); save(); closeModal(); render(); toast(r.msg); } else toast(r.msg); return; }
     if (d.eq) { G.equip(st, d.eq, d.ri === undefined || d.ri === '' ? undefined : +d.ri); return after('Equipado!'); }
@@ -735,6 +758,9 @@
       case 'reset': if (confirm('Apagar todo o progresso?')) { G.wipe(); st = G.newState(''); fight = null; closeModal(); save(); render(); askName(true); } return;
       case 'rest': { const r = G.rest(st); return after(r.msg, false); }
       case 'resetEn': { const c = G.energyResetCost(st); if (st.energy > 0) return toast('Ainda há encontros.'); if (!confirm(`Restaurar todos os encontros por ${fmt(c)} de ouro?`)) return; const r = G.resetEnergy(st); if (r.ok) buzz(30); return after(r.msg, false); }
+      case 'godia': screen = 'loja'; shopTab = 'dia'; shopSet = null; return render();
+      case 'ad-energy': return watchAd('energy');
+      case 'ad-gold': return watchAd('gold');
       case 'buyvip': { if (!confirm(`Comprar VIP por ${G.VIP.price} diamantes (${G.VIP.days} dias)?`)) return; const r = G.buyVip(st); if (r.ok) buzz(40); return after(r.msg, false); }
       case 'buyen': { const r = G.buyEnergy(st); if (r.ok) buzz(20); return after(r.msg, false); }
       case 'bagup': { const r = G.buyBagSlots(st); return after(r.msg, false); }
@@ -770,6 +796,7 @@
   render();
   if (fresh) askName(true); else if (!st.cls) showClassPick(true);
   Art.loadPack().then((j) => { if (j && !fight) render(); });
+  Monet.init({ getState: () => st, onChange: (msg) => { save(); if (msg) toast(msg); if (!fight) render(); } });
   setInterval(tick, 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !fight) render(); });
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
