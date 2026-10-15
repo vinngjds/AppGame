@@ -259,7 +259,7 @@
     return G.CLASS_ORDER.map((id) => {
       const c = G.CLASSES[id];
       const sample = G.TREE.filter((d) => d.cls === id && d.type === 'active' && d.tier <= 2).slice(0, 4).map((d) => `${d.icon} ${d.name}`).join(' · ');
-      return `<div class="card class" style="border-color:${c.color}"><div class="row"><div class="pic" style="font-size:38px">${c.icon}</div><div class="grow"><div class="name">${c.name}</div><div class="sub">${c.blurb}</div></div></div>
+      return `<div class="card class" style="border-color:${c.color}"><div class="row"><div class="pic portraitbox">${Art.portrait(id, c.icon)}</div><div class="grow"><div class="name">${c.name}</div><div class="sub">${c.blurb}</div></div></div>
         <div class="sub up" style="margin-top:6px">Bônus: ${c.bonusText}</div><div class="sub">Ramos: ${c.branches.map((b) => b[1] + ' ' + b[0]).join(' · ')}</div><div class="sub">${sample}…</div>
         <button class="btn go" data-cls="${id}">Ser ${c.name}</button></div>`;
     }).join('');
@@ -274,7 +274,7 @@
     const evs = G.EVOS[st.cls];
     if (st.evo != null) {
       const e = evs[st.evo], list = G.TREE.filter((d) => d.cls === st.cls && d.evo && d.branch === st.evo);
-      return `<div class="card evo on"><div class="row"><div class="pic" style="font-size:34px">${e.icon}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${e.blurb}</div><div class="sub up">${evoBonusText(e.bonus)}</div></div></div>
+      return `<div class="card evo on"><div class="row"><div class="pic portraitbox">${Art.portrait(`evo:${st.cls}:${st.evo}`, e.icon)}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${e.blurb}</div><div class="sub up">${evoBonusText(e.bonus)}</div></div></div>
         <div class="bhead" style="margin-top:8px">Habilidades de ${e.name}</div><div class="tchain two">${list.map((d) => {
         const r = G.treeRank(st, d.id), stt = nodeState(d), cost = G.canLearn(st, d.id).cost;
         return `<button class="tnode ${stt} ${d.type}" data-sk="${d.id}"><div class="ring">${d.icon}</div><div class="nm">${esc(d.name)}</div>
@@ -283,11 +283,11 @@
     }
     return `<div class="card evo"><div class="name">🌟 Evolução de classe</div><div class="sub">No nível ${G.EVO_LEVEL}, o caminho que você seguiu na árvore vira uma <b>nova classe</b>: bônus permanente e 2 habilidades exclusivas. Aprenda ao menos a 2ª habilidade de um ramo e escolha a evolução.</div>
       <div class="evolist">${c.branches.map((b, bi) => { const e = evs[bi], pp = G.branchPoints(st, bi), ck = G.canEvolve(st, bi);
-        return `<button class="evobtn ${ck.ok ? 'ready' : ''}" data-evolve="${bi}"><div class="e">${e.icon}</div><b>${e.name}</b><span>${b[1]} ${b[0]} · ${pp} pt</span></button>`; }).join('')}</div></div>`;
+        return `<button class="evobtn ${ck.ok ? 'ready' : ''}" data-evolve="${bi}"><div class="e">${Art.portrait(`evo:${st.cls}:${bi}`, e.icon)}</div><b>${e.name}</b><span>${b[1]} ${b[0]} · ${pp} pt</span></button>`; }).join('')}</div></div>`;
   }
   function showEvolve(b) {
     const e = G.EVOS[st.cls][b], ck = G.canEvolve(st, b), sk = G.TREE.filter((d) => d.cls === st.cls && d.evo && d.branch === b);
-    openModal(`<div class="row"><div class="pic" style="font-size:38px">${e.icon}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${G.CLASSES[st.cls].name} · ramo ${G.CLASSES[st.cls].branches[b][0]}</div></div></div>
+    openModal(`<div class="row"><div class="pic portraitbox">${Art.portrait(`evo:${st.cls}:${b}`, e.icon)}</div><div class="grow"><div class="name">${e.name}</div><div class="sub">${G.CLASSES[st.cls].name} · ramo ${G.CLASSES[st.cls].branches[b][0]}</div></div></div>
       <div class="flavor">${e.blurb}</div><div class="sub up">Bônus permanente: ${evoBonusText(e.bonus)}</div><div class="hr"></div>
       ${sk.map((d) => `<div class="rank"><b>${d.icon} ${esc(d.name)}</b> <span class="tag">${d.type === 'active' ? 'ATIVA' : 'PASSIVA'}</span><div class="sub">${G.skillDesc(d, 1)}</div><div class="sub">Custo ${G.treeCost(d, 1)} pt · requer nível ${G.treeReqLevel(d, 1)}</div></div>`).join('')}
       <div class="sub" style="margin-top:6px">⚠️ A evolução é definitiva (até redefinir a árvore). Só as habilidades da sua evolução ficam disponíveis.</div>
@@ -296,7 +296,7 @@
   function vArvore() {
     if (!st.cls) { view.innerHTML = `<h2 class="banner">🌳 Árvore de Habilidades</h2><div class="sub center" style="margin-bottom:8px">Escolha uma classe para começar.</div>${classCards()}`; return; }
     const c = G.CLASSES[st.cls], pts = G.skillPoints(st);
-    let h = `<div class="card" style="border-color:${c.color}"><div class="row"><div class="pic" style="font-size:36px">${G.classIcon(st)}</div><div class="grow"><div class="name">${G.classTitle(st)} · nível ${st.level}</div><div class="sub">${st.evo != null ? `${c.icon} ${c.name} → evolução` : c.bonusText}</div></div>
+    let h = `<div class="card" style="border-color:${c.color}"><div class="row"><div class="pic portraitbox">${Art.portrait(st.evo != null ? `evo:${st.cls}:${st.evo}` : st.cls, '') || Art.portrait(st.cls, G.classIcon(st))}</div><div class="grow"><div class="name">${G.classTitle(st)} · nível ${st.level}</div><div class="sub">${st.evo != null ? `${c.icon} ${c.name} → evolução` : c.bonusText}</div></div>
       <div class="ptsbox"><div class="pts">${pts.free}</div><div class="sub">pontos livres</div></div></div>
       <div class="sub" style="margin-top:6px">⭐ ${pts.spent} usados de ${pts.total} (1 por nível). Habilidades <b>ativas</b> (quadradas) viram botões na batalha; <b>passivas</b> (redondas) valem sempre.</div></div>`;
     h += evoCard(c);
@@ -795,7 +795,11 @@
   if (!st) { st = G.newState(''); st.name = 'Herói'; save(); }
   render();
   if (fresh) askName(true); else if (!st.cls) showClassPick(true);
-  Art.loadPack().then((j) => { if (j && !fight) render(); });
+  Art.loadPack().then((j) => {
+    if (!j) return;
+    if (!fight) render();
+    if (!modal.hidden && modal.querySelector('[data-cls]')) showClassPick(!st.cls);   // reabre a escolha de classe já com os retratos
+  });
   Monet.init({ getState: () => st, onChange: (msg) => { save(); if (msg) toast(msg); if (!fight) render(); } });
   setInterval(tick, 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !fight) render(); });

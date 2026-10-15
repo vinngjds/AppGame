@@ -15,8 +15,17 @@ Se você quiser um visual **mais realista ou pintado**, o jogo aceita imagens pr
 
 Dicas: use o mesmo estilo (a lista de prompts já repete o estilo comum), mantenha o monstro centralizado e o fundo simples, e prefira WebP/PNG otimizados (idealmente menos de 200 KB cada) para o app abrir rápido.
 
+## Arte de referência (já aplicada)
+`docs/arte-referencia.jpg` é a folha de referência de estilo (heróis e criaturas desenhados à mão, contorno marrom escuro, tons terrosos). Dela já saíram, recortados e com fundo transparente:
+- **Retratos**: Guerreiro, Arqueiro e Mago (e o Guardião de Pedra, evolução do Guerreiro), em `art/portraits/` — aparecem na escolha de classe, na árvore e nas evoluções.
+- **Monstros**: Raptor, Morcego, Dragão primitivo, Tigre dentes-de-sabre e Mamute, em `art/monsters/`.
+
+`art/styles.json` reaproveita essas imagens em outros monstros com outra cor/brilho (por exemplo o Dragão Verde, o Azul e o de Fogo vêm do mesmo dragão, com filtro de cor; chefes e eventos ganham um brilho dourado). Uma imagem própria em `art/monsters/<nome>.png` sempre tem prioridade. Depois de mudar arquivos, rode `node scripts/art-manifest.js`.
+
+Para o restante (≈60 criaturas, cenários e itens) o jogo continua no desenho em SVG. Para chegar ao mesmo nível de qualidade, gere o resto com o **mesmo estilo**: `node scripts/art-prompts.js` já usa a descrição desse estilo em todos os prompts (anexe também a folha de referência na ferramenta de imagem).
+
 ## Direitos de uso
-Confira os termos da ferramenta de IA ou do artista antes de publicar nas lojas: é preciso ter direito de uso comercial das imagens. Guarde a licença/comprovante.
+Confira os termos da ferramenta de IA ou do artista antes de publicar nas lojas: é preciso ter direito de uso comercial das imagens. Guarde a licença/comprovante. **Isso vale também para a folha de referência (`docs/arte-referencia.jpg`) e para os recortes dela em `art/`.**
 
 ## Avatar
 ## Itens

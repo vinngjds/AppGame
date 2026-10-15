@@ -1,7 +1,7 @@
 // Gera docs/arte-prompts.md: um prompt por monstro e por cenário, para gerar a arte com uma IA de imagem ou passar a um artista.
 const fs = require('fs'), path = require('path');
 const G = require('../js/core.js'), Art = require('../js/art.js');
-const STYLE = 'dark fantasy stone-age (prehistoric) bestiary illustration, hand-painted digital art, dramatic rim lighting, rich textures, moody, front-facing bust portrait, centered, simple dark background, no text, no watermark';
+const STYLE = 'stone-age (prehistoric) character-sheet illustration in the exact style of docs/arte-referencia.jpg: hand-inked bold dark brown outlines, painterly cel shading, warm earthy palette (browns, ochre, bone white, muted teal), visible fur, leather, bone and stone textures, full body, three-quarter view, a soft ground shadow, plain parchment-colored background, no frame, no text, no watermark';
 const MOD = { feroz: 'ferocious, snarling', veloz: 'lean and fast, agile', couracado: 'heavily armored, thick plated hide', venenoso: 'venomous, toxic green drool', regenerador: 'scarred but regenerating, glowing healing veins', esmagador: 'brutish and massive' };
 const KIND = { normal: 'wild beast', semi: 'alpha beast, larger and scarred, with bone trophies', boss: 'legendary boss creature, imposing, epic scale', event: 'legendary event boss, glowing aura', dragon: 'mighty dragon, epic, detailed scales, horns and wings' };
 const rows = [], seen = new Set();

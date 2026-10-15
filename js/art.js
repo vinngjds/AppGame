@@ -501,7 +501,10 @@
   Art.monster = function (mon, opts) {
     opts = opts || {};
     const img = Art.pack && Art.pack.monsters && Art.pack.monsters[String(mon.name).replace(/ Veterano$/, '')];
-    if (img) return `<img class="artimg" src="${img}" alt="${mon.name}" draggable="false">`;
+    if (img) {   // string (caminho) ou { src, filter } quando a imagem é reaproveitada com outra cor/brilho
+      const src = typeof img === 'string' ? img : img.src, fl = typeof img === 'object' && img.filter ? ` style="filter:${img.filter}"` : '';
+      return `<img class="artimg" src="${src}"${fl} alt="${mon.name}" draggable="false">`;
+    }
     const [arch, base, o] = specFor(mon), P = pal(base, o), c = Ctx(P);
     const body = DRAW[arch](c, Object.assign({ seed: hash(mon.name) }, o));
     const elite = mon.kind === 'elite' ? `<ellipse cx="120" cy="104" rx="112" ry="92" fill="${c.glow('#b06be0')}" opacity=".4"/>` : '';
@@ -513,6 +516,11 @@
     return `<svg${cls} viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${mon.name}"><defs>${c.defs.join('')}${filt}</defs>${elite}${sm}${ground}<g${grain}>${body}</g></svg>`;
   };
   Art.GRAIN = true;
+  // retrato de classe/evolução (imagem do pacote de arte) ou, sem ela, o emoji
+  Art.portrait = function (key, fallback) {
+    const src = Art.pack && Art.pack.portraits && Art.pack.portraits[key];
+    return src ? `<img class="portrait" src="${src}" alt="" draggable="false">` : (fallback || '');
+  };
 
   /* ---------- CENÁRIOS por bioma ---------- */
   const BIOME = {

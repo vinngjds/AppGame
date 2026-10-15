@@ -433,4 +433,19 @@ t('android-setup: acrescenta o ID do AdMob e a permissão de compras, sem duplic
   const r2 = patchManifest(r.xml, TEST_APP_ID); assert.equal((r2.xml.match(/APPLICATION_ID/g) || []).length, 1); assert(r2.xml.includes(TEST_APP_ID) && (r2.xml.match(/BILLING/g) || []).length === 1, 'idempotente; atualiza o ID');
 });
 
+t('pacote de arte: manifesto aponta só para arquivos que existem; dragões e chefes reaproveitam a imagem com filtro', () => {
+  const fs = require('fs'), root = path.join(__dirname, '..');
+  const m = JSON.parse(fs.readFileSync(path.join(root, 'art', 'manifest.json'), 'utf8'));
+  const src = (v) => (typeof v === 'string' ? v : v.src);
+  for (const v of Object.values(m.monsters)) assert(fs.existsSync(path.join(root, src(v))), 'falta ' + src(v));
+  for (const v of Object.values(m.portraits)) assert(fs.existsSync(path.join(root, v)), 'falta ' + v);
+  assert(m.monsters['Dragão Verde'].filter && m.monsters['Dragão Azul'].filter && m.monsters['Dragão Verde'].src === m.monsters['Dragão Azul'].src, 'mesmo dragão, cores diferentes');
+  assert(m.portraits.guerreiro && m.portraits.arqueiro && m.portraits.mago && m.portraits['evo:guerreiro:1']);
+  const Art = require(path.join(root, 'js', 'art.js')); Art.pack = m;
+  assert(/<img class="artimg" src="art\/monsters\/raptor-veloz\.png"/.test(Art.monster({ name: 'Raptor Veloz', emoji: '🦖', kind: 'normal' })));
+  assert(/style="filter:[^"]*hue-rotate/.test(Art.monster({ name: 'Dragão Verde', emoji: '🐲', kind: 'dragon' })), 'variante com filtro');
+  assert(Art.portrait('mago', 'X').includes('portrait') && Art.portrait('inexistente', 'X') === 'X', 'sem retrato: usa o emoji');
+  assert(Art.monster({ name: 'Lobo Jovem', emoji: '🐺', kind: 'normal' }).startsWith('<svg'), 'sem imagem: desenho em SVG'); Art.pack = null;
+});
+
 Promise.all(pend).then(() => console.log(`\n${n} testes passaram`)).catch((e) => { console.error(e); process.exit(1); });
