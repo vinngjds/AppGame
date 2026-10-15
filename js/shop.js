@@ -7,11 +7,11 @@
 
   /* ---------- Conjuntos: cada um é um material (tier) com raridade fixa ---------- */
   G.SETS = [
-    { id: 0, name: 'Conjunto do Assassino',      mat: 'Metal e couro',     minLevel: 15, ilvlMin: 1,  rarity: 0, cur: 'gold', priceMul: 0.5 },
-    { id: 1, name: 'Conjunto do Xamã',           mat: 'Penas e osso',      minLevel: 15, ilvlMin: 8,  rarity: 1, cur: 'gold', priceMul: 0.63 },
-    { id: 2, name: 'Conjunto do Gladiador',      mat: 'Bronze e ferro',    minLevel: 15, ilvlMin: 16, rarity: 2, cur: 'gold', priceMul: 1.04 },
-    { id: 3, name: 'Conjunto do Cavaleiro',      mat: 'Aço e malha',       minLevel: 15, ilvlMin: 24, rarity: 3, cur: 'gold', priceMul: 1.0 },
-    { id: 4, name: 'Conjunto do Druida Ancião',  mat: 'Raízes e magia',    minLevel: 15, ilvlMin: 32, rarity: 4, cur: 'gem',  priceMul: 1.14 },
+    { id: 0, name: 'Conjunto do Caçador',     mat: 'Couro e madeira',      minLevel: 15, ilvlMin: 1,  rarity: 0, cur: 'gold', priceMul: 0.5 },
+    { id: 1, name: 'Conjunto do Xamã',        mat: 'Sílex, pele e penas',  minLevel: 15, ilvlMin: 8,  rarity: 1, cur: 'gold', priceMul: 0.63 },
+    { id: 2, name: 'Conjunto do Guerreiro',   mat: 'Pedra polida',         minLevel: 15, ilvlMin: 16, rarity: 2, cur: 'gold', priceMul: 1.04 },
+    { id: 3, name: 'Conjunto do Defensor',    mat: 'Osso e casco',         minLevel: 15, ilvlMin: 24, rarity: 3, cur: 'gold', priceMul: 1.0 },
+    { id: 4, name: 'Conjunto do Rei Mamute',  mat: 'Marfim e lava',        minLevel: 15, ilvlMin: 32, rarity: 4, cur: 'gem',  priceMul: 1.14 },
   ];
   G.SET_MARKUP = 3.5;
   G.setUnlocked = (st, set) => st.level >= set.minLevel;

@@ -16,7 +16,10 @@ for (const n of names) {
   else if (st && find('monsters', st.use)) { const src = find('monsters', st.use); manifest.monsters[n] = st.filter ? { src, filter: st.filter } : src; }
 }
 // miniaturas dos conjuntos da loja (art/sets/<id>.png)
-G.SETS.forEach((set) => { const f = find('sets', String(set.id)); if (f) manifest.sets[set.id] = f; });
+G.SETS.forEach((set) => {
+  const own = find('sets', String(set.id)), ref = (styles.sets || {})[set.id];
+  if (own) manifest.sets[set.id] = own; else if (ref && fs.existsSync(path.join(root, '..', ref))) manifest.sets[set.id] = ref;
+});
 // retratos das classes e evoluções (art/portraits/<arquivo>)
 for (const [key, file] of Object.entries(styles.portraits || {})) { const f = find('portraits', file); if (f) manifest.portraits[key] = f; }
 for (const b of Art.BIOMES) { const f = find('scenes', b); if (f) manifest.scenes[b] = f; }

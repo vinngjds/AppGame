@@ -188,7 +188,7 @@ t('coletânea: 35 equipamentos realistas, ilustrados e com descrição', () => {
   for (const r of Object.keys(G.RUNES)) assert(IA.icon(G.makeRune(10, 2, r)).includes('<svg'));
   for (let k = 1; k <= 5; k++) assert(IA.box(k).includes('Caixa +' + k));
   assert(IA.silhouette('arma', 2).includes('brightness'));
-  assert.equal(G.itemName(G.makeItem('arma', 3, 3)), 'Adagas do Assassino Ancestral');
+  assert.equal(G.itemName(G.makeItem('arma', 3, 3)), 'Clava do Caçador Ancestral');
 });
 t('coleção: descobrir itens, conjuntos completos e bônus', () => {
   const st = G.newState('x'); st.level = 10;
@@ -440,6 +440,7 @@ t('pacote de arte: manifesto aponta só para arquivos que existem; dragões e ch
   for (const v of Object.values(m.monsters)) assert(fs.existsSync(path.join(root, src(v))), 'falta ' + src(v));
   for (const v of Object.values(m.portraits)) assert(fs.existsSync(path.join(root, v)), 'falta ' + v);
   assert(m.monsters['Dragão Verde'].filter && m.monsters['Dragão Azul'].filter && m.monsters['Dragão Verde'].src === m.monsters['Dragão Azul'].src, 'mesmo dragão, cores diferentes');
+  for (let i = 0; i < 5; i++) assert(m.sets[i] && fs.existsSync(path.join(root, m.sets[i])), 'miniatura do conjunto ' + i);
   assert(m.portraits.guerreiro && m.portraits.arqueiro && m.portraits.mago && m.portraits['evo:guerreiro:1']);
   const Art = require(path.join(root, 'js', 'art.js')); Art.pack = m;
   assert(/<img class="artimg" src="art\/monsters\/raptor-veloz\.png"/.test(Art.monster({ name: 'Raptor Veloz', emoji: '🦖', kind: 'normal' })));
@@ -449,14 +450,14 @@ t('pacote de arte: manifesto aponta só para arquivos que existem; dragões e ch
 });
 
 t('conjuntos novos: nomes, materiais, nível 15 e preços por peça do mockup (nível 15)', () => {
-  assert.deepEqual(G.SETS.map((x) => x.name), ['Conjunto do Assassino', 'Conjunto do Xamã', 'Conjunto do Gladiador', 'Conjunto do Cavaleiro', 'Conjunto do Druida Ancião']);
+  assert.deepEqual(G.SETS.map((x) => x.name), ['Conjunto do Caçador', 'Conjunto do Xamã', 'Conjunto do Guerreiro', 'Conjunto do Defensor', 'Conjunto do Rei Mamute']);
   assert.deepEqual(G.SETS.map((x) => x.mat), G.MATERIALS); assert(G.SETS.every((x) => x.minLevel === 15));
   const st = G.newState('x'); st.level = 15; const want = [85, 320, 915, 2200, 25];
   G.SETS.forEach((set, i) => { for (const sl of G.SLOT_ORDER) { const p = G.setPrice(st, set, sl); assert.equal(p.cur, i === 4 ? 'diamonds' : 'gold'); assert(Math.abs(p.n / want[i] - 1) < 0.04, `${set.name} ${sl}: ${p.n} vs ${want[i]}`); } });
-  const names = { 0: ['Adagas do Assassino', 'Besta de Punho', 'Capuz do Assassino', 'Gibão de Assassino', 'Luvas do Assassino', 'Botas Silenciosas', 'Gargantilha de Couro'], 4: ['Cajado do Druida Ancião', 'Escudo do Druida Ancião', 'Capuz do Druida Ancião', 'Túnica do Druida Ancião', 'Luvas do Druida Ancião', 'Botas do Druida Ancião', 'Colar do Druida Ancião'] };
+  const names = { 0: ['Clava do Caçador', 'Escudo de Tábuas', 'Gorro de Pelo', 'Colete de Pelo Cru', 'Luvas Atadas', 'Botas de Tiras', 'Colar de Presa'], 4: ['Martelo de Presa Rúnica', 'Escudo de Pele Dourada', 'Elmo de Presas e Pluma', 'Manto do Rei Mamute', 'Manoplas de Marfim Rubro', 'Botas do Trovão', 'Coração de Vulcão'] };
   for (const k of [0, 4]) G.SLOT_ORDER.forEach((sl, j) => assert.equal(G.itemName(G.setPiece(st, G.SETS[k], sl)), names[k][j]));
   assert(!/Ancestral|Primordial/.test(G.itemName(G.setPiece(st, G.SETS[3], 'arma'))), 'peça de conjunto sem sufixo');
-  assert.equal(G.itemName(G.newState('y').equipped.arma), 'Adaga Simples', 'arma inicial simples');
+  assert.equal(G.itemName(G.newState('y').equipped.arma), 'Clava Simples', 'arma inicial simples');
   for (const sl of G.SLOT_ORDER) for (let t = 0; t < 5; t++) { const it = G.makeItem(sl, t * 8 + 1, 0); assert(G.itemName(it) && G.itemDesc(it).length > 20 && G.itemMaterial(it) === G.MATERIALS[t]); }
 });
 

@@ -31,10 +31,10 @@
     { id: 4, name: 'Lendário', mult: 2.8,  color: '#f0a824', w: 0.3 },
   ];
   G.SLOTS = {
-    arma:     { name: 'Arma',     icon: '⚔️' },
+    arma:     { name: 'Arma',     icon: '🪓' },
     escudo:   { name: 'Escudo',   icon: '🛡️' },
-    elmo:     { name: 'Elmo',     icon: '🪖' },
-    armadura: { name: 'Armadura', icon: '🦺' },
+    elmo:     { name: 'Elmo',     icon: '💀' },
+    armadura: { name: 'Armadura', icon: '🦴' },
     luvas:    { name: 'Luvas',    icon: '🧤' },
     botas:    { name: 'Botas',    icon: '🥾' },
     amuleto:  { name: 'Amuleto',  icon: '📿' },
@@ -43,35 +43,35 @@
   G.SLOT_ORDER = ['arma', 'escudo', 'elmo', 'armadura', 'luvas', 'botas', 'amuleto'];
   G.RUNE_SLOTS = 3;
 
-  // Catálogo de equipamentos: um tema por faixa de nível (= os 5 conjuntos da loja). [nome, emoji de reserva]
+  // Catálogo de equipamentos da Era da Pedra: um conjunto por faixa de nível (= os 5 conjuntos da loja). [nome, emoji de reserva]
   const BASES = {
-    arma:     [['Adagas do Assassino', '🗡️'], ['Cajado de Xamã', '🪄'], ['Tridente de Gladiador', '🔱'], ['Espada de Cavaleiro', '⚔️'], ['Cajado do Druida Ancião', '🪄']],
-    escudo:   [['Besta de Punho', '🏹'], ['Patuá de Espírito', '🛡️'], ['Escudo de Gladiador', '🛡️'], ['Escudo de Cavaleiro', '🛡️'], ['Escudo do Druida Ancião', '🛡️']],
-    elmo:     [['Capuz do Assassino', '🥷'], ['Máscara de Cervo', '🦌'], ['Elmo de Gladiador', '🪖'], ['Elmo de Cavaleiro', '⛑️'], ['Capuz do Druida Ancião', '🌿']],
-    armadura: [['Gibão de Assassino', '🦺'], ['Manto de Xamã', '🧥'], ['Peitoral de Gladiador', '🦺'], ['Armadura de Cavaleiro', '🛡️'], ['Túnica do Druida Ancião', '👘']],
-    luvas:    [['Luvas do Assassino', '🧤'], ['Garras de Xamã', '🧤'], ['Braçadeiras de Gladiador', '🧤'], ['Manoplas de Cavaleiro', '🧤'], ['Luvas do Druida Ancião', '🧤']],
-    botas:    [['Botas Silenciosas', '🥾'], ['Mocassins de Xamã', '👞'], ['Grevas de Gladiador', '🥾'], ['Botas de Cavaleiro', '🥾'], ['Botas do Druida Ancião', '🥾']],
-    amuleto:  [['Gargantilha de Couro', '📿'], ['Colar de Garras', '📿'], ['Colar de Gladiador', '📿'], ['Colar de Cavaleiro', '📿'], ['Colar do Druida Ancião', '📿']],
+    arma:     [['Clava do Caçador', '🏏'], ['Lança de Sílex e Penas', '🔱'], ['Machado de Basalto', '🪓'], ['Maça de Osso Espinhoso', '🦴'], ['Martelo de Presa Rúnica', '🔨']],
+    escudo:   [['Escudo de Tábuas', '🪵'], ['Patuá de Pele Pintada', '🛡️'], ['Escudo de Laje Cravejada', '🪨'], ['Escudo de Carapaça', '🐢'], ['Escudo de Pele Dourada', '🛡️']],
+    elmo:     [['Gorro de Pelo', '🧢'], ['Máscara de Crânio de Lobo', '💀'], ['Elmo de Pedra e Chifres', '🐐'], ['Elmo de Casco Crestado', '🦎'], ['Elmo de Presas e Pluma', '🦣']],
+    armadura: [['Colete de Pelo Cru', '🧥'], ['Manto de Couro Atado', '🦺'], ['Couraça de Costelas', '🦴'], ['Couraça de Escamas', '🐢'], ['Manto do Rei Mamute', '🦣']],
+    luvas:    [['Luvas Atadas', '🧤'], ['Luvas de Pele e Pelo', '🧤'], ['Braçais de Osso e Couro', '🦴'], ['Manoplas de Garras', '🐾'], ['Manoplas de Marfim Rubro', '🧤']],
+    botas:    [['Botas de Tiras', '🩴'], ['Botas de Cano Atado', '🥾'], ['Botas de Pelo Alto', '👢'], ['Botas de Presas', '🦶'], ['Botas do Trovão', '⚡']],
+    amuleto:  [['Colar de Presa', '🐺'], ['Colar de Concha e Contas', '🐚'], ['Pingente de Pedra Sagrada', '🗿'], ['Olho do Guardião', '🧿'], ['Coração de Vulcão', '🌋']],
   };
-  G.MATERIALS = ['Metal e couro', 'Penas e osso', 'Bronze e ferro', 'Aço e malha', 'Raízes e magia'];
+  G.MATERIALS = ['Couro e madeira', 'Sílex, pele e penas', 'Pedra polida', 'Osso e casco', 'Marfim e lava'];
   G.ITEM_DESC = {
-    arma:     ['Duas lâminas curvas e leves, feitas para golpes rápidos e silenciosos.', 'Um cajado entalhado com ossos e penas, que sussurra com os espíritos.', 'Três pontas de ferro presas a uma haste longa: o terror das arenas.', 'Uma espada reta de aço bem forjado, equilibrada e confiável.', 'Um galho vivo coroado por uma gema verde que pulsa com a magia da floresta.'],
-    escudo:   ['Uma pequena besta presa ao antebraço: defende e dispara de surpresa.', 'Um escudo redondo de madeira pintado com símbolos dos espíritos.', 'Escudo redondo de bronze e madeira, marcado por mil combates.', 'Um escudo de aço polido com o brasão de um cavaleiro.', 'Madeira trançada com raízes e uma gema dourada no centro.'],
-    elmo:     ['Capuz escuro de couro que esconde o rosto nas sombras.', 'Crânio de cervo com galhadas imponentes, usado como máscara ritual.', 'Elmo de bronze com crista, que protege o rosto sem tirar a visão.', 'Elmo fechado de aço com viseira, forrado de malha.', 'Capuz de folhas e raízes com chifres de madeira viva.'],
-    armadura: ['Gibão de couro reforçado com placas finas de metal, leve e silencioso.', 'Manto de peles e franjas com penas e ossos amarrados.', 'Peitoral de couro e bronze com ombreiras e saiote de tiras.', 'Armadura completa de placas de aço sobre uma cota de malha.', 'Túnica tecida de folhas e raízes, com ombreiras de musgo e uma gema no peito.'],
-    luvas:    ['Luvas justas de couro, firmes para empunhar e para escalar.', 'Luvas de couro com garras de fera presas nos dedos.', 'Braçadeiras de couro e bronze que protegem o antebraço e a mão.', 'Manoplas de aço articuladas: duras de golpear e de perfurar.', 'Luvas de couro cobertas de musgo e raízes finas.'],
-    botas:    ['Solas macias que não fazem barulho em nenhum terreno.', 'Mocassins forrados de pele, leves e quentes, para andar sem deixar rastro.', 'Grevas de bronze e couro que protegem as pernas na arena.', 'Botas de aço com tornozeleiras de malha.', 'Botas de couro revestidas de raízes que se agarram ao chão.'],
-    amuleto:  ['Cordão de couro com um dente polido: sorte de quem ataca primeiro.', 'Colar de garras e dentes de fera, amuleto de um caçador de espíritos.', 'Colar de contas com o emblema de uma águia de bronze.', 'Colar com um medalhão de aço gravado com o brasão da ordem.', 'Colar de folhas com uma gema verde que respira junto com o portador.'],
+    arma:     ['Um tronco de carvalho com nós na ponta: pesado, simples e eficaz.', 'Ponta de sílex lascada, presa com tendão a um cabo enfeitado de penas e ossinhos.', 'Lâmina de basalto polida por dias contra a rocha, presa ao cabo com couro cru.', 'Um osso de fera com espinhos de dente, amarrado com tendão: esmaga e perfura.', 'Cabo de presa de mamute e cabeça de pedra marcada com runas vermelhas.'],
+    escudo:   ['Tábuas de madeira unidas por tiras de couro, com um umbigo de pedra no centro.', 'Pele esticada num aro e pintada com ocre vermelho: marcas de proteção dos espíritos.', 'Uma laje redonda de pedra rachada, reforçada com pregos de osso.', 'A carapaça de uma tartaruga gigante: leve, dura e coberta de placas.', 'Pele grossa de mamute esticada num aro dourado, com um umbigo reluzente.'],
+    elmo:     ['Gorro de pele com abas para as orelhas, para as noites frias de caçada.', 'O crânio de um lobo, com os dentes à mostra, preso por tiras de couro.', 'Capacete de pedra lascada com chifres de bode que assustam qualquer fera.', 'Um casco crestado de réptil gigante, com abas laterais e uma crista no topo.', 'O crânio de um mamute com presas curvas, faixa de ouro e uma pluma vermelha.'],
+    armadura: ['Colete de pele de urso com o pelo para fora e amarras na frente.', 'Couro curtido e costurado, fechado por cordões cruzados na frente.', 'Costelas de grandes feras amarradas em couro, formando um peitoral de osso.', 'Escamas de casco sobrepostas como telhas, leves e muito resistentes.', 'Pele vermelha de mamute com ombreiras de presas e um fecho dourado.'],
+    luvas:    ['Tiras de couro enroladas nas mãos e nos pulsos para segurar firme.', 'Luvas de pele forradas de pelo macio, quentes e firmes.', 'Placas de osso amarradas nos antebraços, para defender e para bater.', 'Manoplas de casco com garras de fera nas pontas dos dedos.', 'Manoplas de pele com espinhos de marfim e aros de ouro.'],
+    botas:    ['Solas de couro presas por tiras que sobem pela perna.', 'Botas de couro costurado com cadarço de tendão que sobe pela canela.', 'Botas forradas de pelo grosso, com punhos felpudos que aquecem os pés.', 'Botas de casco com solas cheias de garras e dentes.', 'Botas escuras de couro vermelho, com raios dourados que estalam a cada passo.'],
+    amuleto:  ['Uma presa de lobo num cordão: lembrança da primeira grande caça.', 'Conchas e contas polidas em volta de uma concha rosada.', 'Uma pequena pedra entalhada com o rosto de um espírito protetor.', 'Uma pedra azul-turquesa com um olho gravado, que nunca pisca.', 'Uma pedra de lava ainda quente, presa numa moldura de ouro.'],
   };
   G.itemName = function (it) {
     if (it.rune) return it.name;
-    if (it.starter) return 'Adaga Simples';
+    if (it.starter) return 'Clava Simples';
     const t = tierOf(it.ilvl), rt = it.rarity >= 3 && it.set == null ? ' ' + ['', '', '', 'Ancestral', 'Primordial'][it.rarity] : '';
     return BASES[it.slot][t][0] + rt;
   };
   G.itemDesc = function (it) {
     if (it.rune) return `Uma pedra esculpida com o símbolo da ${G.RUNES[it.rune.t].name}. Encaixa em um dos 3 espaços de runa.`;
-    if (it.starter) return 'Uma adaga simples, boa o bastante para começar a jornada.';
+    if (it.starter) return 'Uma clava simples de madeira, boa o bastante para começar a jornada.';
     return G.ITEM_DESC[it.slot][tierOf(it.ilvl)];
   };
   G.itemMaterial = (it) => (it.rune ? 'Pedra esculpida' : G.MATERIALS[tierOf(it.ilvl)]);

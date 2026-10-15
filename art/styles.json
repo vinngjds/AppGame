@@ -1,22 +1,62 @@
 {
   "_comentario": "Reaproveita uma imagem para outros monstros, com cor/brilho próprios. 'use' = nome do arquivo (sem extensão) em art/monsters. 'filter' = filtro CSS. Um monstro com imagem própria (art/monsters/<nome>.png) tem prioridade.",
   "monsters": {
-    "Morcego Vampiro":        { "use": "morcego-da-caverna",    "filter": "saturate(1.5) hue-rotate(-18deg) drop-shadow(0 0 6px #c0301a)" },
-    "Raptor Veloz":           { "use": "raptor-veloz" },
-    "Dilofossauro":           { "use": "raptor-veloz",          "filter": "hue-rotate(70deg) saturate(1.3) drop-shadow(0 0 6px #7ad04a)" },
-    "Rei dos Raptores":       { "use": "raptor-veloz",          "filter": "saturate(1.25) drop-shadow(0 0 9px #ffcf3a)" },
-    "Matriarca dos Raptores": { "use": "raptor-veloz",          "filter": "hue-rotate(-25deg) saturate(1.3) drop-shadow(0 0 9px #ffcf3a)" },
-    "Mamute Ancestral":       { "use": "mamute-jovem",          "filter": "saturate(1.1) brightness(0.95) drop-shadow(0 0 9px #ffcf3a)" },
-    "Mamute Alfa":            { "use": "mamute-jovem",          "filter": "hue-rotate(-14deg) brightness(0.9) drop-shadow(0 0 9px #ffcf3a)" },
-    "Rei Dentes-de-Sabre":    { "use": "tigre-dentes-de-sabre", "filter": "saturate(1.2) drop-shadow(0 0 9px #ffcf3a)" },
-    "Dragão Verde":           { "use": "dragao-primordial",     "filter": "hue-rotate(78deg) saturate(1.25) drop-shadow(0 0 8px #5ae05a)" },
-    "Dragão Azul":            { "use": "dragao-primordial",     "filter": "hue-rotate(185deg) saturate(1.25) brightness(1.08) drop-shadow(0 0 10px #4fb8ff)" },
-    "Dragão de Fogo":         { "use": "dragao-primordial",     "filter": "hue-rotate(-14deg) saturate(1.6) drop-shadow(0 0 10px #ff7a1a)" }
+    "Morcego Vampiro": {
+      "use": "morcego-da-caverna",
+      "filter": "saturate(1.5) hue-rotate(-18deg) drop-shadow(0 0 6px #c0301a)"
+    },
+    "Raptor Veloz": {
+      "use": "raptor-veloz"
+    },
+    "Dilofossauro": {
+      "use": "raptor-veloz",
+      "filter": "hue-rotate(70deg) saturate(1.3) drop-shadow(0 0 6px #7ad04a)"
+    },
+    "Rei dos Raptores": {
+      "use": "raptor-veloz",
+      "filter": "saturate(1.25) drop-shadow(0 0 9px #ffcf3a)"
+    },
+    "Matriarca dos Raptores": {
+      "use": "raptor-veloz",
+      "filter": "hue-rotate(-25deg) saturate(1.3) drop-shadow(0 0 9px #ffcf3a)"
+    },
+    "Mamute Ancestral": {
+      "use": "mamute-jovem",
+      "filter": "saturate(1.1) brightness(0.95) drop-shadow(0 0 9px #ffcf3a)"
+    },
+    "Mamute Alfa": {
+      "use": "mamute-jovem",
+      "filter": "hue-rotate(-14deg) brightness(0.9) drop-shadow(0 0 9px #ffcf3a)"
+    },
+    "Rei Dentes-de-Sabre": {
+      "use": "tigre-dentes-de-sabre",
+      "filter": "saturate(1.2) drop-shadow(0 0 9px #ffcf3a)"
+    },
+    "Dragão Verde": {
+      "use": "dragao-primordial",
+      "filter": "hue-rotate(78deg) saturate(1.25) drop-shadow(0 0 8px #5ae05a)"
+    },
+    "Dragão Azul": {
+      "use": "dragao-primordial",
+      "filter": "hue-rotate(185deg) saturate(1.25) brightness(1.08) drop-shadow(0 0 10px #4fb8ff)"
+    },
+    "Dragão de Fogo": {
+      "use": "dragao-primordial",
+      "filter": "hue-rotate(-14deg) saturate(1.6) drop-shadow(0 0 10px #ff7a1a)"
+    }
   },
   "portraits": {
     "guerreiro": "guerreiro",
     "arqueiro": "arqueiro",
     "mago": "mago",
     "evo:guerreiro:1": "guardiao-de-pedra"
+  },
+  "sets": {
+    "_comentario": "Miniatura de cada conjunto da loja (0 a 4): usa os retratos/criaturas da folha de referência.",
+    "0": "art/portraits/arqueiro.png",
+    "1": "art/portraits/mago.png",
+    "2": "art/portraits/guerreiro.png",
+    "3": "art/portraits/guardiao-de-pedra.png",
+    "4": "art/monsters/mamute-jovem.png"
   }
 }
