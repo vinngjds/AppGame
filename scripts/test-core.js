@@ -188,7 +188,7 @@ t('coletânea: 35 equipamentos realistas, ilustrados e com descrição', () => {
   for (const r of Object.keys(G.RUNES)) assert(IA.icon(G.makeRune(10, 2, r)).includes('<svg'));
   for (let k = 1; k <= 5; k++) assert(IA.box(k).includes('Caixa +' + k));
   assert(IA.silhouette('arma', 2).includes('brightness'));
-  assert.equal(G.itemName(G.makeItem('arma', 3, 3)), 'Clava de Carvalho Nodoso Ancestral');
+  assert.equal(G.itemName(G.makeItem('arma', 3, 3)), 'Adagas do Assassino Ancestral');
 });
 t('coleção: descobrir itens, conjuntos completos e bônus', () => {
   const st = G.newState('x'); st.level = 10;
@@ -304,9 +304,9 @@ t('migração v3 → v4: classe nula, árvore vazia, ativas antigas removidas', 
   const m = G.migrate(old); assert.equal(m.v, G.STATE_V); assert(m.cls === null && Object.keys(m.tree).length === 0 && m.skills.forca === 2 && !('grito' in m.skills) && !('golpe' in m.skills));
   assert.equal(G.skillPoints(m).free, 12, 'pontos retroativos: um por nível'); assert(G.heroStats(m).hp > 0);
 });
-t('loja de conjuntos: tudo liberado no nível 10, compra por peça, bônus de conjunto, lendário em diamantes', () => {
-  const st = G.newState('x'); st.level = 9; st.gold = 1e6; st.bagSize = 60;
-  assert(!G.buySetPiece(st, 2, 'arma').ok && G.SETS.every((x) => !G.setUnlocked(st, x)), 'abaixo do nível 10 nada é vendido'); st.level = 10;
+t('loja de conjuntos: tudo liberado no nível 15, compra por peça, bônus de conjunto, lendário em diamantes', () => {
+  const st = G.newState('x'); st.level = 14; st.gold = 1e6; st.bagSize = 60;
+  assert(!G.buySetPiece(st, 2, 'arma').ok && G.SETS.every((x) => !G.setUnlocked(st, x)), 'abaixo do nível 15 nada é vendido'); st.level = 15;
   assert(G.SETS.every((x) => G.setUnlocked(st, x)) && G.setIlvl(st, G.SETS[4]) === 32 && G.setIlvl(st, G.SETS[0]) === 7);
   const g0 = st.gold, r = G.buySetPiece(st, 1, 'arma'); assert(r.ok && r.item.set === 1 && r.item.rarity === 1 && st.gold < g0);
   assert(!G.buySetPiece(st, 1, 'arma').ok, 'não compra a mesma peça duas vezes'); assert.equal(G.setProgress(st, G.SETS[1]), 1);
@@ -365,7 +365,7 @@ t('eventos: diário (2 tentativas) e semanal (3), ambos sem troféu; mensal remo
   const r2 = win(day, 'daily'); assert(r2.boxes.length === 0, 'prêmio do dia só na 1ª vitória'); assert.equal(st.ev.daily, 0); assert(!G.canFight(st, 'event-daily').ok);
   const w1 = win(wk, 'weekly'); assert(!w1.evTrophy && (w1.diamonds === 0 || w1.diamonds === 3) && w1.boxes.length === 2 && w1.prize > r1.prize); assert(win(wk, 'weekly').diamonds === 0);
   assert.equal(G.VIP.price, 200);
-  const st2 = G.newState('x'); st2.level = 40; assert.equal(G.setPrice(st2, G.SETS[4], 'arma').n, 24);
+  const st2 = G.newState('x'); st2.level = 40; assert.equal(G.setPrice(st2, G.SETS[4], 'arma').n, 27);
 });
 
 t('caixas: itens com material e raridade do conjunto viram peças dele; peça de caixa fraca não bloqueia a compra', () => {
@@ -446,6 +446,18 @@ t('pacote de arte: manifesto aponta só para arquivos que existem; dragões e ch
   assert(/style="filter:[^"]*hue-rotate/.test(Art.monster({ name: 'Dragão Verde', emoji: '🐲', kind: 'dragon' })), 'variante com filtro');
   assert(Art.portrait('mago', 'X').includes('portrait') && Art.portrait('inexistente', 'X') === 'X', 'sem retrato: usa o emoji');
   assert(Art.monster({ name: 'Lobo Jovem', emoji: '🐺', kind: 'normal' }).startsWith('<svg'), 'sem imagem: desenho em SVG'); Art.pack = null;
+});
+
+t('conjuntos novos: nomes, materiais, nível 15 e preços por peça do mockup (nível 15)', () => {
+  assert.deepEqual(G.SETS.map((x) => x.name), ['Conjunto do Assassino', 'Conjunto do Xamã', 'Conjunto do Gladiador', 'Conjunto do Cavaleiro', 'Conjunto do Druida Ancião']);
+  assert.deepEqual(G.SETS.map((x) => x.mat), G.MATERIALS); assert(G.SETS.every((x) => x.minLevel === 15));
+  const st = G.newState('x'); st.level = 15; const want = [85, 320, 915, 2200, 25];
+  G.SETS.forEach((set, i) => { for (const sl of G.SLOT_ORDER) { const p = G.setPrice(st, set, sl); assert.equal(p.cur, i === 4 ? 'diamonds' : 'gold'); assert(Math.abs(p.n / want[i] - 1) < 0.04, `${set.name} ${sl}: ${p.n} vs ${want[i]}`); } });
+  const names = { 0: ['Adagas do Assassino', 'Besta de Punho', 'Capuz do Assassino', 'Gibão de Assassino', 'Luvas do Assassino', 'Botas Silenciosas', 'Gargantilha de Couro'], 4: ['Cajado do Druida Ancião', 'Escudo do Druida Ancião', 'Capuz do Druida Ancião', 'Túnica do Druida Ancião', 'Luvas do Druida Ancião', 'Botas do Druida Ancião', 'Colar do Druida Ancião'] };
+  for (const k of [0, 4]) G.SLOT_ORDER.forEach((sl, j) => assert.equal(G.itemName(G.setPiece(st, G.SETS[k], sl)), names[k][j]));
+  assert(!/Ancestral|Primordial/.test(G.itemName(G.setPiece(st, G.SETS[3], 'arma'))), 'peça de conjunto sem sufixo');
+  assert.equal(G.itemName(G.newState('y').equipped.arma), 'Adaga Simples', 'arma inicial simples');
+  for (const sl of G.SLOT_ORDER) for (let t = 0; t < 5; t++) { const it = G.makeItem(sl, t * 8 + 1, 0); assert(G.itemName(it) && G.itemDesc(it).length > 20 && G.itemMaterial(it) === G.MATERIALS[t]); }
 });
 
 Promise.all(pend).then(() => console.log(`\n${n} testes passaram`)).catch((e) => { console.error(e); process.exit(1); });

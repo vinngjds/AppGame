@@ -408,6 +408,8 @@
   /* ---------- Loja de conjuntos ---------- */
   const SET_SLOT_NAMES = { arma: 'Arma', escudo: 'Escudo', elmo: 'Elmo', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas', amuleto: 'Amuleto' };
   function setPreview(set) {
+    const thumb = Art.pack && Art.pack.sets && Art.pack.sets[set.id];
+    if (thumb) return `<img class="artimg" src="${thumb}" alt="${esc(set.name)}" draggable="false">`;
     const eq = { runas: [null, null, null] };
     for (const sl of G.SLOT_ORDER) eq[sl] = G.setPiece(st, set, sl);
     return Avatar.svg(st.avatar, eq);

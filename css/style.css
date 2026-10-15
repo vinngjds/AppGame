@@ -289,3 +289,6 @@ h2.banner{margin:4px 0 12px;text-align:center;font-size:17px;letter-spacing:1px;
 .artimg{object-fit:contain}
 .spr .inner img.artimg{object-fit:contain;object-position:50% 100%}
 .pic.art img.artimg{width:100%;height:100%;object-fit:contain}
+.setpic img.artimg{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+.setpic{align-items:stretch}
+.pic.ic img.artimg{object-fit:cover!important;border-radius:6px}

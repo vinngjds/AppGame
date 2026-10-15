@@ -24,12 +24,15 @@ Dicas: use o mesmo estilo (a lista de prompts já repete o estilo comum), manten
 
 Para o restante (≈60 criaturas, cenários e itens) o jogo continua no desenho em SVG. Para chegar ao mesmo nível de qualidade, gere o resto com o **mesmo estilo**: `node scripts/art-prompts.js` já usa a descrição desse estilo em todos os prompts (anexe também a folha de referência na ferramenta de imagem).
 
+## Itens e conjuntos da loja (já aplicados)
+Os 35 ícones de equipamento (`art/items/<peça>-<conjunto 0 a 4>.png`) e as 5 miniaturas dos conjuntos (`art/sets/<0 a 4>.png`) foram recortados das imagens de referência da loja (`docs/loja-referencia-itens.jpg` e `docs/loja-referencia-conjuntos.jpg`). Sem as imagens, o jogo usa os desenhos vetoriais de reserva.
+
 ## Direitos de uso
 Confira os termos da ferramenta de IA ou do artista antes de publicar nas lojas: é preciso ter direito de uso comercial das imagens. Guarde a licença/comprovante. **Isso vale também para a folha de referência (`docs/arte-referencia.jpg`) e para os recortes dela em `art/`.**
 
 ## Avatar
 ## Itens
-O jogo traz 35 equipamentos ilustrados (7 peças × 5 materiais: madeira e couro, sílex e pele, pedra polida, osso e casco, marfim de mamute), 5 runas esculpidas e as caixas +1 a +5, tudo em SVG (`js/itemart.js`). Nomes e descrições ficam em `js/core.js` (`BASES`, `ITEM_DESC`).
+O jogo traz 35 equipamentos (7 peças × 5 conjuntos: Assassino – metal e couro, Xamã – penas e osso, Gladiador – bronze e ferro, Cavaleiro – aço e malha, Druida Ancião – raízes e magia), 5 runas esculpidas e as caixas +1 a +5, tudo em SVG (`js/itemart.js`). Nomes e descrições ficam em `js/core.js` (`BASES`, `ITEM_DESC`).
 
 ## Avatar
 O avatar (homem ou mulher, pele e cabelo) é desenhado em camadas e reflete cada peça equipada. Para trocar por arte própria no futuro, o ponto de entrada é `Avatar.svg()` em `js/avatar.js`.

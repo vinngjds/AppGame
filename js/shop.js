@@ -7,11 +7,11 @@
 
   /* ---------- Conjuntos: cada um é um material (tier) com raridade fixa ---------- */
   G.SETS = [
-    { id: 0, name: 'Conjunto do Rastreador', mat: 'Madeira e couro', minLevel: 10, ilvlMin: 1,  rarity: 0, cur: 'gold' },
-    { id: 1, name: 'Conjunto do Batedor',    mat: 'Sílex e pele',    minLevel: 10, ilvlMin: 8,  rarity: 1, cur: 'gold' },
-    { id: 2, name: 'Conjunto do Caçador',    mat: 'Pedra polida',    minLevel: 10, ilvlMin: 16, rarity: 2, cur: 'gold' },
-    { id: 3, name: 'Conjunto do Bárbaro',    mat: 'Osso e casco',    minLevel: 10, ilvlMin: 24, rarity: 3, cur: 'gold' },
-    { id: 4, name: 'Conjunto do Rei Mamute', mat: 'Marfim de mamute', minLevel: 10, ilvlMin: 32, rarity: 4, cur: 'gem' },
+    { id: 0, name: 'Conjunto do Assassino',      mat: 'Metal e couro',     minLevel: 15, ilvlMin: 1,  rarity: 0, cur: 'gold', priceMul: 0.5 },
+    { id: 1, name: 'Conjunto do Xamã',           mat: 'Penas e osso',      minLevel: 15, ilvlMin: 8,  rarity: 1, cur: 'gold', priceMul: 0.63 },
+    { id: 2, name: 'Conjunto do Gladiador',      mat: 'Bronze e ferro',    minLevel: 15, ilvlMin: 16, rarity: 2, cur: 'gold', priceMul: 1.04 },
+    { id: 3, name: 'Conjunto do Cavaleiro',      mat: 'Aço e malha',       minLevel: 15, ilvlMin: 24, rarity: 3, cur: 'gold', priceMul: 1.0 },
+    { id: 4, name: 'Conjunto do Druida Ancião',  mat: 'Raízes e magia',    minLevel: 15, ilvlMin: 32, rarity: 4, cur: 'gem',  priceMul: 1.14 },
   ];
   G.SET_MARKUP = 3.5;
   G.setUnlocked = (st, set) => st.level >= set.minLevel;
@@ -24,8 +24,8 @@
   };
   G.setPrice = function (st, set, slot) {
     const it = G.setPiece(st, set, slot);
-    if (set.cur === 'gem') return { cur: 'diamonds', n: Math.round(12 + it.ilvl * 0.3) };
-    return { cur: 'gold', n: Math.round(G.itemPrice(it) * G.SET_MARKUP) };
+    if (set.cur === 'gem') return { cur: 'diamonds', n: Math.round((12 + it.ilvl * 0.3) * set.priceMul) };
+    return { cur: 'gold', n: Math.round(G.itemPrice(it) * G.SET_MARKUP * set.priceMul) };
   };
   const allItems = (st) => st.bag.concat(G.SLOT_ORDER.map((s) => st.equipped[s]).filter(Boolean));
   // "Comprado": peça comprada na loja, ou peça de caixa do mesmo conjunto que seja igual ou melhor que a vendida agora

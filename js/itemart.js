@@ -168,7 +168,7 @@
       <path d="M14 46 Q50 56 86 46" stroke="${col}" stroke-width="${tierN >= 3 ? 3 : 1.6}" fill="none" opacity="${0.4 + tierN * 0.12}" stroke-linecap="round"/><ellipse cx="50" cy="48" rx="40" ry="34" fill="${c.glow(col)}" opacity="${0.12 + tierN * 0.07}"/>`;
     return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caixa +${tierN}"><defs>${c.defs.join('')}</defs>${g}</svg>`;
   };
-  I.TIERS = ['Madeira e couro', 'Sílex e pele', 'Pedra polida', 'Osso e casco', 'Marfim de mamute'];
+  I.TIERS = ['Metal e couro', 'Penas e osso', 'Bronze e ferro', 'Aço e malha', 'Raízes e magia'];
   root.ItemArt = I;
   if (typeof module !== 'undefined' && module.exports) module.exports = I;
 })(typeof window !== 'undefined' ? window : globalThis);

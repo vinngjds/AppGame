@@ -7,7 +7,7 @@ const find = (dir, slug) => { for (const e of EXT) if (fs.existsSync(path.join(r
 const names = new Set();
 G.ZONES.forEach((z) => { z.m.forEach((m) => names.add(m[0])); names.add(z.semi[0]); names.add(z.boss.name); });
 [...G.WEEKLY, ...G.DAILY].forEach((e) => names.add(e.name)); Object.values(G.DRAGONS).forEach((d) => names.add(d.name));
-const manifest = { monsters: {}, scenes: {}, items: {}, portraits: {} };
+const manifest = { monsters: {}, scenes: {}, items: {}, portraits: {}, sets: {} };
 let styles = { monsters: {}, portraits: {} };
 try { styles = Object.assign(styles, JSON.parse(fs.readFileSync(path.join(root, 'styles.json'), 'utf8'))); } catch (e) { /* sem estilos */ }
 for (const n of names) {
@@ -15,6 +15,8 @@ for (const n of names) {
   if (f) manifest.monsters[n] = f;                                   // imagem própria do monstro tem prioridade
   else if (st && find('monsters', st.use)) { const src = find('monsters', st.use); manifest.monsters[n] = st.filter ? { src, filter: st.filter } : src; }
 }
+// miniaturas dos conjuntos da loja (art/sets/<id>.png)
+G.SETS.forEach((set) => { const f = find('sets', String(set.id)); if (f) manifest.sets[set.id] = f; });
 // retratos das classes e evoluções (art/portraits/<arquivo>)
 for (const [key, file] of Object.entries(styles.portraits || {})) { const f = find('portraits', file); if (f) manifest.portraits[key] = f; }
 for (const b of Art.BIOMES) { const f = find('scenes', b); if (f) manifest.scenes[b] = f; }
