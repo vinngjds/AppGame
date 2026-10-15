@@ -8,7 +8,7 @@
   const pick = (arr) => arr[Math.floor(R() * arr.length)];
   const r1 = (n) => Math.round(n * 10) / 10;
 
-  G.STATE_V = 7;
+  G.STATE_V = 8;
   G.MAX_LEVEL = 40;
   G.MAX_ENERGY = 12;
   G.ENERGY_SECS = 240;            // 1 encontro a cada 4 min
@@ -250,7 +250,7 @@
       bag: [], bagSize: G.BAG_START,
       equipped: { arma: null, escudo: null, elmo: null, armadura: null, luvas: null, botas: null, amuleto: null, runas: [null, null, null] },
       potions: { small: 5, large: 0 }, energy: G.MAX_ENERGY, energyAt: now, cdUntil: 0,
-      skills: {}, training: null, diamonds: 0, vipUntil: 0, iap: { tx: {} }, ads: { day: '', energy: 0, gold: 0 }, finished: false, createdAt: now, codex: {}, cls: null, evo: null, tree: {},
+      skills: {}, training: null, diamonds: 0, vipUntil: 0, iap: { tx: {} }, ads: { day: '', energy: 0, gold: 0 }, bestiary: {}, finished: false, createdAt: now, codex: {}, cls: null, evo: null, tree: {},
       ev: { day: '', weekly: 0, monthly: 0, claimW: '', claimM: '' },
     };
     st.equipped.arma = G.makeItem('arma', 1, 0); st.equipped.arma.starter = true; G.discover(st, st.equipped.arma);
@@ -363,78 +363,78 @@
     { id: 1, name: 'Caverna Sombria', icon: '🕳️', color: '#3a2f4d',
       story: 'Você acorda numa caverna fria. O fogo sagrado da tribo foi roubado e o rastro do ladrão leva para dentro da escuridão.',
       clear: 'Entre as cinzas, uma pegada gigante aponta para a mata densa. A jornada começou.',
-      m: [['Morcego da Caverna', '🦇', 'veloz'], ['Cobra das Sombras', '🐍', 'venenoso']], semi: ['Morcego Vampiro', '🦇', 'veloz'],
-      boss: { name: 'Víbora das Sombras', emoji: '🐍', mods: ['venenoso', 'veloz'], sp: 'Bote Mortal', trophy: 'Escama Sombria', tIcon: '🐉' } },
+      m: [['Morcego', '🦇', 'veloz'], ['Aranha', '🕷️', 'venenoso']], semi: ['Golem de Pedra', '🗿', 'couracado'],
+      boss: { name: 'Fera das Sombras', emoji: '👹', mods: ['venenoso', 'veloz'], sp: 'Investida Sombria', trophy: 'Garra Sombria', tIcon: '🌑' } },
     { id: 2, name: 'Floresta Densa', icon: '🌲', color: '#27472a',
-      story: 'A mata esconde feras famintas. Os rastros do ladrão seguem entre as árvores, e o uivo de um lobo gigante ecoa ao longe.',
-      clear: 'O alfa caiu. Do outro lado da mata, o brilho de um lago chama você.',
-      m: [['Lobo Jovem', '🐺', 'feroz'], ['Javali Selvagem', '🐗', 'esmagador']], semi: ['Leão da Mata', '🦁', 'feroz'],
-      boss: { name: 'Lobo Cinzento Alfa', emoji: '🐺', mods: ['feroz', 'veloz'], sp: 'Uivo Selvagem', trophy: 'Presa do Alfa', tIcon: '🦷' } },
+      story: 'A mata esconde feras famintas. Os rastros do ladrão seguem entre as árvores, e um guardião de armadura verde bloqueia o caminho.',
+      clear: 'O guardião caiu. Do outro lado da mata, o brilho de um lago chama você.',
+      m: [['Javali', '🐗', 'esmagador'], ['Gohlin', '👺', 'veloz']], semi: ['Urso-Garra', '🐻', 'feroz'],
+      boss: { name: 'Guardião', emoji: '🛡️', mods: ['couracado', 'feroz'], sp: 'Golpe do Guardião', trophy: 'Sigilo do Guardião', tIcon: '⚔️' } },
     { id: 3, name: 'Margem do Lago', icon: '🏞️', color: '#1f4a5e',
       story: 'As águas calmas escondem predadores. Algo enorme se move debaixo da superfície e você precisa atravessar.',
-      clear: 'O monstro do lago afundou. A travessia está livre e as colinas rochosas se erguem à frente.',
-      m: [['Enguia do Lago', '🐟', 'veloz'], ['Sapo Venenoso', '🐸', 'venenoso']], semi: ['Crocodilo do Pântano', '🐊', 'couracado'],
-      boss: { name: 'Monstro do Lago', emoji: '🦕', mods: ['regenerador', 'esmagador'], sp: 'Onda Devastadora', trophy: 'Escama do Lago', tIcon: '🌊' } },
+      clear: 'A besta do lago afundou. A travessia está livre e as colinas rochosas se erguem à frente.',
+      m: [['Sapo Gigante', '🐸', 'venenoso'], ['Caranguejo', '🦀', 'couracado']], semi: ['Serpente', '🐍', 'venenoso'],
+      boss: { name: 'Besta do Lago', emoji: '🦕', mods: ['regenerador', 'esmagador'], sp: 'Onda Devastadora', trophy: 'Escama do Lago', tIcon: '🌊' } },
     { id: 4, name: 'Colinas Rochosas', icon: '⛰️', color: '#4d4a47',
-      story: 'O vento corta as pedras e aves enormes patrulham o céu. Um caminho estreito sobe entre os rochedos.',
-      clear: 'O rei do céu caiu. No horizonte, uma planície coberta de pegadas gigantes.',
-      m: [['Águia das Pedras', '🦅', 'veloz'], ['Lagarto Espinhoso', '🦎', 'couracado']], semi: ['Bode da Montanha', '🐐', 'esmagador'],
-      boss: { name: 'Rei Águia', emoji: '🦅', mods: ['veloz', 'feroz'], sp: 'Mergulho Trovejante', trophy: 'Pena do Rei', tIcon: '🪶' } },
+      story: 'O vento corta as pedras e uma wyvern sobrevoa os rochedos. Um caminho estreito sobe entre as rochas.',
+      clear: 'O gigante de pedra desabou. No horizonte, uma planície coberta de pegadas gigantes.',
+      m: [['Escorpião', '🦂', 'venenoso'], ['Cabra Furiosa', '🐐', 'esmagador']], semi: ['Wyvern', '🐉', 'veloz'],
+      boss: { name: 'Gigante de Pedra', emoji: '🗿', mods: ['couracado', 'esmagador'], sp: 'Soco de Rocha', trophy: 'Punho de Pedra', tIcon: '🪨' } },
     { id: 5, name: 'Planície do Mamute', icon: '🌾', color: '#5c4d27',
       story: 'Manadas inteiras cruzam o capim alto. A terra treme: o grande mamute guarda o caminho do leste.',
       clear: 'O mamute tombou. Dele você leva uma presa e a coragem para entrar na selva.',
-      m: [['Hiena Faminta', '🐕', 'feroz'], ['Bisão Enraivecido', '🐃', 'esmagador']], semi: ['Tigre Caçador', '🐅', 'feroz'],
-      boss: { name: 'Mamute Ancestral', emoji: '🦣', mods: ['regenerador', 'esmagador'], sp: 'Pisão Sísmico', trophy: 'Presa do Mamute', tIcon: '🦣' } },
+      m: [['Lobo', '🐺', 'feroz'], ['Hiena', '🐕', 'feroz']], semi: ['Dente-de-Sabre', '🐅', 'feroz'],
+      boss: { name: 'Mamute Imperial', emoji: '🦣', mods: ['regenerador', 'esmagador'], sp: 'Pisão Sísmico', trophy: 'Presa Imperial', tIcon: '🦣' } },
     { id: 6, name: 'Selva das Brumas', icon: '🌴', color: '#1f4d3a',
-      story: 'Névoa quente e cipós grossos. Macacos gritam nas copas e teias brilham entre as árvores.',
-      clear: 'O rei da selva reconheceu sua força. A névoa se abre e revela o deserto.',
-      m: [['Macaco Feroz', '🐒', 'veloz'], ['Aranha Gigante', '🕷️', 'venenoso']], semi: ['Gorila Ancestral', '🦍', 'esmagador'],
-      boss: { name: 'Rei Macaco Gigante', emoji: '🦍', mods: ['esmagador', 'regenerador'], sp: 'Soco do Trovão', trophy: 'Coroa de Ossos', tIcon: '👑' } },
+      story: 'Névoa quente e cipós grossos. Macacos gritam nas copas, plantas famintas se abrem e teias brilham entre as árvores.',
+      clear: 'O espírito da selva reconheceu sua força. A névoa se abre e revela o deserto.',
+      m: [['Macaco', '🐒', 'veloz'], ['Planta Carnívora', '🌿', 'venenoso']], semi: ['Pantera', '🐈‍⬛', 'veloz'],
+      boss: { name: 'Espírito da Selva', emoji: '🌳', mods: ['esmagador', 'regenerador'], sp: 'Maldição da Selva', trophy: 'Máscara da Selva', tIcon: '🌿' } },
     { id: 7, name: 'Deserto de Ossos', icon: '🏜️', color: '#7a5a2a',
       story: 'Ossos de criaturas colossais cobrem a areia. O sol queima e o ladrão do fogo deixou rastros que o vento apaga.',
-      clear: 'Sob o ferrão do imperador você acha uma pista: o ladrão fugiu para o frio.',
-      m: [['Escorpião Gigante', '🦂', 'venenoso'], ['Cascavel do Deserto', '🐍', 'veloz']], semi: ['Lagarto das Dunas', '🦎', 'couracado'],
-      boss: { name: 'Escorpião Imperador', emoji: '🦂', mods: ['venenoso', 'couracado'], sp: 'Ferrão Mortal', trophy: 'Ferrão Imperial', tIcon: '🦂' } },
+      clear: 'Entre os ossos do dragão você acha uma pista: o ladrão fugiu para o frio.',
+      m: [['Escaravelho', '🪲', 'couracado'], ['Esqueleto', '💀', 'veloz']], semi: ['Verme da Areia', '🪱', 'esmagador'],
+      boss: { name: 'Dragão de Ossos', emoji: '🐉', mods: ['venenoso', 'couracado'], sp: 'Sopro Mortal', trophy: 'Presa de Osso', tIcon: '🦴' } },
     { id: 8, name: 'Tundra Gelada', icon: '❄️', color: '#3d5a6e',
       story: 'O vento gela até os ossos. Pegadas largas cruzam a neve em direção às ruínas do vale.',
-      clear: 'A fera de gelo caiu. Do alto da tundra, você vê um vale cheio de garras e rugidos.',
-      m: [['Lobo das Neves', '🐺', 'feroz'], ['Mamute Jovem', '🦣', 'regenerador']], semi: ['Urso das Cavernas', '🐻', 'esmagador'],
-      boss: { name: 'Rinoceronte Lanudo', emoji: '🦏', mods: ['couracado', 'esmagador'], sp: 'Carga Devastadora', trophy: 'Chifre Gelado', tIcon: '🛡️' } },
+      clear: 'O dragão do gelo caiu. Do alto da tundra, você vê um vale cheio de garras e rugidos.',
+      m: [['Lobo de Gelo', '🐺', 'feroz'], ['Espírito Gelado', '👻', 'veloz']], semi: ['Yeti', '🦍', 'esmagador'],
+      boss: { name: 'Dragão do Gelo', emoji: '🐉', mods: ['couracado', 'esmagador'], sp: 'Sopro Congelante', trophy: 'Escama de Gelo', tIcon: '❄️' } },
     { id: 9, name: 'Vale dos Raptores', icon: '🦖', color: '#4f5a22',
       story: 'Bandos de raptores caçam em silêncio. Cada passo no vale é uma emboscada.',
-      clear: 'A matriarca dos raptores caiu e o bando recuou. O mar surge no horizonte.',
-      m: [['Raptor Veloz', '🦖', 'veloz'], ['Dinossauro Chifrudo', '🦕', 'esmagador']], semi: ['Dilofossauro', '🦖', 'venenoso'],
-      boss: { name: 'Rei dos Raptores', emoji: '🦖', mods: ['veloz', 'venenoso'], sp: 'Chuva de Garras', trophy: 'Garra Dourada', tIcon: '🥇' } },
+      clear: 'O T-Rex caiu e o bando recuou. O mar surge no horizonte.',
+      m: [['Velociraptor', '🦖', 'veloz'], ['Dilofossauro', '🦎', 'venenoso']], semi: ['Carnotauro', '🦖', 'esmagador'],
+      boss: { name: 'T-Rex', emoji: '🦖', mods: ['feroz', 'esmagador'], sp: 'Mordida Esmagadora', trophy: 'Dente de T-Rex', tIcon: '🥇' } },
     { id: 10, name: 'Costa dos Tubarões', icon: '🌊', color: '#14506b',
       story: 'Ondas batem em rochas negras. Há criaturas enormes nas águas rasas e o caminho passa pela praia.',
       clear: 'O abismo recuou. Depois da praia, o paredão de uma montanha toca as nuvens.',
-      m: [['Caranguejo Gigante', '🦀', 'couracado'], ['Tubarão Pré-histórico', '🦈', 'feroz']], semi: ['Polvo Gigante', '🐙', 'regenerador'],
-      boss: { name: 'Kraken do Abismo', emoji: '🦑', mods: ['esmagador', 'regenerador'], sp: 'Abraço do Abismo', trophy: 'Tentáculo Negro', tIcon: '🦑' } },
+      m: [['Caranguejo', '🦀', 'couracado'], ['Guerreiro do Mar', '🏴‍☠️', 'feroz']], semi: ['Tubarão', '🦈', 'feroz'],
+      boss: { name: 'Leviatã', emoji: '🐋', mods: ['esmagador', 'regenerador'], sp: 'Maremoto', trophy: 'Escama do Leviatã', tIcon: '🔱' } },
     { id: 11, name: 'Cume da Montanha', icon: '🏔️', color: '#555a66',
-      story: 'O ar é fino e a rocha, afiada. Gigantes de pedra guardam a subida para o pico.',
+      story: 'O ar é fino e a rocha, afiada. Gárgulas, grifos e um dragão vermelho dominam a subida para o pico.',
       clear: 'No topo, você avista fumaça negra ao longe: uma floresta amaldiçoada.',
-      m: [['Golem de Rocha', '🗿', 'couracado'], ['Alce Colossal', '🦌', 'feroz']], semi: ['Troll de Pedra', '👹', 'esmagador'],
-      boss: { name: 'Anquilossauro Pétreo', emoji: '🐢', mods: ['couracado', 'regenerador'], sp: 'Cauda Martelo', trophy: 'Martelo de Cauda', tIcon: '🔨' } },
+      m: [['Águia', '🦅', 'veloz'], ['Gárgula', '🗿', 'couracado']], semi: ['Grifo', '🦅', 'veloz'],
+      boss: { name: 'Dragão Vermelho', emoji: '🐲', mods: ['feroz', 'esmagador'], sp: 'Sopro Flamejante', trophy: 'Escama Rubra', tIcon: '🔥' } },
     { id: 12, name: 'Floresta Maldita', icon: '🌑', color: '#2d2440',
-      story: 'As árvores sussurram e a luz some. Um xamã sombrio comanda as feras com cantos antigos.',
-      clear: 'A maldição se desfez. O xamã revelou: o fogo está nas terras vulcânicas.',
-      m: [['Caçador de Crânios', '👹', 'feroz'], ['Espectro das Árvores', '👻', 'veloz']], semi: ['Xamã Aprendiz', '🧙', 'venenoso'],
-      boss: { name: 'Xamã Sombrio', emoji: '🎭', mods: ['venenoso', 'esmagador'], sp: 'Maldição Tribal', trophy: 'Máscara Tribal', tIcon: '🎭' } },
+      story: 'As árvores sussurram e a luz some. Um lich corrompido comanda as almas com cantos antigos.',
+      clear: 'A maldição se desfez. O lich revelou: o fogo está nas terras vulcânicas.',
+      m: [['Fantasma', '👻', 'veloz'], ['Lobo Sombrio', '🐺', 'feroz']], semi: ['Bruxa', '🧙', 'venenoso'],
+      boss: { name: 'Lich Corrompido', emoji: '☠️', mods: ['venenoso', 'esmagador'], sp: 'Maldição Corrompida', trophy: 'Filactério', tIcon: '💜' } },
     { id: 13, name: 'Terras Vulcânicas', icon: '🌋', color: '#6b2a18',
       story: 'O chão ferve e o ar queima. Rios de lava cortam o caminho e criaturas de fogo rondam as crateras.',
-      clear: 'O titã de magma ruiu. Além da fumaça, antigas ruínas guardam o segredo do roubo.',
-      m: [['Besta de Lava', '🔥', 'regenerador'], ['Serpente de Fogo', '🐍', 'venenoso']], semi: ['Salamandra Gigante', '🦎', 'feroz'],
-      boss: { name: 'Titã de Magma', emoji: '🌋', mods: ['feroz', 'regenerador'], sp: 'Sopro de Magma', trophy: 'Coração de Magma', tIcon: '🌋' } },
+      clear: 'O gigante de lava ruiu. Além da fumaça, antigas ruínas guardam o segredo do roubo.',
+      m: [['Lagarto', '🦎', 'regenerador'], ['Imp', '😈', 'feroz']], semi: ['Elemental', '🔥', 'regenerador'],
+      boss: { name: 'Gigante de Lava', emoji: '🌋', mods: ['feroz', 'regenerador'], sp: 'Erupção', trophy: 'Coração de Lava', tIcon: '🌋' } },
     { id: 14, name: 'Ruínas Ancestrais', icon: '🏛️', color: '#4a4a3a',
-      story: 'Tribos rivais ocupam as ruínas. Eles servem ao Tirano, o verdadeiro ladrão do fogo.',
-      clear: 'O senhor da guerra caiu e revelou: o Tirano espera no covil, no fim do mundo.',
-      m: [['Guerreiro Rival', '🧟', 'couracado'], ['Fera das Ruínas', '🐗', 'feroz']], semi: ['Capitão dos Rivais', '🧟', 'couracado'],
-      boss: { name: 'Senhor da Guerra', emoji: '👺', mods: ['couracado', 'feroz'], sp: 'Golpe Brutal', trophy: 'Machado de Guerra', tIcon: '🪓' } },
+      story: 'Sentinelas e estátuas guardam as ruínas. Elas servem ao Tirano, o verdadeiro ladrão do fogo.',
+      clear: 'A estátua colossal ruiu e revelou: o Tirano espera no covil, no fim do mundo.',
+      m: [['Gárgula', '🗿', 'couracado'], ['Sentinela', '🛡️', 'couracado']], semi: ['Minotauro', '🐂', 'esmagador'],
+      boss: { name: 'Estátua Colossal', emoji: '🗿', mods: ['couracado', 'regenerador'], sp: 'Esmagamento Ancestral', trophy: 'Fragmento Ancestral', tIcon: '🏺' } },
     { id: 15, name: 'Covil do Tirano', icon: '👑', color: '#5a1d1d',
       story: 'O fogo sagrado arde no fundo do covil. Ossos de reis tombados formam o trono do Tirano.',
       clear: 'O Tirano caiu! O fogo sagrado volta à tribo e você se torna lenda.',
-      m: [['Tiranete', '🦖', 'esmagador'], ['Fera Primordial', '👹', 'feroz']], semi: ['Alfa do Tirano', '🦖', 'feroz'],
-      boss: { name: 'Tiranossauro Rei', emoji: '👑', mods: ['feroz', 'esmagador'], sp: 'Rugido do Rei', trophy: 'Coroa do Rei Rex', tIcon: '🏆' } },
+      m: [['Guarda', '💂', 'couracado'], ['Golem de Ferro', '🤖', 'esmagador']], semi: ['Cavaleiro', '⚔️', 'feroz'],
+      boss: { name: 'O Tirano', emoji: '👑', mods: ['feroz', 'esmagador'], sp: 'Decreto do Tirano', trophy: 'Coroa do Tirano', tIcon: '🏆' } },
   ];
   G.BOSSES = G.ZONES.map((z) => Object.assign({ no: z.id, zone: z.name }, z.boss));
   // nível-base de cada local (as 4 lutas somam -1, 0, +1 e +2 a esse nível)
@@ -506,6 +506,7 @@
   const reduce = (arm) => 100 / (100 + arm * 1.5);
 
   G.startFight = function (st, mon, opts = {}) {
+    G.bestiaryNote(st, mon.name, 'seen');
     const h = G.heroStats(st);
     return {
       mon, mode: opts.mode || 'zone', event: opts.event || null, zone: opts.zone || null,
@@ -763,6 +764,23 @@
   G.zoneLevel = (z) => G.ZONE_LEVELS[z - 1];
   G.stepLevel = (z, step) => Math.max(1, G.zoneLevel(z) + G.STEPS[step].dl);
 
+  G.stepName = (z, step) => { const Z = G.ZONES[z - 1]; return step < 2 ? Z.m[step][0] : step === 2 ? Z.semi[0] : Z.boss.name; };
+  // Bestiário: monstros dos 15 locais que o herói já enfrentou (seen) e venceu (won)
+  const baseName = (n) => String(n).replace(/ Veterano$/, '');
+  G.bestiaryNote = function (st, name, what) {
+    if (!st.bestiary) st.bestiary = {};
+    const e = st.bestiary[baseName(name)] || (st.bestiary[baseName(name)] = { seen: 0, won: 0 });
+    e[what] = (e[what] || 0) + 1; if (what === 'won' && !e.seen) e.seen = 1;
+  };
+  G.ROLES = ['Comum', 'Comum', 'Mini-chefe', 'Chefe'];
+  G.bestiary = function (st) {
+    const zones = G.ZONES.map((Z) => ({ z: Z.id, name: Z.name, icon: Z.icon, color: Z.color,
+      mons: [0, 1, 2, 3].map((k) => { const nm = G.stepName(Z.id, k), e = (st.bestiary || {})[nm] || {}; const emoji = k < 2 ? Z.m[k][1] : k === 2 ? Z.semi[1] : Z.boss.emoji;
+        return { step: k, name: nm, emoji, role: G.ROLES[k], level: G.stepLevel(Z.id, k), seen: (e.seen || 0) > 0, won: e.won || 0 }; }) }));
+    const total = zones.reduce((a, z) => a + z.mons.length, 0), seen = zones.reduce((a, z) => a + z.mons.filter((m) => m.seen).length, 0);
+    return { zones, total, seen };
+  };
+
   // Inimigo de uma luta do local. step: 0, 1 (feras), 2 (semi-chefe), 3 (chefe)
   G.stepMonster = function (z, step, noElite) {
     const Z = G.ZONES[z - 1], lvl = G.stepLevel(z, step), kind = G.STEPS[step].kind;
@@ -946,6 +964,7 @@
         if (z < G.ZONES.length) rep.nextZone = G.ZONES[z]; else if (!st.finished) { st.finished = true; rep.finishedGame = true; }
       }
     }
+    G.bestiaryNote(st, f.mon.name, 'won');
     st.diamonds += rep.diamonds;
     rep.levels = giveXp(st, rep.xp);
     return rep;
@@ -1089,6 +1108,12 @@
     if (s.v < 7) {   // v6 -> v7: compras no app e anúncios com recompensa
       s.iap = s.iap || { tx: {} }; s.ads = s.ads || { day: '', energy: 0, gold: 0 }; s.v = 7;
     }
+    if (s.v < 8) {   // v7 -> v8: bestiário (as lutas já vencidas contam como descobertas)
+      s.bestiary = s.bestiary || {};
+      for (const z of G.ZONES) { const p = Math.min(4, (s.zones && s.zones[z.id]) || 0); for (let k = 0; k < p; k++) { const n = G.stepName(z.id, k); s.bestiary[n] = { seen: 1, won: 1 }; } }
+      s.v = 8;
+    }
+    if (!s.bestiary) s.bestiary = {};
     if (!s.iap) s.iap = { tx: {} }; if (!s.ads) s.ads = { day: '', energy: 0, gold: 0 };
     if (!s.tree) s.tree = {}; if (s.cls === undefined) s.cls = null; if (s.evo === undefined) s.evo = null;
     if (!s.avatar) s.avatar = Object.assign({}, G.DEFAULT_AVATAR);

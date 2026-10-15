@@ -1,23 +1,27 @@
 {
   "monsters": {
-    "Morcego da Caverna": "art/monsters/morcego-da-caverna.png",
-    "Morcego Vampiro": {
-      "src": "art/monsters/morcego-da-caverna.png",
-      "filter": "saturate(1.5) hue-rotate(-18deg) drop-shadow(0 0 6px #c0301a)"
-    },
-    "Mamute Ancestral": {
+    "Morcego": "art/monsters/morcego-da-caverna.png",
+    "Dente-de-Sabre": "art/monsters/tigre-dentes-de-sabre.png",
+    "Mamute Imperial": {
       "src": "art/monsters/mamute-jovem.png",
       "filter": "saturate(1.1) brightness(0.95) drop-shadow(0 0 9px #ffcf3a)"
     },
-    "Mamute Jovem": "art/monsters/mamute-jovem.png",
-    "Raptor Veloz": "art/monsters/raptor-veloz.png",
+    "Dragão de Ossos": {
+      "src": "art/monsters/dragao-primordial.png",
+      "filter": "saturate(0.35) brightness(1.35) drop-shadow(0 0 8px #e8dcc0)"
+    },
+    "Dragão do Gelo": {
+      "src": "art/monsters/dragao-primordial.png",
+      "filter": "hue-rotate(185deg) saturate(1.1) brightness(1.15) drop-shadow(0 0 10px #8fd8ff)"
+    },
+    "Velociraptor": "art/monsters/raptor-veloz.png",
     "Dilofossauro": {
       "src": "art/monsters/raptor-veloz.png",
       "filter": "hue-rotate(70deg) saturate(1.3) drop-shadow(0 0 6px #7ad04a)"
     },
-    "Rei dos Raptores": {
-      "src": "art/monsters/raptor-veloz.png",
-      "filter": "saturate(1.25) drop-shadow(0 0 9px #ffcf3a)"
+    "Dragão Vermelho": {
+      "src": "art/monsters/dragao-primordial.png",
+      "filter": "hue-rotate(-18deg) saturate(1.7) drop-shadow(0 0 10px #ff5a2a)"
     },
     "Mamute Alfa": {
       "src": "art/monsters/mamute-jovem.png",
@@ -58,5 +62,65 @@
     "2": "art/portraits/guerreiro.png",
     "3": "art/portraits/guardiao-de-pedra.png",
     "4": "art/monsters/mamute-jovem.png"
+  },
+  "bestiary": {
+    "Morcego": "art/bestiary/morcego.png",
+    "Aranha": "art/bestiary/aranha.png",
+    "Golem de Pedra": "art/bestiary/golem-de-pedra.png",
+    "Fera das Sombras": "art/bestiary/fera-das-sombras.png",
+    "Javali": "art/bestiary/javali.png",
+    "Gohlin": "art/bestiary/gohlin.png",
+    "Urso-Garra": "art/bestiary/urso-garra.png",
+    "Guardião": "art/bestiary/guardiao.png",
+    "Sapo Gigante": "art/bestiary/sapo-gigante.png",
+    "Caranguejo": "art/bestiary/caranguejo.png",
+    "Serpente": "art/bestiary/serpente.png",
+    "Besta do Lago": "art/bestiary/besta-do-lago.png",
+    "Escorpião": "art/bestiary/escorpiao.png",
+    "Cabra Furiosa": "art/bestiary/cabra-furiosa.png",
+    "Wyvern": "art/bestiary/wyvern.png",
+    "Gigante de Pedra": "art/bestiary/gigante-de-pedra.png",
+    "Lobo": "art/bestiary/lobo.png",
+    "Hiena": "art/bestiary/hiena.png",
+    "Dente-de-Sabre": "art/bestiary/dente-de-sabre.png",
+    "Mamute Imperial": "art/bestiary/mamute-imperial.png",
+    "Macaco": "art/bestiary/macaco.png",
+    "Planta Carnívora": "art/bestiary/planta-carnivora.png",
+    "Pantera": "art/bestiary/pantera.png",
+    "Espírito da Selva": "art/bestiary/espirito-da-selva.png",
+    "Escaravelho": "art/bestiary/escaravelho.png",
+    "Esqueleto": "art/bestiary/esqueleto.png",
+    "Verme da Areia": "art/bestiary/verme-da-areia.png",
+    "Dragão de Ossos": "art/bestiary/dragao-de-ossos.png",
+    "Lobo de Gelo": "art/bestiary/lobo-de-gelo.png",
+    "Espírito Gelado": "art/bestiary/espirito-gelado.png",
+    "Yeti": "art/bestiary/yeti.png",
+    "Dragão do Gelo": "art/bestiary/dragao-do-gelo.png",
+    "Velociraptor": "art/bestiary/velociraptor.png",
+    "Dilofossauro": "art/bestiary/dilofossauro.png",
+    "Carnotauro": "art/bestiary/carnotauro.png",
+    "T-Rex": "art/bestiary/t-rex.png",
+    "Guerreiro do Mar": "art/bestiary/guerreiro-do-mar.png",
+    "Tubarão": "art/bestiary/tubarao.png",
+    "Leviatã": "art/bestiary/leviata.png",
+    "Águia": "art/bestiary/aguia.png",
+    "Gárgula": "art/bestiary/gargula.png",
+    "Grifo": "art/bestiary/grifo.png",
+    "Dragão Vermelho": "art/bestiary/dragao-vermelho.png",
+    "Fantasma": "art/bestiary/fantasma.png",
+    "Lobo Sombrio": "art/bestiary/lobo-sombrio.png",
+    "Bruxa": "art/bestiary/bruxa.png",
+    "Lich Corrompido": "art/bestiary/lich-corrompido.png",
+    "Lagarto": "art/bestiary/lagarto.png",
+    "Imp": "art/bestiary/imp.png",
+    "Elemental": "art/bestiary/elemental.png",
+    "Gigante de Lava": "art/bestiary/gigante-de-lava.png",
+    "Sentinela": "art/bestiary/sentinela.png",
+    "Minotauro": "art/bestiary/minotauro.png",
+    "Estátua Colossal": "art/bestiary/estatua-colossal.png",
+    "Guarda": "art/bestiary/guarda.png",
+    "Golem de Ferro": "art/bestiary/golem-de-ferro.png",
+    "Cavaleiro": "art/bestiary/cavaleiro.png",
+    "O Tirano": "art/bestiary/o-tirano.png"
   }
 }

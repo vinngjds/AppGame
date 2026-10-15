@@ -1,28 +1,13 @@
 {
   "_comentario": "Reaproveita uma imagem para outros monstros, com cor/brilho próprios. 'use' = nome do arquivo (sem extensão) em art/monsters. 'filter' = filtro CSS. Um monstro com imagem própria (art/monsters/<nome>.png) tem prioridade.",
   "monsters": {
-    "Morcego Vampiro": {
-      "use": "morcego-da-caverna",
-      "filter": "saturate(1.5) hue-rotate(-18deg) drop-shadow(0 0 6px #c0301a)"
-    },
-    "Raptor Veloz": {
-      "use": "raptor-veloz"
-    },
     "Dilofossauro": {
       "use": "raptor-veloz",
       "filter": "hue-rotate(70deg) saturate(1.3) drop-shadow(0 0 6px #7ad04a)"
     },
-    "Rei dos Raptores": {
-      "use": "raptor-veloz",
-      "filter": "saturate(1.25) drop-shadow(0 0 9px #ffcf3a)"
-    },
     "Matriarca dos Raptores": {
       "use": "raptor-veloz",
       "filter": "hue-rotate(-25deg) saturate(1.3) drop-shadow(0 0 9px #ffcf3a)"
-    },
-    "Mamute Ancestral": {
-      "use": "mamute-jovem",
-      "filter": "saturate(1.1) brightness(0.95) drop-shadow(0 0 9px #ffcf3a)"
     },
     "Mamute Alfa": {
       "use": "mamute-jovem",
@@ -43,6 +28,31 @@
     "Dragão de Fogo": {
       "use": "dragao-primordial",
       "filter": "hue-rotate(-14deg) saturate(1.6) drop-shadow(0 0 10px #ff7a1a)"
+    },
+    "Morcego": {
+      "use": "morcego-da-caverna"
+    },
+    "Velociraptor": {
+      "use": "raptor-veloz"
+    },
+    "Dente-de-Sabre": {
+      "use": "tigre-dentes-de-sabre"
+    },
+    "Mamute Imperial": {
+      "use": "mamute-jovem",
+      "filter": "saturate(1.1) brightness(0.95) drop-shadow(0 0 9px #ffcf3a)"
+    },
+    "Dragão de Ossos": {
+      "use": "dragao-primordial",
+      "filter": "saturate(0.35) brightness(1.35) drop-shadow(0 0 8px #e8dcc0)"
+    },
+    "Dragão do Gelo": {
+      "use": "dragao-primordial",
+      "filter": "hue-rotate(185deg) saturate(1.1) brightness(1.15) drop-shadow(0 0 10px #8fd8ff)"
+    },
+    "Dragão Vermelho": {
+      "use": "dragao-primordial",
+      "filter": "hue-rotate(-18deg) saturate(1.7) drop-shadow(0 0 10px #ff5a2a)"
     }
   },
   "portraits": {

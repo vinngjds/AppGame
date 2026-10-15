@@ -24,6 +24,9 @@ Dicas: use o mesmo estilo (a lista de prompts já repete o estilo comum), manten
 
 Para o restante (≈60 criaturas, cenários e itens) o jogo continua no desenho em SVG. Para chegar ao mesmo nível de qualidade, gere o resto com o **mesmo estilo**: `node scripts/art-prompts.js` já usa a descrição desse estilo em todos os prompts (anexe também a folha de referência na ferramenta de imagem).
 
+## Bestiário (60 monstros)
+As 58 miniaturas diferentes (Caranguejo e Gárgula repetem em dois locais) vêm da imagem de referência do bestiário e ficam em `art/bestiary/<nome>.png`. Elas aparecem no **Bestiário**, nos cartões do mapa e nos detalhes de cada local (`Art.icon`). Na **luta em 3D** o monstro usa a arte da folha de referência quando existe (Morcego, Velociraptor, Dente-de-Sabre, Mamute Imperial e os dragões) ou o desenho vetorial do arquétipo parecido (`Art.ALIAS` em `js/art.js`), porque as miniaturas são pequenas e têm fundo de cartão. Para ter a mesma arte do bestiário na luta, gere cada criatura em tamanho maior, com fundo transparente, e salve em `art/monsters/<nome>.png`.
+
 ## Itens e conjuntos da loja
 Os 35 equipamentos (7 peças × 5 conjuntos da Era da Pedra) usam os **desenhos vetoriais** do jogo (`js/itemart.js`), que já combinam com cada material. As **miniaturas dos conjuntos** na loja vêm da folha de referência (`art/styles.json` → `sets`): Caçador, Xamã, Guerreiro, Defensor e Rei Mamute. Para trocar por arte própria, salve `art/items/<peça>-<conjunto 0 a 4>.png` (ex.: `arma-2.png`) e/ou `art/sets/<0 a 4>.png` e rode `node scripts/art-manifest.js`.
 

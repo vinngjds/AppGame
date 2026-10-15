@@ -145,6 +145,33 @@
         : left > 0 ? `<div class="row waitrow"><button class="btn sm" disabled>⏳ Volta em <span data-live="dr-${id}">${mmss(left)}</span></button><button class="btn sm" data-skipdr="${id}">⏩ Chamar agora · 🪙 <span data-live="drcost-${id}">${G.dragonSkipCost(st, id)}</span></button></div>`
         : `<button class="btn red" data-dragon="${id}" ${chk.ok ? '' : 'disabled'}>🔥 Pagar 🪙 ${fmt(G.dragonFee(st, id))} e desafiar</button>${chk.ok ? '' : `<div class="sub center" style="margin-top:6px">${chk.msg}</div>`}`}</div>`;
   }
+  /* ---------- Bestiário ---------- */
+  function vBestiario() {
+    const B = G.bestiary(st);
+    let h = `<h2 class="banner">📖 Bestiário</h2><div class="sub center" style="margin-bottom:8px">${B.seen}/${B.total} monstros descobertos. Cada local tem 2 feras, 1 mini-chefe e 1 chefe: enfrente-os para revelar. Toque para ver os detalhes.</div>
+      <div class="bar"><i style="width:${(100 * B.seen) / B.total}%"></i><div class="t">${B.seen}/${B.total}</div></div>`;
+    h += B.zones.map((Z) => {
+      const n = Z.mons.filter((m) => m.seen).length;
+      return `<div class="card bz"><div class="row"><div class="zi" style="background:${Z.color}">${Z.icon}</div><div class="grow name">${Z.z}. ${esc(Z.name)}</div><span class="sub">${n}/4</span></div>
+        <div class="bgrid">${Z.mons.map((m) => `<button class="btile ${m.seen ? '' : 'unk'}" data-bmon="${Z.z}:${m.step}"><div class="bimg">${Art.icon({ name: m.name, emoji: m.emoji, kind: m.step === 2 ? 'semi' : m.step === 3 ? 'boss' : 'normal' })}</div>
+          <div class="bname">${m.seen ? esc(m.name) : '???'}</div><div class="brole r${m.step}">${m.role}</div></button>`).join('')}</div></div>`;
+    }).join('');
+    return h;
+  }
+  function showBestiaryMon(z, step) {
+    const Z = G.ZONES[z - 1], m = G.bestiary(st).zones[z - 1].mons[step];
+    if (!m.seen) return toast('Enfrente este monstro para descobri-lo.');
+    const mon = G.stepMonster(z, step, true), mx = G.heroStats(st);
+    openModal(`<div class="cdetail bdetail">${Art.icon(mon)}</div><h2 class="banner">${esc(m.name)}</h2>
+      <div class="center"><span class="tag">${m.role}</span> <span class="tag">${Z.icon} ${esc(Z.name)}</span></div>
+      <div class="tags" style="justify-content:center;margin-top:6px">${modTags(mon.mods)}${mon.special ? `<span class="tag">💥 ${esc(mon.special.name)}</span>` : ''}</div>
+      <div class="row" style="margin-top:8px"><span class="grow">Nível</span><b>${mon.level}</b></div>
+      <div class="row"><span class="grow">❤️ Vida</span><b>${fmt(mon.maxHp)}</b></div>
+      <div class="row"><span class="grow">⚔️ Ataque</span><b>${fmt(mon.atk)}</b></div>
+      <div class="row"><span class="grow">📦 Caixa</span><b>${boxRange(['normal', 'normal', 'semi', 'boss'][step], z)}</b></div>
+      <div class="row"><span class="grow">🏆 Vitórias</span><b>${m.won}</b></div>
+      <button class="btn" data-close>Fechar</button>`);
+  }
   function vMapa() {
     const s = G.heroStats(st), mxEn = G.maxEnergy(st);
     const cz = G.currentZone(st), Z = G.ZONES[cz - 1], prog = G.zoneProgress(st, cz);
@@ -155,13 +182,14 @@
       <button class="btn sm" data-act="rest" ${G.restCost(st) <= 0 ? 'disabled' : ''}>🔥 Descansar · 🪙 ${G.restCost(st)}</button></div></div>`;
     h += `<div class="card"><div class="row"><div class="grow"><div class="name">⚡ Encontros: <span data-live="en">${st.energy}</span>/${mxEn}${G.isVip(st) ? ' <span class="vipbadge">👑 x2</span>' : ''}</div>
       <div class="sub">${st.energy < mxEn ? `próximo em <span data-live="ent">${mmss(nextEn)}</span>` : 'cheio — pode lutar sem esperar'}${st.energy <= 0 ? ' · <b class="down">acabaram!</b>' : ''}</div></div></div>${waitRow()}</div>`;
-    h += `<div class="chips" style="margin-top:4px"><button data-jt="mapa" class="${jTab === 'mapa' ? 'on' : ''}">🗺️ Mapa</button><button data-jt="drag" class="${jTab === 'drag' ? 'on' : ''}">🐉 Dragões</button></div>`;
+    h += `<div class="chips" style="margin-top:4px"><button data-jt="mapa" class="${jTab === 'mapa' ? 'on' : ''}">🗺️ Mapa</button><button data-jt="drag" class="${jTab === 'drag' ? 'on' : ''}">🐉 Dragões</button><button data-jt="best" class="${jTab === 'best' ? 'on' : ''}">📖 Bestiário</button></div>`;
+    if (jTab === 'best') { view.innerHTML = h + vBestiario(); return; }
     if (jTab === 'drag') { view.innerHTML = h + `<h2 class="banner">🐉 Covil dos Dragões</h2>${dragonCard('verde')}${dragonCard('azul')}`; return; }
     if (st.finished) h += `<div class="card center"><div class="big">👑</div><div class="name">Você recuperou o fogo sagrado!</div><div class="sub">Os 15 locais foram vencidos. Rejogue os locais, enfrente os dragões e os eventos até o nível ${G.MAX_LEVEL}.</div></div>`;
     else {
       const nextStep = Math.min(3, prog), mon = G.stepMonster(cz, nextStep, true), chk = G.canFightZone(st, cz, nextStep);
       h += `<h2 class="banner">📍 Local atual</h2><div class="card ${nextStep === 3 ? 'boss' : nextStep === 2 ? 'semi' : ''}">
-        <div class="row"><div class="pic art">${Art.monster(mon)}</div><div class="grow"><div class="name">${cz}. ${Z.name}</div><div class="sub">Próxima luta ${nextStep + 1}/4: ${mon.emoji} ${esc(mon.name)} · nv ${mon.level}</div>
+        <div class="row"><div class="pic art">${Art.icon(mon)}</div><div class="grow"><div class="name">${cz}. ${Z.name}</div><div class="sub">Próxima luta ${nextStep + 1}/4: ${mon.emoji} ${esc(mon.name)} · nv ${mon.level}</div>
         <div class="sub">${G.STEPS[nextStep].label} · 📦 Caixa ${boxRange(G.STEPS[nextStep].kind, cz)} · custa ${G.STEP_COST[nextStep]} ⚡</div></div></div>
         <div class="prog">${[0, 1, 2, 3].map((k) => `<b class="${prog > k ? 'on' : ''} ${k === 2 ? 'semi' : ''}"></b>`).join('')}</div>
         <button class="btn ${nextStep === 3 ? 'red' : 'go'}" data-step="${cz}:${nextStep}" ${chk.ok ? '' : 'disabled'}>${nextStep === 3 ? '⚔️ Enfrentar o Chefe' : nextStep === 2 ? '🐾 Enfrentar o Semi-chefe' : '🏹 Lutar'}</button>
@@ -179,7 +207,7 @@
     const rows = G.STEPS.map((stp, i) => {
       const mon = G.stepMonster(z, i, true), chk = G.canFightZone(st, z, i), done = i < prog, next = i === prog;
       const btn = done ? `<button class="btn sm" data-step="${z}:${i}" ${chk.ok ? '' : 'disabled'}>↻ Rejogar</button>` : next ? `<button class="btn sm ${i === 3 ? 'red' : 'go'}" data-step="${z}:${i}" ${chk.ok ? '' : 'disabled'}>⚔️ Lutar</button>` : '<span class="sub">🔒</span>';
-      return `<div class="item" data-noop style="border-color:${i === 3 ? '#a8452b' : i === 2 ? '#d9822b' : 'var(--edge)'}"><div class="pic art">${Art.monster(mon)}</div><div class="grow">
+      return `<div class="item" data-noop style="border-color:${i === 3 ? '#a8452b' : i === 2 ? '#d9822b' : 'var(--edge)'}"><div class="pic art">${Art.icon(mon)}</div><div class="grow">
         <div class="name">${done ? '✅ ' : ''}${i + 1}. ${esc(mon.name)}</div><div class="stat">${stp.label} · nível ${mon.level} · ${G.STEP_COST[i]} ⚡</div>
         <div class="stat">📦 Caixa ${boxRange(stp.kind, z)}${i === 3 ? ` · 🏆 ${Z.boss.trophy} (${G.bonusText(G.trophyBonus(z))})` : ''}</div><div class="tags" style="margin-top:2px">${modTags(mon.mods)}</div></div>${btn}</div>`;
     }).join('');
@@ -704,7 +732,7 @@
   }
 
   /* ---------- Eventos de clique ---------- */
-  const SEL = '[data-act],[data-nav],[data-item],[data-set],[data-buyset],[data-buyrune],[data-evolve],[data-buyprod],[data-do-evolve],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-go-forge]';
+  const SEL = '[data-act],[data-nav],[data-item],[data-set],[data-buyset],[data-buyrune],[data-bmon],[data-evolve],[data-buyprod],[data-do-evolve],[data-eq],[data-uneq],[data-sell],[data-sellq],[data-upq],[data-close],[data-bf],[data-st],[data-ft],[data-pot],[data-fa],[data-empty],[data-lock],[data-bulk],[data-fuse],[data-av-g],[data-av-skin],[data-av-hair],[data-train],[data-sk],[data-cls],[data-learn],[data-go-tree],[data-cdx],[data-jt],[data-zone],[data-step],[data-dragon],[data-skipdr],[data-box],[data-ev],[data-go-forge]';
   const after = (msg, ok = true) => { if (msg) toast(msg); if (ok) { save(); closeModal(); } render(); };
   document.addEventListener('click', (ev) => {
     const t = ev.target.closest(SEL);
@@ -743,6 +771,7 @@
     if (d.goTree !== undefined) { closeModal(); screen = 'arvore'; render(); return; }
     if (d.cdx) return showCodexEntry(d.cdx);
     if (d.jt) { jTab = d.jt; return render(); }
+    if (d.bmon) { const [bz, bs] = d.bmon.split(':'); return showBestiaryMon(+bz, +bs); }
     if (d.zone) return showZone(+d.zone);
     if (d.step) { const [z, k] = d.step.split(':'); return startZone(+z, +k); }
     if (d.dragon) return startDragon(d.dragon);

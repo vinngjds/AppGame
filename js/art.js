@@ -491,12 +491,31 @@
   };
   const FALLBACK = { '🦇': 'Morcego da Caverna', '🐍': 'Cobra das Sombras', '🐺': 'Lobo Jovem', '🐗': 'Javali Selvagem', '🦁': 'Leão da Mata', '🐊': 'Crocodilo do Pântano', '🦅': 'Águia das Pedras', '🐻': 'Urso das Cavernas', '🦖': 'Raptor Veloz', '🦍': 'Gorila Ancestral' };
   Art.slug = (n) => String(n).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  Art.hasSpec = (name) => !!SPEC[name.replace(/ Veterano$/, '')];
+  // Bestiário novo: cada criatura reaproveita o desenho vetorial (arquétipo) do monstro mais parecido
+  const ALIAS = {
+    'Morcego': 'Morcego da Caverna', 'Aranha': 'Aranha Gigante', 'Golem de Pedra': 'Golem de Rocha', 'Fera das Sombras': 'Fera Primordial',
+    'Javali': 'Javali Selvagem', 'Gohlin': 'Caçador de Crânios', 'Urso-Garra': 'Urso das Cavernas', 'Guardião': 'Guerreiro Rival',
+    'Sapo Gigante': 'Sapo Venenoso', 'Caranguejo': 'Caranguejo Gigante', 'Serpente': 'Cobra das Sombras', 'Besta do Lago': 'Monstro do Lago',
+    'Escorpião': 'Escorpião Gigante', 'Cabra Furiosa': 'Bode da Montanha', 'Wyvern': 'Dragão de Fogo', 'Gigante de Pedra': 'Troll de Pedra',
+    'Lobo': 'Lobo Jovem', 'Hiena': 'Hiena Faminta', 'Dente-de-Sabre': 'Tigre Caçador', 'Mamute Imperial': 'Mamute Ancestral',
+    'Macaco': 'Macaco Feroz', 'Planta Carnívora': 'Espectro das Árvores', 'Pantera': 'Tigre Caçador', 'Espírito da Selva': 'Espectro das Árvores',
+    'Escaravelho': 'Aranha Gigante', 'Esqueleto': 'Guerreiro Rival', 'Verme da Areia': 'Cascavel do Deserto', 'Dragão de Ossos': 'Dragão de Fogo',
+    'Lobo de Gelo': 'Lobo das Neves', 'Espírito Gelado': 'Espectro das Árvores', 'Yeti': 'Gorila Ancestral', 'Dragão do Gelo': 'Dragão de Fogo',
+    'Velociraptor': 'Raptor Veloz', 'Carnotauro': 'Dinossauro Chifrudo', 'T-Rex': 'Tiranossauro Rei',
+    'Guerreiro do Mar': 'Guerreiro Rival', 'Tubarão': 'Tubarão Pré-histórico', 'Leviatã': 'Kraken do Abismo',
+    'Águia': 'Águia das Pedras', 'Gárgula': 'Troll de Pedra', 'Grifo': 'Rei Águia', 'Dragão Vermelho': 'Dragão de Fogo',
+    'Fantasma': 'Espectro das Árvores', 'Lobo Sombrio': 'Lobo Cinzento Alfa', 'Bruxa': 'Xamã Aprendiz', 'Lich Corrompido': 'Xamã Sombrio',
+    'Lagarto': 'Salamandra Gigante', 'Imp': 'Fera Primordial', 'Elemental': 'Besta de Lava', 'Gigante de Lava': 'Titã de Magma',
+    'Sentinela': 'Guerreiro Rival', 'Minotauro': 'Bisão Enraivecido', 'Estátua Colossal': 'Golem de Rocha',
+    'Guarda': 'Guerreiro Rival', 'Golem de Ferro': 'Golem de Rocha', 'Cavaleiro': 'Capitão dos Rivais', 'O Tirano': 'Senhor da Guerra',
+  };
+  Art.ALIAS = ALIAS;
+  Art.hasSpec = (name, emoji) => { const n = name.replace(/ Veterano$/, ''); return !!(SPEC[n] || (ALIAS[n] && SPEC[ALIAS[n]]) || (emoji && SPEC[FALLBACK[emoji]])); };
 
   /* ---------- API: monstro ---------- */
   function specFor(mon) {
     const nm = String(mon.name || '').replace(/ Veterano$/, '');
-    return SPEC[nm] || SPEC[FALLBACK[mon.emoji]] || SPEC['Lobo Jovem'];
+    return SPEC[nm] || SPEC[ALIAS[nm]] || SPEC[FALLBACK[mon.emoji]] || SPEC['Lobo Jovem'];
   }
   Art.monster = function (mon, opts) {
     opts = opts || {};
@@ -516,6 +535,11 @@
     return `<svg${cls} viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${mon.name}"><defs>${c.defs.join('')}${filt}</defs>${elite}${sm}${ground}<g${grain}>${body}</g></svg>`;
   };
   Art.GRAIN = true;
+  // ícone pequeno de um monstro (cartões do mapa e bestiário): a miniatura do bestiário, se existir; senão o desenho
+  Art.icon = function (mon) {
+    const src = Art.pack && Art.pack.bestiary && Art.pack.bestiary[String(mon.name).replace(/ Veterano$/, '')];
+    return src ? `<img class="artimg bst" src="${src}" alt="${mon.name}" draggable="false">` : Art.monster(mon);
+  };
   // retrato de classe/evolução (imagem do pacote de arte) ou, sem ela, o emoji
   Art.portrait = function (key, fallback) {
     const src = Art.pack && Art.pack.portraits && Art.pack.portraits[key];

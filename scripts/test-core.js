@@ -443,10 +443,12 @@ t('pacote de arte: manifesto aponta só para arquivos que existem; dragões e ch
   for (let i = 0; i < 5; i++) assert(m.sets[i] && fs.existsSync(path.join(root, m.sets[i])), 'miniatura do conjunto ' + i);
   assert(m.portraits.guerreiro && m.portraits.arqueiro && m.portraits.mago && m.portraits['evo:guerreiro:1']);
   const Art = require(path.join(root, 'js', 'art.js')); Art.pack = m;
-  assert(/<img class="artimg" src="art\/monsters\/raptor-veloz\.png"/.test(Art.monster({ name: 'Raptor Veloz', emoji: '🦖', kind: 'normal' })));
+  assert(/<img class="artimg" src="art\/monsters\/raptor-veloz\.png"/.test(Art.monster({ name: 'Velociraptor', emoji: '🦖', kind: 'normal' })));
   assert(/style="filter:[^"]*hue-rotate/.test(Art.monster({ name: 'Dragão Verde', emoji: '🐲', kind: 'dragon' })), 'variante com filtro');
   assert(Art.portrait('mago', 'X').includes('portrait') && Art.portrait('inexistente', 'X') === 'X', 'sem retrato: usa o emoji');
-  assert(Art.monster({ name: 'Lobo Jovem', emoji: '🐺', kind: 'normal' }).startsWith('<svg'), 'sem imagem: desenho em SVG'); Art.pack = null;
+  assert(Art.monster({ name: 'Lobo', emoji: '🐺', kind: 'normal' }).startsWith('<svg'), 'sem imagem: desenho em SVG');
+  assert(Object.keys(m.bestiary).length >= 58, 'miniaturas do bestiário'); for (const v of Object.values(m.bestiary)) assert(fs.existsSync(path.join(root, v)));
+  assert(/class="artimg bst" src="art\/bestiary\/aranha\.png"/.test(Art.icon({ name: 'Aranha', emoji: '🕷️' })) && Art.icon({ name: 'Inexistente', emoji: '🐺' }).startsWith('<svg'), 'ícone do bestiário ou desenho'); Art.pack = null;
 });
 
 t('conjuntos novos: nomes, materiais, nível 15 e preços por peça do mockup (nível 15)', () => {
@@ -459,6 +461,21 @@ t('conjuntos novos: nomes, materiais, nível 15 e preços por peça do mockup (n
   assert(!/Ancestral|Primordial/.test(G.itemName(G.setPiece(st, G.SETS[3], 'arma'))), 'peça de conjunto sem sufixo');
   assert.equal(G.itemName(G.newState('y').equipped.arma), 'Clava Simples', 'arma inicial simples');
   for (const sl of G.SLOT_ORDER) for (let t = 0; t < 5; t++) { const it = G.makeItem(sl, t * 8 + 1, 0); assert(G.itemName(it) && G.itemDesc(it).length > 20 && G.itemMaterial(it) === G.MATERIALS[t]); }
+});
+
+t('bestiário: 15 locais × 4 monstros, descoberta ao lutar, vitória ao vencer, migração das lutas já vencidas', () => {
+  assert.equal(G.ZONES.length, 15); const names = [];
+  G.ZONES.forEach((z) => { assert.equal(z.m.length, 2); names.push(...z.m.map((m) => m[0]), z.semi[0], z.boss.name); });
+  assert.equal(names.length, 60); assert.equal(new Set(names).size, 58, 'Caranguejo e Gárgula aparecem em dois locais');
+  assert.deepEqual(G.ROLES, ['Comum', 'Comum', 'Mini-chefe', 'Chefe']);
+  const st = G.newState('x'); st.level = 5; let b = G.bestiary(st); assert.equal(b.total, 60); assert.equal(b.seen, 0);
+  assert.equal(b.zones[0].mons[3].name, 'Fera das Sombras'); assert.equal(b.zones[14].mons[3].name, 'O Tirano');
+  const mon = G.stepMonster(1, 0, true); const f = G.startFight(st, mon, { mode: 'zone', zone: { z: 1, step: 0 } });
+  b = G.bestiary(st); assert(b.zones[0].mons[0].seen && b.zones[0].mons[0].won === 0 && b.seen === 1, 'ao começar a luta o monstro é descoberto');
+  f.over = f.won = true; f.hero.hp = f.hero.max; G.finishFight(st, f); b = G.bestiary(st); assert.equal(b.zones[0].mons[0].won, 1);
+  const f2 = G.startFight(st, Object.assign({}, G.stepMonster(1, 1, true), { name: 'Aranha Veterano' }), { mode: 'zone', zone: { z: 1, step: 1 } }); assert(G.bestiary(st).zones[0].mons[1].seen, 'veterano conta como o monstro base');
+  const old = G.migrate({ v: 7, name: 'A', level: 12, trophies: [], evTrophies: [], bag: [], equipped: { runas: [null, null, null] }, potions: { small: 1, large: 0 }, energy: 5, zones: { 1: 4, 2: 2 }, boxes: [], dragons: { verde: { readyAt: 0 }, azul: { readyAt: 0 } }, dragonTrophies: [], codex: {}, iap: { tx: {} }, ads: {} });
+  const ob = G.bestiary(old); assert.equal(old.v, G.STATE_V); assert.equal(ob.seen, 6, 'zona 1 completa (4) + 2 lutas da zona 2'); assert(ob.zones[1].mons[1].won === 1 && !ob.zones[1].mons[2].seen);
 });
 
 Promise.all(pend).then(() => console.log(`\n${n} testes passaram`)).catch((e) => { console.error(e); process.exit(1); });
